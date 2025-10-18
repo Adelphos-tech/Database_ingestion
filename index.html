@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Upload Portal</title>
+    
+    <!-- Text Extraction Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 60px 50px;
+            max-width: 550px;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            background: #f7fafc;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .file-input-label:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .file-input-label.has-file {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .file-text {
+            color: #4a5568;
+            font-size: 15px;
+        }
+
+        .file-text strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .file-name {
+            color: #2d3748;
+            font-size: 14px;
+            margin-top: 10px;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .upload-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .upload-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            margin-top: 25px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+            animation: fadeIn 0.3s ease-out;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-message.success {
+            background: #f0fff4;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+            display: block;
+        }
+
+        .status-message.error {
+            background: #fff5f5;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+            display: block;
+        }
+
+        .status-message.loading {
+            background: #ebf8ff;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(44, 82, 130, 0.3);
+            border-top-color: #2c5282;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .supported-formats {
+            margin-top: 20px;
+            text-align: center;
+            color: #a0aec0;
+            font-size: 13px;
+        }
+
+        .supported-formats strong {
+            color: #718096;
+        }
+
+        .project-selector {
+            margin-bottom: 25px;
+        }
+
+        .project-selector label {
+            display: block;
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .project-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #cbd5e0;
+            border-radius: 12px;
+            background: white;
+            color: #2d3748;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        .project-select:hover {
+            border-color: #667eea;
+        }
+
+        .project-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-details {
+            display: none;
+            padding: 15px;
+            background: #ebf8ff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #90cdf4;
+        }
+
+        .file-details.show {
+            display: block;
+        }
+
+        .file-detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .file-detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-detail-label {
+            color: #2c5282;
+            font-weight: 600;
+        }
+
+        .file-detail-value {
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 30px;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Document Upload Portal</h1>
+            <p>Select documents to upload to AI workflow</p>
+        </div>
+
+        <form id="uploadForm" method="POST" enctype="multipart/form-data" action="https://personalgpt.app.n8n.cloud/webhook/0a5bf047-9034-488b-87e5-0bb11cd0c058">
+            <div class="upload-section">
+                <div class="project-selector">
+                    <label for="projectSelect">Select Project</label>
+                    <select id="projectSelect" class="project-select" required>
+                        <option value="mubest">Mubest</option>
+                        <option value="fortius">Fortius</option>
+                    </select>
+                </div>
+
+                <div class="file-details" id="fileDetails">
+                    <div class="file-detail-item">
+                        <span class="file-detail-label">📄 File Name:</span>
+                        <span class="file-detail-value" id="detailFileName">-</span>
+                    </div>
+                    <div class="file-detail-item">
+                        <span class="file-detail-label">📊 File Size:</span>
+                        <span class="file-detail-value" id="detailFileSize">-</span>
+                    </div>
+                    <div class="file-detail-item">
+                        <span class="file-detail-label">📝 File Type:</span>
+                        <span class="file-detail-value" id="detailFileType">-</span>
+                    </div>
+                    <div class="file-detail-item">
+                        <span class="file-detail-label">✂️ Est. Chunks:</span>
+                        <span class="file-detail-value" id="detailChunks">-</span>
+                    </div>
+                </div>
+
+                <div class="file-input-wrapper">
+                    <input type="file" name="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" multiple required>
+                    <label for="fileInput" class="file-input-label" id="fileLabel">
+                        <div>
+                            <div class="file-icon">📄</div>
+                            <div class="file-text">
+                                <strong>Click to select files</strong><br>
+                                or drag and drop here
+                            </div>
+                            <div class="file-name" id="fileName"></div>
+                        </div>
+                    </label>
+                </div>
+
+                <button type="submit" class="upload-btn" id="uploadBtn">
+                    Upload Files
+                </button>
+
+                <div class="supported-formats">
+                    <strong>Supported formats:</strong> Excel (.xlsx, .xls, .csv), PDF, DOCX, TXT<br>
+                    <strong>Max file size:</strong> 50MB
+                </div>
+            </div>
+        </form>
+
+        <div class="status-message" id="statusMessage"></div>
+    </div>
+
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const fileInput = document.getElementById('fileInput');
+        const fileLabel = document.getElementById('fileLabel');
+        const fileName = document.getElementById('fileName');
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const projectSelect = document.getElementById('projectSelect');
+        const fileDetails = document.getElementById('fileDetails');
+
+        // Webhook URLs for different projects
+        const webhookUrls = {
+            mubest: 'https://personalgpt.app.n8n.cloud/webhook/0a5bf047-9034-488b-87e5-0bb11cd0c058',
+            fortius: 'https://personalgpt.app.n8n.cloud/webhook/adf85e36-1db7-4ba9-a39f-8ffcbd1262c2'
+        };
+
+        // Configuration
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+        const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc', 'txt', 'xlsx', 'xls', 'csv'];
+        const MAX_RETRIES = 3;
+        const CHUNK_SIZE = 1000; // Fixed chunk size
+        const CHUNK_OVERLAP = 200; // Fixed overlap
+        let currentFile = null;
+
+        // Update webhook URL when project changes
+        projectSelect.addEventListener('change', function() {
+            const selectedProject = projectSelect.value;
+            uploadForm.action = webhookUrls[selectedProject];
+        });
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Validate file
+        function validateFile(file) {
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            // Check file type
+            if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+                return { valid: false, error: `Unsupported file type: .${fileExtension}. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}` };
+            }
+            
+            // Check file size
+            if (file.size > MAX_FILE_SIZE) {
+                return { valid: false, error: `File too large: ${formatFileSize(file.size)}. Maximum allowed: ${formatFileSize(MAX_FILE_SIZE)}` };
+            }
+            
+            // Check if file is empty
+            if (file.size === 0) {
+                return { valid: false, error: 'File is empty. Please select a valid file.' };
+            }
+            
+            return { valid: true };
+        }
+
+        // Update file details display (single file)
+        function updateFileDetails(file) {
+            const estimatedChunks = Math.ceil(file.size / CHUNK_SIZE);
+            
+            document.getElementById('detailFileName').textContent = file.name;
+            document.getElementById('detailFileSize').textContent = formatFileSize(file.size);
+            document.getElementById('detailFileType').textContent = file.name.split('.').pop().toUpperCase();
+            document.getElementById('detailChunks').textContent = `~${estimatedChunks}`;
+            
+            fileDetails.classList.add('show');
+        }
+
+        // Update file details display (multiple files)
+        function updateMultiFileDetails(files) {
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+            const totalEstimatedChunks = files.reduce((sum, file) => sum + Math.ceil(file.size / CHUNK_SIZE), 0);
+            const fileTypes = [...new Set(files.map(f => f.name.split('.').pop().toUpperCase()))].join(', ');
+            
+            document.getElementById('detailFileName').textContent = `${files.length} files`;
+            document.getElementById('detailFileSize').textContent = formatFileSize(totalSize);
+            document.getElementById('detailFileType').textContent = fileTypes;
+            document.getElementById('detailChunks').textContent = `~${totalEstimatedChunks}`;
+            
+            fileDetails.classList.add('show');
+        }
+
+        // Handle file selection
+        fileInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                // Validate all files
+                for (let file of files) {
+                    const validation = validateFile(file);
+                    if (!validation.valid) {
+                        showStatus('error', `${file.name}: ${validation.error}`);
+                        fileInput.value = '';
+                        fileName.textContent = '';
+                        fileLabel.classList.remove('has-file');
+                        fileDetails.classList.remove('show');
+                        currentFile = null;
+                        return;
+                    }
+                }
+                
+                // Display file names
+                if (files.length === 1) {
+                    fileName.textContent = files[0].name;
+                } else {
+                    fileName.textContent = `${files.length} files selected`;
+                }
+                
+                fileLabel.classList.add('has-file');
+                currentFile = files;
+                updateMultiFileDetails(files);
+            } else {
+                fileName.textContent = '';
+                fileLabel.classList.remove('has-file');
+                fileDetails.classList.remove('show');
+                currentFile = null;
+            }
+        });
+
+        // Handle drag and drop
+        fileLabel.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            fileLabel.style.borderColor = '#667eea';
+            fileLabel.style.background = '#edf2f7';
+        });
+
+        fileLabel.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            if (!fileInput.files.length) {
+                fileLabel.style.borderColor = '#cbd5e0';
+                fileLabel.style.background = '#f7fafc';
+            }
+        });
+
+        fileLabel.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files;
+                fileName.textContent = files[0].name;
+                fileLabel.classList.add('has-file');
+            }
+        });
+
+        // Text chunking function
+        function chunkText(text) {
+            const chunkSize = CHUNK_SIZE;
+            const overlap = CHUNK_OVERLAP;
+            const chunks = [];
+            let start = 0;
+            
+            while (start < text.length) {
+                let end = start + chunkSize;
+                
+                // Try to break at sentence boundary
+                if (end < text.length) {
+                    const sentenceEnd = text.lastIndexOf('.', end);
+                    if (sentenceEnd > start + chunkSize * 0.5) {
+                        end = sentenceEnd + 1;
+                    }
+                }
+                
+                chunks.push({
+                    text: text.slice(start, end).trim(),
+                    start_position: start,
+                    end_position: end,
+                    chunk_index: chunks.length
+                });
+                
+                start = end - overlap;
+            }
+            
+            return chunks;
+        }
+        
+        // Retry upload with exponential backoff
+        async function uploadWithRetry(url, formData, retries = MAX_RETRIES) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        return { success: true, response };
+                    }
+                    
+                    // If it's a client error (4xx), don't retry
+                    if (response.status >= 400 && response.status < 500) {
+                        const errorText = await response.text();
+                        return { success: false, error: `Upload failed: ${response.status} - ${errorText}`, noRetry: true };
+                    }
+                    
+                    // Server error (5xx) - retry
+                    if (attempt < retries) {
+                        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Max 5 seconds
+                        showStatus('loading', `⚠️ Retry attempt ${attempt}/${retries}... (${delay}ms delay)`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        const errorText = await response.text();
+                        return { success: false, error: `Upload failed after ${retries} attempts: ${response.status}` };
+                    }
+                } catch (error) {
+                    if (attempt < retries) {
+                        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+                        showStatus('loading', `⚠️ Network error. Retry ${attempt}/${retries}... (${delay}ms delay)`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        return { success: false, error: `Network error after ${retries} attempts: ${error.message}` };
+                    }
+                }
+            }
+        }
+
+        // Extract text from PDF
+        async function extractPdfText(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = '';
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n\n';
+            }
+            
+            return fullText;
+        }
+
+        // Extract text from DOCX
+        async function extractDocxText(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            return result.value;
+        }
+
+        // Extract text from Excel
+        async function extractExcelText(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            let fullText = '';
+            
+            workbook.SheetNames.forEach(sheetName => {
+                const sheet = workbook.Sheets[sheetName];
+                const sheetText = XLSX.utils.sheet_to_txt(sheet);
+                fullText += `\n\n=== Sheet: ${sheetName} ===\n${sheetText}`;
+            });
+            
+            return fullText;
+        }
+
+        // Extract text from TXT
+        async function extractTxtText(file) {
+            return await file.text();
+        }
+
+        // Main text extraction router
+        async function extractText(file) {
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            switch (fileExtension) {
+                case 'pdf':
+                    return await extractPdfText(file);
+                case 'docx':
+                case 'doc':
+                    return await extractDocxText(file);
+                case 'xlsx':
+                case 'xls':
+                case 'csv':
+                    return await extractExcelText(file);
+                case 'txt':
+                    return await extractTxtText(file);
+                default:
+                    throw new Error('Unsupported file type');
+            }
+        }
+
+        // Process single file
+        async function processSingleFile(file, fileIndex, totalFiles) {
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const mimeType = file.type;
+            const prefix = totalFiles > 1 ? `[${fileIndex}/${totalFiles}] ` : '';
+            
+            showStatus('loading', `${prefix}📄 Extracting text from ${file.name}...`);
+
+            // Extract text from file
+            const extractedText = await extractText(file);
+            
+            if (!extractedText || extractedText.trim().length === 0) {
+                throw new Error('No text could be extracted from the file');
+            }
+            
+            // Update status
+            showStatus('loading', `${prefix}✂️ Chunking text...`);
+            
+            // Chunk the text
+            const chunks = chunkText(extractedText);
+            
+            // Prepare metadata and chunks as JSON
+            const jsonData = {
+                metadata: {
+                    filename: file.name,
+                    fileType: fileExtension,
+                    mimeType: mimeType,
+                    fileSize: file.size,
+                    totalChunks: chunks.length,
+                    totalCharacters: extractedText.length,
+                    processedAt: new Date().toISOString(),
+                    chunkSize: CHUNK_SIZE,
+                    chunkOverlap: CHUNK_OVERLAP
+                },
+                chunks: chunks,
+                fullText: extractedText
+            };
+            
+            // Get selected project
+            const selectedProject = projectSelect.value;
+            const projectName = projectSelect.options[projectSelect.selectedIndex].text;
+            
+            // Update status
+            showStatus('loading', `${prefix}🚀 Sending to ${projectName}...`);
+            
+            // Create FormData to send both binary file and JSON data
+            const formData = new FormData();
+            formData.append('data', file);
+            formData.append('file', file);
+            formData.append('jsonData', JSON.stringify(jsonData));
+            formData.append('fileType', fileExtension);
+            formData.append('mimeType', mimeType);
+            formData.append('project', selectedProject);
+            
+            // Send to n8n webhook with retry logic
+            const result = await uploadWithRetry(uploadForm.action, formData);
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            
+            return { success: true, filename: file.name };
+        }
+
+        // Handle form submission
+        uploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validate file selection
+            if (!fileInput.files.length) {
+                showStatus('error', 'Please select files to upload.');
+                return;
+            }
+
+            const files = Array.from(fileInput.files);
+            const totalFiles = files.length;
+            
+            // Disable button
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+            try {
+                let successCount = 0;
+                let failedFiles = [];
+
+                // Process each file sequentially
+                for (let i = 0; i < files.length; i++) {
+                    try {
+                        await processSingleFile(files[i], i + 1, totalFiles);
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error processing ${files[i].name}:`, error);
+                        failedFiles.push({ name: files[i].name, error: error.message });
+                    }
+                }
+
+                // Show final status
+                if (failedFiles.length === 0) {
+                    showStatus('success', `✓ Success! ${successCount} file${successCount > 1 ? 's' : ''} uploaded`);
+                } else if (successCount > 0) {
+                    showStatus('error', `⚠️ Partial success: ${successCount} uploaded, ${failedFiles.length} failed`);
+                } else {
+                    showStatus('error', `✗ All uploads failed`);
+                }
+                
+                // Reset form
+                uploadForm.reset();
+                fileName.textContent = '';
+                fileLabel.classList.remove('has-file');
+                fileDetails.classList.remove('show');
+                currentFile = null;
+                
+                // Re-enable button after 3 seconds
+                setTimeout(() => {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload Files';
+                }, 3000);
+            } catch (error) {
+                // Unexpected error
+                console.error('Upload error:', error);
+                showStatus('error', `✗ Error: ${error.message}`);
+                
+                // Re-enable button
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Files';
+            }
+        });
+
+        // Show status message
+        function showStatus(type, message) {
+            statusMessage.className = 'status-message ' + type;
+            statusMessage.textContent = message;
+            
+            if (type === 'loading') {
+                const spinner = document.createElement('span');
+                spinner.className = 'spinner';
+                statusMessage.textContent = '';
+                statusMessage.appendChild(spinner);
+                statusMessage.appendChild(document.createTextNode(' ' + message));
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+Sample Document for Testing n8n Document Ingestion Portal
+
+This is a test document to verify that your document ingestion portal is working correctly. 
+
+Introduction:
+The hybrid processing approach allows us to extract text from various file formats directly in the browser, chunk them intelligently, and send structured data to n8n for embedding generation and vector database storage.
+
+Benefits of This Approach:
+1. Security: API keys remain secure in n8n and are never exposed to the browser.
+2. Performance: Heavy text extraction is offloaded to the user's browser, reducing server load.
+3. User Experience: Real-time feedback during each processing stage keeps users informed.
+4. Flexibility: Chunk sizes can be easily adjusted without modifying the n8n workflow.
+5. Cost-Effectiveness: Reduced server processing time translates to lower operational costs.
+
+How It Works:
+When you upload this file through the portal, JavaScript libraries will extract this text, split it into manageable chunks (approximately 1000 characters each with 200 characters of overlap), and send them as a JSON payload to your n8n webhook. The webhook will then process each chunk, generate embeddings using OpenAI or Cohere, and store the vectors in Pinecone along with relevant metadata.
+
+Testing Instructions:
+1. Upload this file through the portal
+2. Watch the progress messages: "Extracting text" → "Chunking text" → "Sending to n8n"
+3. Check your n8n execution log to see the chunks being processed
+4. Verify in Pinecone that vectors were created with IDs like "test-sample.txt_chunk_0"
+5. Try querying your vector database to retrieve this content
+
+Expected Results:
+- This file should generate approximately 2-3 chunks
+- Each chunk should have metadata including filename, chunk index, and file type
+- The embedding vectors should be successfully stored in your Pinecone index
+- You should receive a success message confirming the number of chunks processed
+
+Next Steps:
+Once you've verified that this test file works correctly, you can proceed to upload real documents like PDFs, Word files, or Excel spreadsheets. The system supports multiple formats and will automatically extract and process the text from each one.
+
+Happy testing!
