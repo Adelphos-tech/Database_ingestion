@@ -3,8 +3,7 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pinecone import Pinecone, ServerlessSpec
-# For pinecone-client compatibility
-from sentence_transformers import SentenceTransformer
+import google.generativeai as genai
 import hashlib
 from datetime import datetime
 import PyPDF2
@@ -22,24 +21,18 @@ CORS(app)
 
 # Configuration - Set these in environment variables
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
 
-# Initialize local embedding model - using smaller model for free tier deployment
-print("Loading embedding model... (this may take a moment on first run)")
-try:
-    # Use paraphrase-MiniLM-L3-v2 - smallest model (~60MB, 384 dims)
-    embedding_model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
-    print("Embedding model loaded successfully!")
-except Exception as e:
-    print(f"Error loading embedding model: {e}")
-    embedding_model = None
+print("Using Gemini API for embeddings")
 
 # Index configuration
 DEFAULT_INDEX_NAME = "document-knowledge-base"
-EMBEDDING_DIMENSION = 384  # paraphrase-MiniLM-L3-v2 produces 384-dimensional embeddings
+EMBEDDING_DIMENSION = 768  # Gemini embeddings are 768-dimensional
 
 # Chunking configuration
 CHUNK_SIZE = 1000
@@ -151,9 +144,16 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 
 
 def generate_embeddings(texts):
-    """Generate embeddings using local Sentence Transformer model"""
-    embeddings = embedding_model.encode(texts, show_progress_bar=False)
-    return embeddings.tolist()
+    """Generate embeddings using Gemini API"""
+    embeddings = []
+    for text in texts:
+        result = genai.embed_content(
+            model="models/embedding-001",
+            content=text,
+            task_type="retrieval_document"
+        )
+        embeddings.append(result['embedding'])
+    return embeddings
 
 
 def generate_document_id(filename, project):
@@ -169,8 +169,9 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'pinecone_configured': bool(PINECONE_API_KEY),
-        'embedding_model': 'all-MiniLM-L6-v2 (Local)',
-        'embedding_type': 'FREE - No API required'
+        'gemini_configured': bool(GEMINI_API_KEY),
+        'embedding_model': 'Gemini embedding-001',
+        'embedding_dimension': EMBEDDING_DIMENSION
     })
 
 
