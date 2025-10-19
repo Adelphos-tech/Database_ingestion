@@ -27,14 +27,19 @@ PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-# Initialize local embedding model (this will download ~420MB on first run)
+# Initialize local embedding model - using smaller model for free tier deployment
 print("Loading embedding model... (this may take a moment on first run)")
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-print("Embedding model loaded successfully!")
+try:
+    # Use paraphrase-MiniLM-L3-v2 - smallest model (~60MB, 384 dims)
+    embedding_model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
+    print("Embedding model loaded successfully!")
+except Exception as e:
+    print(f"Error loading embedding model: {e}")
+    embedding_model = None
 
 # Index configuration
 DEFAULT_INDEX_NAME = "document-knowledge-base"
-EMBEDDING_DIMENSION = 384  # all-MiniLM-L6-v2 produces 384-dimensional embeddings
+EMBEDDING_DIMENSION = 384  # paraphrase-MiniLM-L3-v2 produces 384-dimensional embeddings
 
 # Chunking configuration
 CHUNK_SIZE = 1000
@@ -504,4 +509,7 @@ def delete_index(index_name):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # Get port from environment variable (required for Render)
+    port = int(os.environ.get('PORT', 5001))
+    print(f"Starting server on port {port}...")
+    app.run(debug=False, host='0.0.0.0', port=port)
