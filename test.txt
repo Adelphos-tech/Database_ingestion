@@ -1,0 +1,2 @@
+This is a test file for uploading to the knowledge base.
+It contains some sample text to verify the upload functionality is working correctly.

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 3px solid #667eea; color: #667eea; }
+        .spinner { border: 3px solid rgba(102, 126, 234, 0.3); border-top-color: #667eea; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Knowledge Base Portal</h1>
+            <p class="text-purple-200">Upload, search, and manage your documents with AI-powered search</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-t-xl shadow-lg">
+            <div class="flex border-b">
+                <button onclick="switchTab('upload')" id="uploadTab" class="flex-1 py-4 px-6 text-center font-semibold tab-active transition">
+                    📤 Upload Documents
+                </button>
+                <button onclick="switchTab('browse')" id="browseTab" class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:text-purple-600 transition">
+                    📚 Browse Knowledge Base
+                </button>
+                <button onclick="switchTab('indexes')" id="indexesTab" class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:text-purple-600 transition">
+                    🗂️ Manage Repos
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="bg-white rounded-b-xl shadow-lg p-8">
+            <!-- Upload Tab -->
+            <div id="uploadContent" class="tab-content">
+                <div class="max-w-2xl mx-auto">
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-semibold mb-2">Select Repo</label>
+                        <select id="uploadIndex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                            <option value="general">General</option>
+                            <option value="fortius">Fortius</option>
+                            <option value="mubest">Mubest</option>
+                        </select>
+                    </div>
+
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-500 transition" id="dropZone">
+                        <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                        <div class="text-6xl mb-4">📄</div>
+                        <p class="text-gray-600 mb-2"><span class="text-purple-600 font-semibold cursor-pointer" onclick="document.getElementById('fileInput').click()">Click to select files</span> or drag and drop</p>
+                        <p class="text-sm text-gray-500">Supported: PDF, DOCX, TXT, Excel (CSV, XLSX)</p>
+                        <div id="selectedFiles" class="mt-4 text-sm text-gray-700"></div>
+                    </div>
+
+                    <button onclick="uploadFiles()" id="uploadBtn" class="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-lg font-semibold hover:shadow-lg transition">
+                        Upload to Knowledge Base
+                    </button>
+
+                    <div id="uploadStatus" class="mt-6"></div>
+                </div>
+            </div>
+
+            <!-- Browse Tab -->
+            <div id="browseContent" class="tab-content hidden">
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <label class="text-gray-700 text-sm font-semibold mr-2">Repo:</label>
+                        <select id="browseIndex" onchange="loadDocuments()" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                            <option value="general">General</option>
+                            <option value="fortius">Fortius</option>
+                            <option value="mubest">Mubest</option>
+                        </select>
+                    </div>
+                    <button onclick="loadDocuments()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                        🔄 Refresh
+                    </button>
+                </div>
+
+                <div id="statsBar" class="grid grid-cols-3 gap-4 mb-6"></div>
+                <div id="documentsList"></div>
+            </div>
+
+            <!-- Indexes Tab -->
+            <div id="indexesContent" class="tab-content hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">📁 Manage Pinecone Repos</h2>
+                    <p class="text-gray-600 mb-4">Create and manage separate repos for different knowledge bases</p>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-semibold text-blue-800 mb-2">💡 What are Repos?</h3>
+                        <p class="text-sm text-blue-700">Repos are separate vector databases. Use them to completely separate different types of content or organizations. Each repo acts as an independent knowledge base.</p>
+                    </div>
+
+                    <div class="bg-white border-2 border-gray-200 rounded-lg p-6 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">➕ Create New Repo</h3>
+                        <div class="flex gap-4">
+                            <input type="text" id="newIndexName" placeholder="e.g., customer-support-kb" class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none" pattern="[a-z0-9-_]+" title="Lowercase letters, numbers, hyphens, and underscores only">
+                            <button onclick="createNewIndex()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                                Create Repo
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Name must contain only lowercase letters, numbers, hyphens, and underscores</p>
+                    </div>
+                </div>
+
+                <div id="indexesStatus" class="mb-6"></div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">📋 Existing Repos</h3>
+                        <button onclick="loadIndexes()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="indexesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5001/api';
+        
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id$="Tab"]').forEach(el => {
+                el.classList.remove('tab-active', 'text-purple-600');
+                el.classList.add('text-gray-600');
+            });
+            
+            document.getElementById(tab + 'Content').classList.remove('hidden');
+            document.getElementById(tab + 'Tab').classList.add('tab-active', 'text-purple-600');
+            
+            if (tab === 'browse') loadDocuments();
+            if (tab === 'indexes') loadIndexes();
+        }
+
+        // Load available indexes on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateIndexSelectors();
+        });
+
+        // File Upload
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const selectedFiles = document.getElementById('selectedFiles');
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length) {
+                selectedFiles.innerHTML = `<div class="font-semibold text-purple-600">${files.length} file(s) selected:</div>` + 
+                    files.map(f => `<div class="text-gray-600">• ${f.name} (${formatFileSize(f.size)})</div>`).join('');
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-purple-500', 'bg-purple-50');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-purple-500', 'bg-purple-50');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-purple-500', 'bg-purple-50');
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
+
+        async function uploadFiles() {
+            const files = fileInput.files;
+            if (!files.length) {
+                showStatus('uploadStatus', 'error', 'Please select files to upload');
+                return;
+            }
+
+            const indexName = document.getElementById('uploadIndex').value;
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<div class="spinner inline-block mr-2"></div> Uploading...';
+
+            let successCount = 0;
+            let failedCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                showStatus('uploadStatus', 'loading', `[${i + 1}/${files.length}] Processing ${file.name}...`);
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('project', 'default');
+                formData.append('index_name', indexName);
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        successCount++;
+                        showStatus('uploadStatus', 'success', `[${i + 1}/${files.length}] ✓ ${file.name} uploaded (${data.chunks_created} chunks)`);
+                    } else {
+                        failedCount++;
+                        showStatus('uploadStatus', 'error', `[${i + 1}/${files.length}] ✗ ${file.name} failed: ${data.error}`);
+                    }
+                } catch (error) {
+                    failedCount++;
+                    showStatus('uploadStatus', 'error', `[${i + 1}/${files.length}] ✗ ${file.name} failed: ${error.message}`);
+                }
+            }
+
+            showStatus('uploadStatus', 'success', `✓ Upload complete! ${successCount} succeeded, ${failedCount} failed`);
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = 'Upload to Knowledge Base';
+            fileInput.value = '';
+            selectedFiles.innerHTML = '';
+        }
+
+        // Browse Documents
+        async function loadDocuments() {
+            const indexName = document.getElementById('browseIndex').value;
+            const documentsList = document.getElementById('documentsList');
+            const statsBar = document.getElementById('statsBar');
+            
+            documentsList.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading documents...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents?project=default&index_name=${indexName}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    statsBar.innerHTML = `
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <div class="text-3xl font-bold text-purple-600">${data.total_documents}</div>
+                            <div class="text-sm text-gray-600">Documents</div>
+                        </div>
+                        <div class="bg-indigo-50 p-4 rounded-lg text-center">
+                            <div class="text-3xl font-bold text-indigo-600">${data.total_vectors}</div>
+                            <div class="text-sm text-gray-600">Vector Chunks</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <div class="text-3xl font-bold text-blue-600">${indexName}</div>
+                            <div class="text-sm text-gray-600">Repo</div>
+                        </div>
+                    `;
+
+                    if (data.documents.length === 0) {
+                        documentsList.innerHTML = '<div class="text-center py-8 text-gray-500">No documents found. Upload some documents to get started!</div>';
+                    } else {
+                        documentsList.innerHTML = '<div class="grid gap-4">' + data.documents.map(doc => `
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h3 class="font-semibold text-lg text-gray-800">📄 ${doc.filename}</h3>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            <span class="mr-4">📊 ${doc.total_chunks} chunks</span>
+                                            <span class="mr-4">💾 ${formatFileSize(doc.file_size)}</span>
+                                            <span>📅 ${new Date(doc.upload_date).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <button onclick="deleteDocument('${doc.document_id}')" class="text-red-500 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition">
+                                        🗑️ Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') + '</div>';
+                    }
+                }
+            } catch (error) {
+                documentsList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading documents: ${error.message}</div>`;
+            }
+        }
+
+        async function deleteDocument(documentId) {
+            if (!confirm('Are you sure you want to delete this document?')) return;
+            const indexName = document.getElementById('browseIndex').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${documentId}?project=default&index_name=${indexName}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadDocuments();
+                }
+            } catch (error) {
+                alert('Error deleting document: ' + error.message);
+            }
+        }
+
+
+        // Index Management Functions
+        async function updateIndexSelectors() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const indexes = data.indexes;
+                    const selectors = ['uploadIndex', 'browseIndex'];
+                    
+                    selectors.forEach(selectorId => {
+                        const selector = document.getElementById(selectorId);
+                        const currentValue = selector.value;
+                        selector.innerHTML = indexes.map(idx => 
+                            `<option value="${idx.name}">${idx.name}${idx.name === 'document-knowledge-base' ? ' (default)' : ''}</option>`
+                        ).join('');
+                        
+                        // Restore previous selection if it exists
+                        if (currentValue && indexes.find(idx => idx.name === currentValue)) {
+                            selector.value = currentValue;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating index selectors:', error);
+            }
+        }
+
+        async function loadIndexes() {
+            const indexesList = document.getElementById('indexesList');
+            indexesList.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading indexes...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes`);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.indexes.length === 0) {
+                        indexesList.innerHTML = '<div class="text-center py-8 text-gray-500">No indexes found.</div>';
+                    } else {
+                        indexesList.innerHTML = '<div class="grid gap-4">' + data.indexes.map(index => `
+                            <div class="border-2 ${index.name === 'document-knowledge-base' ? 'border-purple-300 bg-purple-50' : 'border-gray-200'} rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-semibold text-lg text-gray-800">🗂️ ${index.name}</h3>
+                                            ${index.name === 'document-knowledge-base' ? '<span class="text-xs bg-purple-600 text-white px-2 py-1 rounded">DEFAULT</span>' : ''}
+                                        </div>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            <span class="mr-4">📐 Dimension: ${index.dimension}</span>
+                                            <span class="mr-4">📊 Metric: ${index.metric}</span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">${index.host}</div>
+                                    </div>
+                                    ${index.name !== 'document-knowledge-base' ? `
+                                        <button onclick="deleteIndex('${index.name}')" class="text-red-500 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition text-sm">
+                                            🗑️ Delete
+                                        </button>
+                                    ` : '<div class="text-gray-400 text-sm">Protected</div>'}
+                                </div>
+                            </div>
+                        `).join('') + '</div>';
+                    }
+                }
+            } catch (error) {
+                indexesList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading indexes: ${error.message}</div>`;
+            }
+        }
+
+        async function createNewIndex() {
+            const indexName = document.getElementById('newIndexName').value.trim().toLowerCase();
+            const statusElement = document.getElementById('indexesStatus');
+
+            if (!indexName) {
+                statusElement.innerHTML = '<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">Please enter an index name</div>';
+                return;
+            }
+
+            // Validate format
+            if (!/^[a-z0-9-_]+$/.test(indexName)) {
+                statusElement.innerHTML = '<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">Index name must contain only lowercase letters, numbers, hyphens, and underscores</div>';
+                return;
+            }
+
+            statusElement.innerHTML = '<div class="border border-blue-200 bg-blue-50 text-blue-700 p-4 rounded-lg fade-in"><div class="spinner inline-block mr-2"></div> Creating index...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index_name: indexName })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusElement.innerHTML = `<div class="border border-green-200 bg-green-50 text-green-700 p-4 rounded-lg fade-in">✓ ${data.message}</div>`;
+                    document.getElementById('newIndexName').value = '';
+                    setTimeout(() => {
+                        loadIndexes();
+                        updateIndexSelectors();
+                    }, 1000);
+                } else {
+                    statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function deleteIndex(indexName) {
+            if (!confirm(`Are you sure you want to delete the index "${indexName}"? This action cannot be undone and will delete all data in this index.`)) {
+                return;
+            }
+
+            const statusElement = document.getElementById('indexesStatus');
+            statusElement.innerHTML = '<div class="border border-blue-200 bg-blue-50 text-blue-700 p-4 rounded-lg fade-in"><div class="spinner inline-block mr-2"></div> Deleting index...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes/${indexName}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusElement.innerHTML = `<div class="border border-green-200 bg-green-50 text-green-700 p-4 rounded-lg fade-in">✓ ${data.message}</div>`;
+                    setTimeout(() => {
+                        loadIndexes();
+                        updateIndexSelectors();
+                    }, 1000);
+                } else {
+                    statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Utility Functions
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            const colors = {
+                success: 'bg-green-50 text-green-700 border-green-200',
+                error: 'bg-red-50 text-red-700 border-red-200',
+                loading: 'bg-blue-50 text-blue-700 border-blue-200'
+            };
+            
+            element.innerHTML = `<div class="border ${colors[type]} p-4 rounded-lg fade-in">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
