@@ -3,811 +3,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Upload Portal</title>
-    
-    <!-- Text Extraction Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
+    <title>Knowledge Base Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 60px 50px;
-            max-width: 550px;
-            width: 100%;
-            animation: slideUp 0.5s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            color: #2d3748;
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header p {
-            color: #718096;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        .upload-section {
-            margin-bottom: 30px;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: -9999px;
-        }
-
-        .file-input-label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            border: 2px dashed #cbd5e0;
-            border-radius: 12px;
-            background: #f7fafc;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        .file-input-label:hover {
-            border-color: #667eea;
-            background: #edf2f7;
-        }
-
-        .file-input-label.has-file {
-            border-color: #48bb78;
-            background: #f0fff4;
-        }
-
-        .file-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-
-        .file-text {
-            color: #4a5568;
-            font-size: 15px;
-        }
-
-        .file-text strong {
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        .file-name {
-            color: #2d3748;
-            font-size: 14px;
-            margin-top: 10px;
-            font-weight: 600;
-            word-break: break-all;
-        }
-
-        .upload-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .upload-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        }
-
-        .upload-btn:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .upload-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .status-message {
-            margin-top: 25px;
-            padding: 16px 20px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 500;
-            text-align: center;
-            animation: fadeIn 0.3s ease-out;
-            display: none;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .status-message.success {
-            background: #f0fff4;
-            color: #22543d;
-            border: 1px solid #9ae6b4;
-            display: block;
-        }
-
-        .status-message.error {
-            background: #fff5f5;
-            color: #742a2a;
-            border: 1px solid #fc8181;
-            display: block;
-        }
-
-        .status-message.loading {
-            background: #ebf8ff;
-            color: #2c5282;
-            border: 1px solid #90cdf4;
-            display: block;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid rgba(44, 82, 130, 0.3);
-            border-top-color: #2c5282;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .supported-formats {
-            margin-top: 20px;
-            text-align: center;
-            color: #a0aec0;
-            font-size: 13px;
-        }
-
-        .supported-formats strong {
-            color: #718096;
-        }
-
-        .project-selector {
-            margin-bottom: 25px;
-        }
-
-        .project-selector label {
-            display: block;
-            color: #4a5568;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .project-select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #cbd5e0;
-            border-radius: 12px;
-            background: white;
-            color: #2d3748;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            padding-right: 40px;
-        }
-
-        .project-select:hover {
-            border-color: #667eea;
-        }
-
-        .project-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .file-details {
-            display: none;
-            padding: 15px;
-            background: #ebf8ff;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #90cdf4;
-        }
-
-        .file-details.show {
-            display: block;
-        }
-
-        .file-detail-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-
-        .file-detail-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .file-detail-label {
-            color: #2c5282;
-            font-weight: 600;
-        }
-
-        .file-detail-value {
-            color: #2d3748;
-            font-weight: 500;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 40px 30px;
-            }
-
-            .header h1 {
-                font-size: 26px;
-            }
-
-            .header p {
-                font-size: 14px;
-            }
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 3px solid #667eea; color: #667eea; }
+        .spinner { border: 3px solid rgba(102, 126, 234, 0.3); border-top-color: #667eea; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Document Upload Portal</h1>
-            <p>Select documents to upload to AI workflow</p>
+<body class="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Knowledge Base Portal</h1>
+            <p class="text-purple-200">Upload, search, and manage your documents with AI-powered search</p>
         </div>
 
-        <form id="uploadForm" method="POST" enctype="multipart/form-data" action="https://personalgpt.app.n8n.cloud/webhook/0a5bf047-9034-488b-87e5-0bb11cd0c058">
-            <div class="upload-section">
-                <div class="project-selector">
-                    <label for="projectSelect">Select Project</label>
-                    <select id="projectSelect" class="project-select" required>
-                        <option value="mubest">Mubest</option>
-                        <option value="fortius">Fortius</option>
-                    </select>
-                </div>
-
-                <div class="file-details" id="fileDetails">
-                    <div class="file-detail-item">
-                        <span class="file-detail-label">📄 File Name:</span>
-                        <span class="file-detail-value" id="detailFileName">-</span>
-                    </div>
-                    <div class="file-detail-item">
-                        <span class="file-detail-label">📊 File Size:</span>
-                        <span class="file-detail-value" id="detailFileSize">-</span>
-                    </div>
-                    <div class="file-detail-item">
-                        <span class="file-detail-label">📝 File Type:</span>
-                        <span class="file-detail-value" id="detailFileType">-</span>
-                    </div>
-                    <div class="file-detail-item">
-                        <span class="file-detail-label">✂️ Est. Chunks:</span>
-                        <span class="file-detail-value" id="detailChunks">-</span>
-                    </div>
-                </div>
-
-                <div class="file-input-wrapper">
-                    <input type="file" name="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" multiple required>
-                    <label for="fileInput" class="file-input-label" id="fileLabel">
-                        <div>
-                            <div class="file-icon">📄</div>
-                            <div class="file-text">
-                                <strong>Click to select files</strong><br>
-                                or drag and drop here
-                            </div>
-                            <div class="file-name" id="fileName"></div>
-                        </div>
-                    </label>
-                </div>
-
-                <button type="submit" class="upload-btn" id="uploadBtn">
-                    Upload Files
+        <!-- Tabs -->
+        <div class="bg-white rounded-t-xl shadow-lg">
+            <div class="flex border-b">
+                <button onclick="switchTab('upload')" id="uploadTab" class="flex-1 py-4 px-6 text-center font-semibold tab-active transition">
+                    📤 Upload Documents
                 </button>
+                <button onclick="switchTab('browse')" id="browseTab" class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:text-purple-600 transition">
+                    📚 Browse Knowledge Base
+                </button>
+                <button onclick="switchTab('indexes')" id="indexesTab" class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:text-purple-600 transition">
+                    🗂️ Manage Repos
+                </button>
+            </div>
+        </div>
 
-                <div class="supported-formats">
-                    <strong>Supported formats:</strong> Excel (.xlsx, .xls, .csv), PDF, DOCX, TXT<br>
-                    <strong>Max file size:</strong> 50MB
+        <!-- Tab Content -->
+        <div class="bg-white rounded-b-xl shadow-lg p-8">
+            <!-- Upload Tab -->
+            <div id="uploadContent" class="tab-content">
+                <div class="max-w-2xl mx-auto">
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-semibold mb-2">Select Repo</label>
+                        <select id="uploadIndex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                            <option value="general">General</option>
+                            <option value="fortius">Fortius</option>
+                            <option value="mubest">Mubest</option>
+                        </select>
+                    </div>
+
+                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-500 transition" id="dropZone">
+                        <input type="file" id="fileInput" multiple accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                        <div class="text-6xl mb-4">📄</div>
+                        <p class="text-gray-600 mb-2"><span class="text-purple-600 font-semibold cursor-pointer" onclick="document.getElementById('fileInput').click()">Click to select files</span> or drag and drop</p>
+                        <p class="text-sm text-gray-500">Supported: PDF, DOCX, TXT, Excel (CSV, XLSX)</p>
+                        <div id="selectedFiles" class="mt-4 text-sm text-gray-700"></div>
+                    </div>
+
+                    <button onclick="uploadFiles()" id="uploadBtn" class="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-lg font-semibold hover:shadow-lg transition">
+                        Upload to Knowledge Base
+                    </button>
+
+                    <div id="uploadStatus" class="mt-6"></div>
                 </div>
             </div>
-        </form>
 
-        <div class="status-message" id="statusMessage"></div>
+            <!-- Browse Tab -->
+            <div id="browseContent" class="tab-content hidden">
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <label class="text-gray-700 text-sm font-semibold mr-2">Repo:</label>
+                        <select id="browseIndex" onchange="loadDocuments()" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                            <option value="general">General</option>
+                            <option value="fortius">Fortius</option>
+                            <option value="mubest">Mubest</option>
+                        </select>
+                    </div>
+                    <button onclick="loadDocuments()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                        🔄 Refresh
+                    </button>
+                </div>
+
+                <div id="statsBar" class="grid grid-cols-3 gap-4 mb-6"></div>
+                <div id="documentsList"></div>
+            </div>
+
+            <!-- Indexes Tab -->
+            <div id="indexesContent" class="tab-content hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">📁 Manage Pinecone Repos</h2>
+                    <p class="text-gray-600 mb-4">Create and manage separate repos for different knowledge bases</p>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-semibold text-blue-800 mb-2">💡 What are Repos?</h3>
+                        <p class="text-sm text-blue-700">Repos are separate vector databases. Use them to completely separate different types of content or organizations. Each repo acts as an independent knowledge base.</p>
+                    </div>
+
+                    <div class="bg-white border-2 border-gray-200 rounded-lg p-6 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">➕ Create New Repo</h3>
+                        <div class="flex gap-4">
+                            <input type="text" id="newIndexName" placeholder="e.g., customer-support-kb" class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-black" pattern="[a-z0-9-_]+" title="Lowercase letters, numbers, hyphens, and underscores only">
+                            <button onclick="createNewIndex()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                                Create Repo
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Name must contain only lowercase letters, numbers, hyphens, and underscores</p>
+                    </div>
+                </div>
+
+                <div id="indexesStatus" class="mb-6"></div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800">📋 Existing Repos</h3>
+                        <button onclick="loadIndexes()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="indexesList"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Configure PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const API_BASE_URL = 'https://database-ingestion-production.up.railway.app/api';
+        
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id$="Tab"]').forEach(el => {
+                el.classList.remove('tab-active', 'text-purple-600');
+                el.classList.add('text-gray-600');
+            });
+            
+            document.getElementById(tab + 'Content').classList.remove('hidden');
+            document.getElementById(tab + 'Tab').classList.add('tab-active', 'text-purple-600');
+            
+            if (tab === 'browse') loadDocuments();
+            if (tab === 'indexes') loadIndexes();
+        }
 
-        const fileInput = document.getElementById('fileInput');
-        const fileLabel = document.getElementById('fileLabel');
-        const fileName = document.getElementById('fileName');
-        const uploadForm = document.getElementById('uploadForm');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const statusMessage = document.getElementById('statusMessage');
-        const projectSelect = document.getElementById('projectSelect');
-        const fileDetails = document.getElementById('fileDetails');
-
-        // Webhook URLs for different projects
-        const webhookUrls = {
-            mubest: 'https://personalgpt.app.n8n.cloud/webhook/0a5bf047-9034-488b-87e5-0bb11cd0c058',
-            fortius: 'https://personalgpt.app.n8n.cloud/webhook/adf85e36-1db7-4ba9-a39f-8ffcbd1262c2'
-        };
-
-        // Configuration
-        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-        const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'doc', 'txt', 'xlsx', 'xls', 'csv'];
-        const MAX_RETRIES = 3;
-        const CHUNK_SIZE = 1000; // Fixed chunk size
-        const CHUNK_OVERLAP = 200; // Fixed overlap
-        let currentFile = null;
-
-        // Update webhook URL when project changes
-        projectSelect.addEventListener('change', function() {
-            const selectedProject = projectSelect.value;
-            uploadForm.action = webhookUrls[selectedProject];
+        // Load available indexes on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateIndexSelectors();
         });
 
-        // Format file size
+        // File Upload
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const selectedFiles = document.getElementById('selectedFiles');
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length) {
+                selectedFiles.innerHTML = `<div class="font-semibold text-purple-600">${files.length} file(s) selected:</div>` + 
+                    files.map(f => `<div class="text-gray-600">• ${f.name} (${formatFileSize(f.size)})</div>`).join('');
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-purple-500', 'bg-purple-50');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-purple-500', 'bg-purple-50');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-purple-500', 'bg-purple-50');
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
+
+        async function uploadFiles() {
+            const files = fileInput.files;
+            if (!files.length) {
+                showStatus('uploadStatus', 'error', 'Please select files to upload');
+                return;
+            }
+
+            const indexName = document.getElementById('uploadIndex').value;
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<div class="spinner inline-block mr-2"></div> Uploading...';
+
+            let successCount = 0;
+            let failedCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                showStatus('uploadStatus', 'loading', `[${i + 1}/${files.length}] Processing ${file.name}...`);
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('project', 'default');
+                formData.append('index_name', indexName);
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        successCount++;
+                        showStatus('uploadStatus', 'success', `[${i + 1}/${files.length}] ✓ ${file.name} uploaded (${data.chunks_created} chunks)`);
+                    } else {
+                        failedCount++;
+                        showStatus('uploadStatus', 'error', `[${i + 1}/${files.length}] ✗ ${file.name} failed: ${data.error}`);
+                    }
+                } catch (error) {
+                    failedCount++;
+                    showStatus('uploadStatus', 'error', `[${i + 1}/${files.length}] ✗ ${file.name} failed: ${error.message}`);
+                }
+            }
+
+            showStatus('uploadStatus', 'success', `✓ Upload complete! ${successCount} succeeded, ${failedCount} failed`);
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = 'Upload to Knowledge Base';
+            fileInput.value = '';
+            selectedFiles.innerHTML = '';
+        }
+
+        // Browse Documents
+        async function loadDocuments() {
+            const indexName = document.getElementById('browseIndex').value;
+            const documentsList = document.getElementById('documentsList');
+            const statsBar = document.getElementById('statsBar');
+            
+            documentsList.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading documents...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents?project=default&index_name=${indexName}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    statsBar.innerHTML = `
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <div class="text-3xl font-bold text-purple-600">${data.total_documents}</div>
+                            <div class="text-sm text-gray-600">Documents</div>
+                        </div>
+                        <div class="bg-indigo-50 p-4 rounded-lg text-center">
+                            <div class="text-3xl font-bold text-indigo-600">${data.total_vectors}</div>
+                            <div class="text-sm text-gray-600">Vector Chunks</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <div class="text-3xl font-bold text-blue-600">${indexName}</div>
+                            <div class="text-sm text-gray-600">Repo</div>
+                        </div>
+                    `;
+
+                    if (data.documents.length === 0) {
+                        documentsList.innerHTML = '<div class="text-center py-8 text-gray-500">No documents found. Upload some documents to get started!</div>';
+                    } else {
+                        documentsList.innerHTML = '<div class="grid gap-4">' + data.documents.map(doc => `
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h3 class="font-semibold text-lg text-gray-800">📄 ${doc.filename}</h3>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            <span class="mr-4">📊 ${doc.total_chunks} chunks</span>
+                                            <span class="mr-4">💾 ${formatFileSize(doc.file_size)}</span>
+                                            <span>📅 ${new Date(doc.upload_date).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <button onclick="deleteDocument('${doc.document_id}')" class="text-red-500 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition">
+                                        🗑️ Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') + '</div>';
+                    }
+                }
+            } catch (error) {
+                documentsList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading documents: ${error.message}</div>`;
+            }
+        }
+
+        async function deleteDocument(documentId) {
+            if (!confirm('Are you sure you want to delete this document?')) return;
+            const indexName = document.getElementById('browseIndex').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/documents/${documentId}?project=default&index_name=${indexName}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    loadDocuments();
+                }
+            } catch (error) {
+                alert('Error deleting document: ' + error.message);
+            }
+        }
+
+
+        // Index Management Functions
+        async function updateIndexSelectors() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const indexes = data.indexes;
+                    const selectors = ['uploadIndex', 'browseIndex'];
+                    
+                    selectors.forEach(selectorId => {
+                        const selector = document.getElementById(selectorId);
+                        const currentValue = selector.value;
+                        selector.innerHTML = indexes.map(idx => 
+                            `<option value="${idx.name}">${idx.name}${idx.name === 'document-knowledge-base' ? ' (default)' : ''}</option>`
+                        ).join('');
+                        
+                        // Restore previous selection if it exists
+                        if (currentValue && indexes.find(idx => idx.name === currentValue)) {
+                            selector.value = currentValue;
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating index selectors:', error);
+            }
+        }
+
+        async function loadIndexes() {
+            const indexesList = document.getElementById('indexesList');
+            indexesList.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading indexes...</p></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes`);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.indexes.length === 0) {
+                        indexesList.innerHTML = '<div class="text-center py-8 text-gray-500">No indexes found.</div>';
+                    } else {
+                        indexesList.innerHTML = '<div class="grid gap-4">' + data.indexes.map(index => `
+                            <div class="border-2 ${index.name === 'document-knowledge-base' ? 'border-purple-300 bg-purple-50' : 'border-gray-200'} rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="font-semibold text-lg text-gray-800">🗂️ ${index.name}</h3>
+                                            ${index.name === 'document-knowledge-base' ? '<span class="text-xs bg-purple-600 text-white px-2 py-1 rounded">DEFAULT</span>' : ''}
+                                        </div>
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            <span class="mr-4">📐 Dimension: ${index.dimension}</span>
+                                            <span class="mr-4">📊 Metric: ${index.metric}</span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">${index.host}</div>
+                                    </div>
+                                    ${index.name !== 'document-knowledge-base' ? `
+                                        <button onclick="deleteIndex('${index.name}')" class="text-red-500 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50 transition text-sm">
+                                            🗑️ Delete
+                                        </button>
+                                    ` : '<div class="text-gray-400 text-sm">Protected</div>'}
+                                </div>
+                            </div>
+                        `).join('') + '</div>';
+                    }
+                }
+            } catch (error) {
+                indexesList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading indexes: ${error.message}</div>`;
+            }
+        }
+
+        async function createNewIndex() {
+            const indexName = document.getElementById('newIndexName').value.trim().toLowerCase();
+            const statusElement = document.getElementById('indexesStatus');
+
+            if (!indexName) {
+                statusElement.innerHTML = '<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">Please enter an index name</div>';
+                return;
+            }
+
+            // Validate format
+            if (!/^[a-z0-9-_]+$/.test(indexName)) {
+                statusElement.innerHTML = '<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">Index name must contain only lowercase letters, numbers, hyphens, and underscores</div>';
+                return;
+            }
+
+            statusElement.innerHTML = '<div class="border border-blue-200 bg-blue-50 text-blue-700 p-4 rounded-lg fade-in"><div class="spinner inline-block mr-2"></div> Creating index...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index_name: indexName })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusElement.innerHTML = `<div class="border border-green-200 bg-green-50 text-green-700 p-4 rounded-lg fade-in">✓ ${data.message}</div>`;
+                    document.getElementById('newIndexName').value = '';
+                    setTimeout(() => {
+                        loadIndexes();
+                        updateIndexSelectors();
+                    }, 1000);
+                } else {
+                    statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function deleteIndex(indexName) {
+            if (!confirm(`Are you sure you want to delete the index "${indexName}"? This action cannot be undone and will delete all data in this index.`)) {
+                return;
+            }
+
+            const statusElement = document.getElementById('indexesStatus');
+            statusElement.innerHTML = '<div class="border border-blue-200 bg-blue-50 text-blue-700 p-4 rounded-lg fade-in"><div class="spinner inline-block mr-2"></div> Deleting index...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/indexes/${indexName}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    statusElement.innerHTML = `<div class="border border-green-200 bg-green-50 text-green-700 p-4 rounded-lg fade-in">✓ ${data.message}</div>`;
+                    setTimeout(() => {
+                        loadIndexes();
+                        updateIndexSelectors();
+                    }, 1000);
+                } else {
+                    statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Utility Functions
         function formatFileSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
         }
 
-        // Validate file
-        function validateFile(file) {
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            
-            // Check file type
-            if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
-                return { valid: false, error: `Unsupported file type: .${fileExtension}. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}` };
-            }
-            
-            // Check file size
-            if (file.size > MAX_FILE_SIZE) {
-                return { valid: false, error: `File too large: ${formatFileSize(file.size)}. Maximum allowed: ${formatFileSize(MAX_FILE_SIZE)}` };
-            }
-            
-            // Check if file is empty
-            if (file.size === 0) {
-                return { valid: false, error: 'File is empty. Please select a valid file.' };
-            }
-            
-            return { valid: true };
-        }
-
-        // Update file details display (single file)
-        function updateFileDetails(file) {
-            const estimatedChunks = Math.ceil(file.size / CHUNK_SIZE);
-            
-            document.getElementById('detailFileName').textContent = file.name;
-            document.getElementById('detailFileSize').textContent = formatFileSize(file.size);
-            document.getElementById('detailFileType').textContent = file.name.split('.').pop().toUpperCase();
-            document.getElementById('detailChunks').textContent = `~${estimatedChunks}`;
-            
-            fileDetails.classList.add('show');
-        }
-
-        // Update file details display (multiple files)
-        function updateMultiFileDetails(files) {
-            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-            const totalEstimatedChunks = files.reduce((sum, file) => sum + Math.ceil(file.size / CHUNK_SIZE), 0);
-            const fileTypes = [...new Set(files.map(f => f.name.split('.').pop().toUpperCase()))].join(', ');
-            
-            document.getElementById('detailFileName').textContent = `${files.length} files`;
-            document.getElementById('detailFileSize').textContent = formatFileSize(totalSize);
-            document.getElementById('detailFileType').textContent = fileTypes;
-            document.getElementById('detailChunks').textContent = `~${totalEstimatedChunks}`;
-            
-            fileDetails.classList.add('show');
-        }
-
-        // Handle file selection
-        fileInput.addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length > 0) {
-                // Validate all files
-                for (let file of files) {
-                    const validation = validateFile(file);
-                    if (!validation.valid) {
-                        showStatus('error', `${file.name}: ${validation.error}`);
-                        fileInput.value = '';
-                        fileName.textContent = '';
-                        fileLabel.classList.remove('has-file');
-                        fileDetails.classList.remove('show');
-                        currentFile = null;
-                        return;
-                    }
-                }
-                
-                // Display file names
-                if (files.length === 1) {
-                    fileName.textContent = files[0].name;
-                } else {
-                    fileName.textContent = `${files.length} files selected`;
-                }
-                
-                fileLabel.classList.add('has-file');
-                currentFile = files;
-                updateMultiFileDetails(files);
-            } else {
-                fileName.textContent = '';
-                fileLabel.classList.remove('has-file');
-                fileDetails.classList.remove('show');
-                currentFile = null;
-            }
-        });
-
-        // Handle drag and drop
-        fileLabel.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            fileLabel.style.borderColor = '#667eea';
-            fileLabel.style.background = '#edf2f7';
-        });
-
-        fileLabel.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            if (!fileInput.files.length) {
-                fileLabel.style.borderColor = '#cbd5e0';
-                fileLabel.style.background = '#f7fafc';
-            }
-        });
-
-        fileLabel.addEventListener('drop', function(e) {
-            e.preventDefault();
-            const files = e.dataTransfer.files;
-            if (files.length) {
-                fileInput.files = files;
-                fileName.textContent = files[0].name;
-                fileLabel.classList.add('has-file');
-            }
-        });
-
-        // Text chunking function
-        function chunkText(text) {
-            const chunkSize = CHUNK_SIZE;
-            const overlap = CHUNK_OVERLAP;
-            const chunks = [];
-            let start = 0;
-            
-            while (start < text.length) {
-                let end = start + chunkSize;
-                
-                // Try to break at sentence boundary
-                if (end < text.length) {
-                    const sentenceEnd = text.lastIndexOf('.', end);
-                    if (sentenceEnd > start + chunkSize * 0.5) {
-                        end = sentenceEnd + 1;
-                    }
-                }
-                
-                chunks.push({
-                    text: text.slice(start, end).trim(),
-                    start_position: start,
-                    end_position: end,
-                    chunk_index: chunks.length
-                });
-                
-                start = end - overlap;
-            }
-            
-            return chunks;
-        }
-        
-        // Retry upload with exponential backoff
-        async function uploadWithRetry(url, formData, retries = MAX_RETRIES) {
-            for (let attempt = 1; attempt <= retries; attempt++) {
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (response.ok) {
-                        return { success: true, response };
-                    }
-                    
-                    // If it's a client error (4xx), don't retry
-                    if (response.status >= 400 && response.status < 500) {
-                        const errorText = await response.text();
-                        return { success: false, error: `Upload failed: ${response.status} - ${errorText}`, noRetry: true };
-                    }
-                    
-                    // Server error (5xx) - retry
-                    if (attempt < retries) {
-                        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Max 5 seconds
-                        showStatus('loading', `⚠️ Retry attempt ${attempt}/${retries}... (${delay}ms delay)`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        const errorText = await response.text();
-                        return { success: false, error: `Upload failed after ${retries} attempts: ${response.status}` };
-                    }
-                } catch (error) {
-                    if (attempt < retries) {
-                        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-                        showStatus('loading', `⚠️ Network error. Retry ${attempt}/${retries}... (${delay}ms delay)`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        return { success: false, error: `Network error after ${retries} attempts: ${error.message}` };
-                    }
-                }
-            }
-        }
-
-        // Extract text from PDF
-        async function extractPdfText(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            let fullText = '';
-            
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
-                fullText += pageText + '\n\n';
-            }
-            
-            return fullText;
-        }
-
-        // Extract text from DOCX
-        async function extractDocxText(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
-            return result.value;
-        }
-
-        // Extract text from Excel
-        async function extractExcelText(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            let fullText = '';
-            
-            workbook.SheetNames.forEach(sheetName => {
-                const sheet = workbook.Sheets[sheetName];
-                const sheetText = XLSX.utils.sheet_to_txt(sheet);
-                fullText += `\n\n=== Sheet: ${sheetName} ===\n${sheetText}`;
-            });
-            
-            return fullText;
-        }
-
-        // Extract text from TXT
-        async function extractTxtText(file) {
-            return await file.text();
-        }
-
-        // Main text extraction router
-        async function extractText(file) {
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            
-            switch (fileExtension) {
-                case 'pdf':
-                    return await extractPdfText(file);
-                case 'docx':
-                case 'doc':
-                    return await extractDocxText(file);
-                case 'xlsx':
-                case 'xls':
-                case 'csv':
-                    return await extractExcelText(file);
-                case 'txt':
-                    return await extractTxtText(file);
-                default:
-                    throw new Error('Unsupported file type');
-            }
-        }
-
-        // Process single file
-        async function processSingleFile(file, fileIndex, totalFiles) {
-            const fileExtension = file.name.split('.').pop().toLowerCase();
-            const mimeType = file.type;
-            const prefix = totalFiles > 1 ? `[${fileIndex}/${totalFiles}] ` : '';
-            
-            showStatus('loading', `${prefix}📄 Extracting text from ${file.name}...`);
-
-            // Extract text from file
-            const extractedText = await extractText(file);
-            
-            if (!extractedText || extractedText.trim().length === 0) {
-                throw new Error('No text could be extracted from the file');
-            }
-            
-            // Update status
-            showStatus('loading', `${prefix}✂️ Chunking text...`);
-            
-            // Chunk the text
-            const chunks = chunkText(extractedText);
-            
-            // Prepare metadata and chunks as JSON
-            const jsonData = {
-                metadata: {
-                    filename: file.name,
-                    fileType: fileExtension,
-                    mimeType: mimeType,
-                    fileSize: file.size,
-                    totalChunks: chunks.length,
-                    totalCharacters: extractedText.length,
-                    processedAt: new Date().toISOString(),
-                    chunkSize: CHUNK_SIZE,
-                    chunkOverlap: CHUNK_OVERLAP
-                },
-                chunks: chunks,
-                fullText: extractedText
+        function showStatus(elementId, type, message) {
+            const element = document.getElementById(elementId);
+            const colors = {
+                success: 'bg-green-50 text-green-700 border-green-200',
+                error: 'bg-red-50 text-red-700 border-red-200',
+                loading: 'bg-blue-50 text-blue-700 border-blue-200'
             };
             
-            // Get selected project
-            const selectedProject = projectSelect.value;
-            const projectName = projectSelect.options[projectSelect.selectedIndex].text;
-            
-            // Update status
-            showStatus('loading', `${prefix}🚀 Sending to ${projectName}...`);
-            
-            // Create FormData to send both binary file and JSON data
-            const formData = new FormData();
-            formData.append('data', file);
-            formData.append('file', file);
-            formData.append('jsonData', JSON.stringify(jsonData));
-            formData.append('fileType', fileExtension);
-            formData.append('mimeType', mimeType);
-            formData.append('project', selectedProject);
-            
-            // Send to n8n webhook with retry logic
-            const result = await uploadWithRetry(uploadForm.action, formData);
-
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-            
-            return { success: true, filename: file.name };
-        }
-
-        // Handle form submission
-        uploadForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            // Validate file selection
-            if (!fileInput.files.length) {
-                showStatus('error', 'Please select files to upload.');
-                return;
-            }
-
-            const files = Array.from(fileInput.files);
-            const totalFiles = files.length;
-            
-            // Disable button
-            uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<span class="spinner"></span>Processing...';
-
-            try {
-                let successCount = 0;
-                let failedFiles = [];
-
-                // Process each file sequentially
-                for (let i = 0; i < files.length; i++) {
-                    try {
-                        await processSingleFile(files[i], i + 1, totalFiles);
-                        successCount++;
-                    } catch (error) {
-                        console.error(`Error processing ${files[i].name}:`, error);
-                        failedFiles.push({ name: files[i].name, error: error.message });
-                    }
-                }
-
-                // Show final status
-                if (failedFiles.length === 0) {
-                    showStatus('success', `✓ Success! ${successCount} file${successCount > 1 ? 's' : ''} uploaded`);
-                } else if (successCount > 0) {
-                    showStatus('error', `⚠️ Partial success: ${successCount} uploaded, ${failedFiles.length} failed`);
-                } else {
-                    showStatus('error', `✗ All uploads failed`);
-                }
-                
-                // Reset form
-                uploadForm.reset();
-                fileName.textContent = '';
-                fileLabel.classList.remove('has-file');
-                fileDetails.classList.remove('show');
-                currentFile = null;
-                
-                // Re-enable button after 3 seconds
-                setTimeout(() => {
-                    uploadBtn.disabled = false;
-                    uploadBtn.textContent = 'Upload Files';
-                }, 3000);
-            } catch (error) {
-                // Unexpected error
-                console.error('Upload error:', error);
-                showStatus('error', `✗ Error: ${error.message}`);
-                
-                // Re-enable button
-                uploadBtn.disabled = false;
-                uploadBtn.textContent = 'Upload Files';
-            }
-        });
-
-        // Show status message
-        function showStatus(type, message) {
-            statusMessage.className = 'status-message ' + type;
-            statusMessage.textContent = message;
-            
-            if (type === 'loading') {
-                const spinner = document.createElement('span');
-                spinner.className = 'spinner';
-                statusMessage.textContent = '';
-                statusMessage.appendChild(spinner);
-                statusMessage.appendChild(document.createTextNode(' ' + message));
-            }
+            element.innerHTML = `<div class="border ${colors[type]} p-4 rounded-lg fade-in">${message}</div>`;
         }
     </script>
 </body>
