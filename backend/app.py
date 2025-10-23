@@ -159,6 +159,21 @@ def generate_document_id(filename, project):
     return hashlib.md5(unique_string.encode()).hexdigest()
 
 
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint"""
+    return jsonify({
+        'message': 'Knowledge Base API is running!',
+        'status': 'online',
+        'endpoints': {
+            'health': '/health',
+            'upload': '/api/upload',
+            'documents': '/api/documents',
+            'indexes': '/api/indexes'
+        }
+    })
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
