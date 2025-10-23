@@ -3,7 +3,7 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pinecone import Pinecone, ServerlessSpec
-import google.generativeai as genai
+from sentence_transformers import SentenceTransformer
 import hashlib
 from datetime import datetime
 import PyPDF2
@@ -21,18 +21,21 @@ CORS(app)
 
 # Configuration - Set these in environment variables
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
-genai.configure(api_key=GEMINI_API_KEY)
 
-print("Using Gemini API for embeddings")
+# Initialize local embedding model
+print("Loading local embedding model...")
+embedding_model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
+print("✅ Local embedding model loaded successfully!")
+print("✅ Embeddings will run natively on your computer")
+print("✅ Unlimited usage - no API quotas!")
 
 # Index configuration
 DEFAULT_INDEX_NAME = "document-knowledge-base"
-EMBEDDING_DIMENSION = 768  # Gemini embeddings are 768-dimensional
+EMBEDDING_DIMENSION = 384  # paraphrase-MiniLM-L3-v2 produces 384-dimensional embeddings
 
 # Chunking configuration
 CHUNK_SIZE = 1000
@@ -144,16 +147,9 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 
 
 def generate_embeddings(texts):
-    """Generate embeddings using Gemini API"""
-    embeddings = []
-    for text in texts:
-        result = genai.embed_content(
-            model="models/embedding-001",
-            content=text,
-            task_type="retrieval_document"
-        )
-        embeddings.append(result['embedding'])
-    return embeddings
+    """Generate embeddings using local Sentence Transformer model"""
+    embeddings = embedding_model.encode(texts, show_progress_bar=False)
+    return embeddings.tolist()
 
 
 def generate_document_id(filename, project):
@@ -169,9 +165,10 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'pinecone_configured': bool(PINECONE_API_KEY),
-        'gemini_configured': bool(GEMINI_API_KEY),
-        'embedding_model': 'Gemini embedding-001',
-        'embedding_dimension': EMBEDDING_DIMENSION
+        'embedding_model': 'paraphrase-MiniLM-L3-v2 (Local/Native)',
+        'embedding_type': 'Native - Runs on your computer',
+        'embedding_dimension': EMBEDDING_DIMENSION,
+        'quota_limits': 'None - Unlimited!'
     })
 
 
