@@ -3,7 +3,7 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pinecone import Pinecone, ServerlessSpec
-from sentence_transformers import SentenceTransformer
+import google.generativeai as genai
 import hashlib
 from datetime import datetime
 import PyPDF2
@@ -24,24 +24,25 @@ CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "DELETE"
 # Configuration - Set these in environment variables
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-# Initialize local embedding model
-print("Loading local embedding model...")
-embedding_model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
-print("✅ Local embedding model loaded successfully!")
-print("✅ Embeddings will run natively on your computer")
-print("✅ Unlimited usage - no API quotas!")
+# Initialize Google Gemini for embeddings
+print("Configuring Google Gemini embeddings...")
+genai.configure(api_key=GEMINI_API_KEY)
+print("✅ Google Gemini embeddings configured!")
+print("✅ Using text-embedding-004 model (768 dimensions)")
+print("✅ Matches n8n workflow embedding model")
 
 # Index configuration
 DEFAULT_INDEX_NAME = "document-knowledge-base"
-EMBEDDING_DIMENSION = 384  # paraphrase-MiniLM-L3-v2 produces 384-dimensional embeddings
+EMBEDDING_DIMENSION = 768  # Google Gemini text-embedding-004 produces 768-dimensional embeddings
 
 # Chunking configuration (using LlamaIndex's SentenceSplitter - Recursive Character Text Splitter)
 CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
+CHUNK_OVERLAP = 300  # Increased overlap for better context retrieval
 
 
 def get_or_create_index(index_name=None):
@@ -149,9 +150,39 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 
 
 def generate_embeddings(texts):
-    """Generate embeddings using local Sentence Transformer model"""
-    embeddings = embedding_model.encode(texts, show_progress_bar=False)
-    return embeddings.tolist()
+    """Generate embeddings using Google Gemini API (matches n8n workflow)"""
+    embeddings = []
+    
+    # Process in batches to handle rate limits
+    batch_size = 100
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        
+        try:
+            # Use Gemini's embedding model (same as n8n)
+            result = genai.embed_content(
+                model="models/text-embedding-004",
+                content=batch,
+                task_type="retrieval_document"
+            )
+            embeddings.extend(result['embedding'])
+        except Exception as e:
+            print(f"Error generating embeddings for batch {i}: {e}")
+            # Fallback: process one by one if batch fails
+            for text in batch:
+                try:
+                    result = genai.embed_content(
+                        model="models/text-embedding-004",
+                        content=text,
+                        task_type="retrieval_document"
+                    )
+                    embeddings.append(result['embedding'])
+                except Exception as e2:
+                    print(f"Error generating embedding: {e2}")
+                    # Use zero vector as fallback
+                    embeddings.append([0.0] * EMBEDDING_DIMENSION)
+    
+    return embeddings
 
 
 def generate_document_id(filename, project):
@@ -182,10 +213,11 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'pinecone_configured': bool(PINECONE_API_KEY),
-        'embedding_model': 'paraphrase-MiniLM-L3-v2 (Local/Native)',
-        'embedding_type': 'Native - Runs on your computer',
+        'gemini_configured': bool(GEMINI_API_KEY),
+        'embedding_model': 'Google Gemini text-embedding-004',
+        'embedding_type': 'API - Matches n8n workflow',
         'embedding_dimension': EMBEDDING_DIMENSION,
-        'quota_limits': 'None - Unlimited!'
+        'quota_limits': 'Google Gemini API limits apply'
     })
 
 
@@ -236,11 +268,12 @@ def upload_document():
                 'project': project,
                 'chunk_index': i,
                 'total_chunks': len(chunks),
-                'text': chunk['text'][:1000],  # Store first 1000 chars in metadata
+                'text': chunk['text'],  # Store full chunk text for RAG retrieval
                 'upload_date': datetime.now().isoformat(),
                 'file_size': len(file_bytes),
                 'chunk_start': chunk['start_position'],
-                'chunk_end': chunk['end_position']
+                'chunk_end': chunk['end_position'],
+                'source': filename  # Add source field for better context
             }
             
             vectors.append({

@@ -9,4 +9,3 @@ openpyxl
 python-dotenv
 llama-index
 llama-index-core
-sentence-transformers
