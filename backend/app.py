@@ -19,7 +19,7 @@ from llama_index.core import Document as LlamaDocument
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "DELETE", "OPTIONS"], "allow_headers": "*"}})
 
 # Configuration - Set these in environment variables
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
