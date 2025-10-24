@@ -277,39 +277,52 @@
             <!-- Chat Tab -->
             <div id="chatContent" class="tab-content hidden">
                 <div class="max-w-3xl mx-auto">
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-2">💬 Chat with Your Knowledge Base</h2>
-                        <p class="text-gray-600">Select a repo and ask questions. Responses use RAG to ground answers in your documents.</p>
+                    <div class="mb-8 text-center md:text-left">
+                        <h2 class="text-2xl font-bold text-slate-900 mb-2">Investor Concierge</h2>
+                        <p class="text-slate-500">Habib synthesizes documents, decks, and live URLs into concise investor-grade answers.</p>
                     </div>
 
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 flex flex-col gap-4 md:flex-row md:items-end">
-                        <div class="flex-1">
-                            <label class="block text-gray-700 text-sm font-semibold mb-2">Repo</label>
-                            <select id="chatIndex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-black">
-                                <option value="general">General</option>
-                                <option value="fortius">Fortius</option>
-                                <option value="mubest">Mubest</option>
-                            </select>
-                        </div>
-                        <button onclick="resetChatConversation()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-400 transition text-sm font-semibold">
-                            🧹 Reset Conversation
-                        </button>
-                    </div>
-
-                    <div id="chatMessages" class="h-96 overflow-y-auto mb-6 rounded-3xl border border-indigo-100/60 bg-gradient-to-br from-white to-indigo-50/30 p-6 shadow-inner">
-                        <div id="chatPlaceholder" class="h-full flex items-center justify-center text-indigo-200/70 text-sm text-center px-4">
-                            Ask a question to get started. Your answers will reference the latest documents in the selected repo.
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="chatInput" class="block text-gray-700 text-sm font-semibold mb-2">Your Question</label>
-                        <textarea id="chatInput" rows="3" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-black" placeholder="Ask anything about the documents in this repo..."></textarea>
-                        <div class="flex items-center justify-between mt-4">
-                            <div id="chatStatus" class="text-sm"></div>
-                            <button id="chatSendBtn" onclick="sendChatMessage()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition">
-                                Send
+                    <div class="rounded-3xl border border-indigo-100/70 bg-white/95 shadow-[0_40px_80px_-50px_rgba(79,70,229,0.35)] p-6 space-y-6">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div class="flex-1">
+                                <label class="block text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold mb-2">Repo Context</label>
+                                <select id="chatIndex" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                                    <option value="general">General</option>
+                                    <option value="fortius">Fortius</option>
+                                    <option value="mubest">Mubest</option>
+                                </select>
+                            </div>
+                            <button onclick="resetChatConversation()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 text-sm font-semibold hover:bg-white hover:border-indigo-200 transition">
+                                <span class="text-lg">🔁</span> Reset Conversation
                             </button>
+                        </div>
+
+                        <div id="chatMessages" class="relative h-96 overflow-y-auto rounded-3xl border border-indigo-50 bg-gradient-to-br from-white via-indigo-50/20 to-rose-50/10 p-6 shadow-inner">
+                            <div id="chatPlaceholder" class="h-full flex items-center justify-center text-indigo-200/70 text-sm text-center px-4">
+                                Ask a question to get started. Your answers will reference the latest documents in the selected repo.
+                            </div>
+                            <div id="typingIndicator" class="hidden absolute bottom-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-indigo-100 shadow-sm">
+                                <span class="h-2 w-2 bg-indigo-400 rounded-full animate-bounce delay-0"></span>
+                                <span class="h-2 w-2 bg-indigo-400 rounded-full animate-bounce delay-150"></span>
+                                <span class="h-2 w-2 bg-indigo-400 rounded-full animate-bounce delay-300"></span>
+                                <span class="text-xs text-indigo-500 font-semibold uppercase tracking-[0.3em]">Habib is drafting</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <label for="chatInput" class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold">Your Question</label>
+                                <div id="chatStatus" class="text-xs text-indigo-500"></div>
+                            </div>
+                            <textarea id="chatInput" rows="3" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 resize-none text-slate-800 bg-white placeholder:text-slate-400" placeholder="Ask anything about the documents in this repo..."></textarea>
+                            <div class="flex items-center justify-between gap-4">
+                                <p class="text-xs text-slate-400 uppercase tracking-[0.3em]">Powered by Gemini · Pinecone · Atlas IQ</p>
+                                <button id="chatSendBtn" onclick="sendChatMessage()" class="relative inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-2xl transition">
+                                    <span class="send-label">Send</span>
+                                    <span class="send-loader hidden h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
+                                    <span class="text-lg">↗</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,6 +373,7 @@
         const chatSendBtn = document.getElementById('chatSendBtn');
         const chatStatus = document.getElementById('chatStatus');
         const chatIndexSelector = document.getElementById('chatIndex');
+        const typingIndicator = document.getElementById('typingIndicator');
         let chatHistoryTurns = [];
 
         if (chatInput) {
@@ -761,7 +775,14 @@
             clearChatStatus();
 
             chatSendBtn.disabled = true;
-            chatSendBtn.innerHTML = '<div class="spinner inline-block mr-2"></div> Thinking...';
+            chatSendBtn.classList.add('opacity-70');
+            const label = chatSendBtn.querySelector('.send-label');
+            const loader = chatSendBtn.querySelector('.send-loader');
+            if (label && loader) {
+                label.classList.add('hidden');
+                loader.classList.remove('hidden');
+            }
+            typingIndicator && typingIndicator.classList.remove('hidden');
 
             const payload = {
                 query: message,
@@ -794,7 +815,14 @@
                 setChatStatus('error', `Error: ${error.message}`);
             } finally {
                 chatSendBtn.disabled = false;
-                chatSendBtn.innerHTML = 'Send';
+                chatSendBtn.classList.remove('opacity-70');
+                const labelReset = chatSendBtn.querySelector('.send-label');
+                const loaderReset = chatSendBtn.querySelector('.send-loader');
+                if (labelReset && loaderReset) {
+                    labelReset.classList.remove('hidden');
+                    loaderReset.classList.add('hidden');
+                }
+                typingIndicator && typingIndicator.classList.add('hidden');
                 if (chatInput) {
                     chatInput.focus();
                 }
