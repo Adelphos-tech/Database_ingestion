@@ -537,27 +537,6 @@
             textEl.textContent = text;
             bubble.appendChild(textEl);
 
-            if (role === 'assistant' && Array.isArray(sources) && sources.length) {
-                const sourcesHeading = document.createElement('div');
-                sourcesHeading.className = 'mt-3 text-xs font-semibold text-gray-600';
-                sourcesHeading.textContent = 'Sources';
-
-                const sourcesList = document.createElement('div');
-                sourcesList.className = 'mt-2 flex flex-wrap gap-2';
-
-                sources.forEach((source) => {
-                    const badge = document.createElement('span');
-                    badge.className = 'inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs';
-                    const label = source.filename || 'Unknown file';
-                    const sourceId = source.source_id ? `#${source.source_id}` : '';
-                    badge.textContent = `${label} ${sourceId}`.trim();
-                    sourcesList.appendChild(badge);
-                });
-
-                bubble.appendChild(sourcesHeading);
-                bubble.appendChild(sourcesList);
-            }
-
             wrapper.appendChild(bubble);
             chatMessages.appendChild(wrapper);
             chatMessages.scrollTop = chatMessages.scrollHeight;
