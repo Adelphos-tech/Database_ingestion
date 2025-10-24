@@ -35,6 +35,9 @@
                 <button onclick="switchTab('indexes')" id="indexesTab" class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:text-purple-600 transition">
                     🗂️ Manage Repos
                 </button>
+                <button onclick="switchTab('chat')" id="chatTab" class="flex-1 py-4 px-6 text-center font-semibold text-gray-600 hover:text-purple-600 transition">
+                    💬 Chat Assistant
+                </button>
             </div>
         </div>
 
@@ -123,6 +126,47 @@
                     <div id="indexesList"></div>
                 </div>
             </div>
+
+            <!-- Chat Tab -->
+            <div id="chatContent" class="tab-content hidden">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">💬 Chat with Your Knowledge Base</h2>
+                        <p class="text-gray-600">Select a repo and ask questions. Responses use RAG to ground answers in your documents.</p>
+                    </div>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 flex flex-col gap-4 md:flex-row md:items-end">
+                        <div class="flex-1">
+                            <label class="block text-gray-700 text-sm font-semibold mb-2">Repo</label>
+                            <select id="chatIndex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-black">
+                                <option value="general">General</option>
+                                <option value="fortius">Fortius</option>
+                                <option value="mubest">Mubest</option>
+                            </select>
+                        </div>
+                        <button onclick="resetChatConversation()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-400 transition text-sm font-semibold">
+                            🧹 Reset Conversation
+                        </button>
+                    </div>
+
+                    <div id="chatMessages" class="border-2 border-gray-200 rounded-lg bg-white p-4 h-96 overflow-y-auto mb-6">
+                        <div id="chatPlaceholder" class="h-full flex items-center justify-center text-gray-400 text-sm text-center px-4">
+                            Ask a question to get started. Your answers will reference the latest documents in the selected repo.
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="chatInput" class="block text-gray-700 text-sm font-semibold mb-2">Your Question</label>
+                        <textarea id="chatInput" rows="3" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none resize-none text-black" placeholder="Ask anything about the documents in this repo..."></textarea>
+                        <div class="flex items-center justify-between mt-4">
+                            <div id="chatStatus" class="text-sm"></div>
+                            <button id="chatSendBtn" onclick="sendChatMessage()" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition">
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -142,6 +186,9 @@
             
             if (tab === 'browse') loadDocuments();
             if (tab === 'indexes') loadIndexes();
+            if (tab === 'chat' && chatInput) {
+                setTimeout(() => chatInput.focus(), 100);
+            }
         }
 
         // Load available indexes on page load
@@ -153,6 +200,28 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const selectedFiles = document.getElementById('selectedFiles');
+        const chatMessages = document.getElementById('chatMessages');
+        let chatPlaceholder = document.getElementById('chatPlaceholder');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const chatStatus = document.getElementById('chatStatus');
+        const chatIndexSelector = document.getElementById('chatIndex');
+        let chatHistoryTurns = [];
+
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+
+        if (chatIndexSelector) {
+            chatIndexSelector.addEventListener('change', () => {
+                resetChatConversation('Repo changed. Conversation cleared.');
+            });
+        }
 
         fileInput.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
@@ -313,10 +382,11 @@
 
                 if (data.success) {
                     const indexes = data.indexes;
-                    const selectors = ['uploadIndex', 'browseIndex'];
+                    const selectors = ['uploadIndex', 'browseIndex', 'chatIndex'];
                     
                     selectors.forEach(selectorId => {
                         const selector = document.getElementById(selectorId);
+                        if (!selector) return;
                         const currentValue = selector.value;
                         selector.innerHTML = indexes.map(idx => 
                             `<option value="${idx.name}">${idx.name}${idx.name === 'document-knowledge-base' ? ' (default)' : ''}</option>`
@@ -441,6 +511,150 @@
                 }
             } catch (error) {
                 statusElement.innerHTML = `<div class="border border-red-200 bg-red-50 text-red-700 p-4 rounded-lg fade-in">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Chat Functions
+        function appendChatBubble(role, text, sources = []) {
+            if (!chatMessages) return;
+
+            if (chatPlaceholder) {
+                chatPlaceholder.remove();
+                chatPlaceholder = null;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
+
+            const bubble = document.createElement('div');
+            const roleClasses = role === 'user'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-none'
+                : 'bg-gray-100 text-gray-800 rounded-bl-none';
+            bubble.className = `max-w-xl px-4 py-3 whitespace-pre-wrap rounded-2xl shadow ${roleClasses}`;
+
+            const textEl = document.createElement('div');
+            textEl.className = 'text-sm leading-relaxed';
+            textEl.textContent = text;
+            bubble.appendChild(textEl);
+
+            if (role === 'assistant' && Array.isArray(sources) && sources.length) {
+                const sourcesHeading = document.createElement('div');
+                sourcesHeading.className = 'mt-3 text-xs font-semibold text-gray-600';
+                sourcesHeading.textContent = 'Sources';
+
+                const sourcesList = document.createElement('div');
+                sourcesList.className = 'mt-2 flex flex-wrap gap-2';
+
+                sources.forEach((source) => {
+                    const badge = document.createElement('span');
+                    badge.className = 'inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs';
+                    const label = source.filename || 'Unknown file';
+                    const sourceId = source.source_id ? `#${source.source_id}` : '';
+                    badge.textContent = `${label} ${sourceId}`.trim();
+                    sourcesList.appendChild(badge);
+                });
+
+                bubble.appendChild(sourcesHeading);
+                bubble.appendChild(sourcesList);
+            }
+
+            wrapper.appendChild(bubble);
+            chatMessages.appendChild(wrapper);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function setChatStatus(type, message) {
+            if (!chatStatus) return;
+            const colors = {
+                success: 'text-green-600',
+                error: 'text-red-600',
+                info: 'text-gray-600'
+            };
+            chatStatus.className = `text-sm ${colors[type] || 'text-gray-600'}`;
+            chatStatus.textContent = message;
+        }
+
+        function clearChatStatus() {
+            if (!chatStatus) return;
+            chatStatus.className = 'text-sm';
+            chatStatus.textContent = '';
+        }
+
+        function resetChatConversation(reason) {
+            chatHistoryTurns = [];
+            if (chatMessages) {
+                chatMessages.innerHTML = '';
+                chatPlaceholder = document.createElement('div');
+                chatPlaceholder.id = 'chatPlaceholder';
+                chatPlaceholder.className = 'h-full flex items-center justify-center text-gray-400 text-sm text-center px-4';
+                chatPlaceholder.textContent = 'Conversation cleared. Ask a new question to start again.';
+                chatMessages.appendChild(chatPlaceholder);
+            }
+
+            chatInput && (chatInput.value = '');
+
+            if (reason) {
+                setChatStatus('info', reason);
+            } else {
+                setChatStatus('info', 'Conversation cleared.');
+            }
+
+            if (chatInput) {
+                chatInput.focus();
+            }
+        }
+
+        async function sendChatMessage() {
+            if (!chatInput || !chatSendBtn) return;
+            const message = chatInput.value.trim();
+
+            if (!message) {
+                setChatStatus('info', 'Please enter a question.');
+                return;
+            }
+
+            appendChatBubble('user', message);
+            chatInput.value = '';
+            clearChatStatus();
+
+            chatSendBtn.disabled = true;
+            chatSendBtn.innerHTML = '<div class="spinner inline-block mr-2"></div> Thinking...';
+
+            const payload = {
+                query: message,
+                index_name: chatIndexSelector ? chatIndexSelector.value : 'document-knowledge-base',
+                project: 'default',
+                history: chatHistoryTurns
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to generate a response');
+                }
+
+                const assistantAnswer = data.answer || 'No response returned.';
+                appendChatBubble('assistant', assistantAnswer, data.sources || []);
+                chatHistoryTurns.push({ user: message, assistant: assistantAnswer });
+                if (chatHistoryTurns.length > 10) {
+                    chatHistoryTurns = chatHistoryTurns.slice(-10);
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                setChatStatus('error', `Error: ${error.message}`);
+            } finally {
+                chatSendBtn.disabled = false;
+                chatSendBtn.innerHTML = 'Send';
+                if (chatInput) {
+                    chatInput.focus();
+                }
             }
         }
 
