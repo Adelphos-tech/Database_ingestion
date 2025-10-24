@@ -1,5 +1,7 @@
 import os
 import json
+from collections import deque
+from urllib.parse import urlparse, urljoin, urldefrag
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pinecone import Pinecone, ServerlessSpec
@@ -10,6 +12,8 @@ from datetime import datetime
 import PyPDF2
 import docx
 import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 from io import BytesIO
 import traceback
 from dotenv import load_dotenv
@@ -231,8 +235,72 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
             'end_position': node.end_char_idx if hasattr(node, 'end_char_idx') else len(node.text),
             'chunk_index': idx
         })
-    
+
     return chunks
+
+
+def ingest_text_payload(text, source_name, project, index_name, extra_metadata=None):
+    """Chunk, embed, and store text in Pinecone."""
+    if not text or not text.strip():
+        raise ValueError("No text content to ingest.")
+
+    extra_metadata = extra_metadata.copy() if extra_metadata else {}
+    chunks = chunk_text(text)
+
+    if not chunks:
+        raise ValueError("Unable to generate chunks from the supplied text.")
+
+    chunk_texts = [chunk['text'] for chunk in chunks]
+    embeddings = generate_embeddings(chunk_texts)
+
+    index = get_or_create_index(index_name)
+    doc_id = generate_document_id(source_name, project)
+
+    file_size = extra_metadata.get('file_size', len(text))
+    source_label = extra_metadata.get('source', source_name)
+
+    base_metadata = {
+        'document_id': doc_id,
+        'filename': source_name,
+        'project': project,
+        'total_chunks': len(chunks),
+        'upload_date': datetime.now().isoformat(),
+        'file_size': file_size,
+        'source': source_label
+    }
+
+    vectors = []
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        metadata = {
+            **base_metadata,
+            'chunk_index': i,
+            'chunk_start': chunk['start_position'],
+            'chunk_end': chunk['end_position'],
+            'text': chunk['text']
+        }
+        for key, value in extra_metadata.items():
+            if key not in metadata:
+                metadata[key] = value
+
+        vector_id = f"{doc_id}_chunk_{i}"
+        vectors.append({
+            'id': vector_id,
+            'values': embedding,
+            'metadata': metadata
+        })
+
+    batch_size = 100
+    for i in range(0, len(vectors), batch_size):
+        batch = vectors[i:i + batch_size]
+        index.upsert(vectors=batch, namespace=project)
+
+    return {
+        'document_id': doc_id,
+        'filename': source_name,
+        'project': project,
+        'chunks_created': len(chunks),
+        'total_characters': len(text)
+    }
 
 
 def _normalize_embedding_response(response):
@@ -301,6 +369,83 @@ def generate_document_id(filename, project):
     return hashlib.md5(unique_string.encode()).hexdigest()
 
 
+def extract_text_from_html(html_content):
+    """Convert raw HTML into clean text and extract title."""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    for tag in soup(['script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav']):
+        tag.decompose()
+
+    title = soup.title.string.strip() if soup.title and soup.title.string else ""
+    text_lines = [line.strip() for line in soup.get_text(separator='\n').splitlines()]
+    text = "\n".join([line for line in text_lines if line])
+    return title, text
+
+
+def normalize_url(url):
+    """Remove URL fragments and trailing slashes for consistency."""
+    clean_url, _ = urldefrag(url)
+    parsed = urlparse(clean_url)
+    normalized = parsed._replace(fragment='', query=parsed.query).geturl()
+    if normalized.endswith('/'):
+        normalized = normalized[:-1]
+    return normalized
+
+
+def crawl_website(start_url, max_pages=5, max_depth=1, timeout=15):
+    """Breadth-first crawl limited pages within the same domain."""
+    parsed_start = urlparse(start_url)
+    if parsed_start.scheme not in ('http', 'https'):
+        raise ValueError("URL must start with http:// or https://")
+
+    base_domain = parsed_start.netloc
+    visited = set()
+    queue = deque([(normalize_url(start_url), 0)])
+    pages = []
+    headers = {'User-Agent': 'AtlasIQBot/1.0 (+https://adelphos-tech.github.io)'}
+
+    while queue and len(pages) < max_pages:
+        current_url, depth = queue.popleft()
+        if current_url in visited or depth > max_depth:
+            continue
+        visited.add(current_url)
+
+        try:
+            response = requests.get(current_url, headers=headers, timeout=timeout)
+            content_type = response.headers.get('Content-Type', '')
+            if response.status_code != 200 or 'text/html' not in content_type:
+                continue
+            title, text = extract_text_from_html(response.text)
+            if not text.strip():
+                continue
+
+            pages.append({
+                'url': current_url,
+                'title': title or current_url,
+                'text': text,
+                'depth': depth
+            })
+
+            if depth >= max_depth:
+                continue
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            for anchor in soup.find_all('a', href=True):
+                linked_url = urljoin(current_url, anchor['href'])
+                normalized_link = normalize_url(linked_url)
+                parsed_link = urlparse(normalized_link)
+                if parsed_link.netloc != base_domain:
+                    continue
+                if normalized_link in visited:
+                    continue
+                queue.append((normalized_link, depth + 1))
+                if len(queue) + len(pages) >= max_pages:
+                    break
+        except requests.RequestException:
+            continue
+
+    return pages
+
+
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint"""
@@ -355,59 +500,101 @@ def upload_document():
         if not text or len(text.strip()) == 0:
             return jsonify({'error': 'No text extracted from file'}), 400
         
-        # Chunk text
-        chunks = chunk_text(text)
-        
-        # Generate document ID
-        doc_id = generate_document_id(filename, project)
-        
-        # Generate embeddings for all chunks
-        chunk_texts = [chunk['text'] for chunk in chunks]
-        embeddings = generate_embeddings(chunk_texts)
-        
-        # Prepare vectors for Pinecone
-        index = get_or_create_index(index_name)
-        vectors = []
-        
-        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-            vector_id = f"{doc_id}_chunk_{i}"
-            metadata = {
-                'document_id': doc_id,
-                'filename': filename,
-                'project': project,
-                'chunk_index': i,
-                'total_chunks': len(chunks),
-                'text': chunk['text'],  # Store full chunk text for RAG retrieval
-                'upload_date': datetime.now().isoformat(),
+        ingest_result = ingest_text_payload(
+            text,
+            filename,
+            project,
+            index_name,
+            extra_metadata={
                 'file_size': len(file_bytes),
-                'chunk_start': chunk['start_position'],
-                'chunk_end': chunk['end_position'],
-                'source': filename  # Add source field for better context
+                'source': filename,
+                'content_type': 'file_upload'
             }
-            
-            vectors.append({
-                'id': vector_id,
-                'values': embedding,
-                'metadata': metadata
-            })
-        
-        # Upsert to Pinecone in batches
-        batch_size = 100
-        for i in range(0, len(vectors), batch_size):
-            batch = vectors[i:i + batch_size]
-            index.upsert(vectors=batch, namespace=project)
+        )
         
         return jsonify({
             'success': True,
-            'document_id': doc_id,
-            'filename': filename,
-            'project': project,
-            'chunks_created': len(chunks),
-            'total_characters': len(text)
+            **ingest_result
         })
         
     except Exception as e:
         print(f"Upload error: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/ingest-url', methods=['POST'])
+def ingest_url():
+    """Crawl a URL (and optional child pages) and ingest the content."""
+    try:
+        data = request.get_json(force=True) or {}
+        start_url = (data.get('url') or '').strip()
+        project = data.get('project', 'default')
+        index_name = data.get('index_name', DEFAULT_INDEX_NAME)
+        max_pages = data.get('max_pages', 5)
+        max_depth = data.get('max_depth', 1)
+
+        if not start_url:
+            return jsonify({'error': 'URL is required'}), 400
+
+        try:
+            max_pages = max(1, min(int(max_pages), 25))
+        except (TypeError, ValueError):
+            max_pages = 5
+
+        try:
+            max_depth = max(0, min(int(max_depth), 3))
+        except (TypeError, ValueError):
+            max_depth = 1
+
+        pages = crawl_website(start_url, max_pages=max_pages, max_depth=max_depth)
+
+        if not pages:
+            return jsonify({'error': 'No crawlable pages were found at the supplied URL.'}), 400
+
+        ingested = []
+        skipped = 0
+
+        for idx, page in enumerate(pages, start=1):
+            try:
+                ingest_result = ingest_text_payload(
+                    page['text'],
+                    page['title'],
+                    project,
+                    index_name,
+                    extra_metadata={
+                        'file_size': len(page['text']),
+                        'source': page['title'],
+                        'source_url': page['url'],
+                        'crawl_depth': page['depth'],
+                        'content_type': 'web_page',
+                        'page_index': idx
+                    }
+                )
+                ingested.append({
+                    'url': page['url'],
+                    'title': page['title'],
+                    'depth': page['depth'],
+                    'chunks_created': ingest_result['chunks_created'],
+                    'total_characters': ingest_result['total_characters']
+                })
+            except Exception as page_error:
+                print(f"URL ingest error for {page['url']}: {page_error}")
+                skipped += 1
+                continue
+
+        if not ingested:
+            return jsonify({'error': 'Failed to ingest any pages from the supplied URL.'}), 500
+
+        return jsonify({
+            'success': True,
+            'pages_ingested': len(ingested),
+            'pages_skipped': skipped,
+            'total_chunks': sum(page['chunks_created'] for page in ingested),
+            'details': ingested
+        })
+
+    except Exception as e:
+        print(f"URL ingest error: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 

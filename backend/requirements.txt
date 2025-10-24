@@ -8,3 +8,5 @@ pandas
 openpyxl
 python-dotenv
 llama-index-core==0.14.5
+requests
+beautifulsoup4
