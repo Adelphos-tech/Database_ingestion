@@ -31,8 +31,11 @@ pc = Pinecone(api_key=PINECONE_API_KEY)
 
 # Initialize Google Gemini for embeddings
 print("Configuring Google Gemini embeddings...")
-genai.configure(api_key=GEMINI_API_KEY)
-print("✅ Google Gemini embeddings configured!")
+if not GEMINI_API_KEY:
+    print("⚠️ GEMINI_API_KEY not set. Embedding requests will fail until it is provided.")
+else:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print("✅ Google Gemini embeddings configured!")
 print("✅ Using text-embedding-004 model (768 dimensions)")
 print("✅ Matches n8n workflow embedding model")
 
@@ -45,15 +48,61 @@ CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 300  # Increased overlap for better context retrieval
 
 
+def _get_index_description(index_name):
+    """Return Pinecone index description or None if not found."""
+    try:
+        description = pc.describe_index(index_name)
+        if isinstance(description, dict):
+            return description
+        return description
+    except Exception:
+        return None
+
+
+def _extract_dimension(index_description):
+    """Best-effort extraction of dimension value from Pinecone index description."""
+    if not index_description:
+        return None
+    for attr in ("dimension", "dimensions"):
+        if hasattr(index_description, attr):
+            value = getattr(index_description, attr)
+            if value:
+                return value
+    if isinstance(index_description, dict):
+        for key in ("dimension", "dimensions"):
+            if key in index_description and index_description[key]:
+                return index_description[key]
+    return None
+
+
+def get_index_dimension(index_name, fallback=EMBEDDING_DIMENSION):
+    """Return the dimension for the given index, falling back to configured embedding dimension."""
+    description = _get_index_description(index_name)
+    existing_dimension = _extract_dimension(description)
+    return existing_dimension or fallback
+
+
 def get_or_create_index(index_name=None):
     """Get existing index or create new one"""
     try:
         if index_name is None:
             index_name = DEFAULT_INDEX_NAME
-            
-        existing_indexes = [index.name for index in pc.list_indexes()]
-        
-        if index_name not in existing_indexes:
+
+        existing_indexes = {index.name: index for index in pc.list_indexes()}
+        index_info = existing_indexes.get(index_name)
+
+        if index_info:
+            existing_dimension = getattr(index_info, 'dimension', None)
+            if existing_dimension is None:
+                description = _get_index_description(index_name)
+                existing_dimension = _extract_dimension(description)
+            if existing_dimension and existing_dimension != EMBEDDING_DIMENSION:
+                raise ValueError(
+                    f"Pinecone index '{index_name}' is dimension {existing_dimension}, "
+                    f"but this service requires {EMBEDDING_DIMENSION}. "
+                    "Please recreate the index or choose another one that matches the embedding model."
+                )
+        else:
             pc.create_index(
                 name=index_name,
                 dimension=EMBEDDING_DIMENSION,
@@ -62,8 +111,8 @@ def get_or_create_index(index_name=None):
                     cloud='aws',
                     region=PINECONE_ENVIRONMENT
                 )
-            )
-        
+        )
+
         return pc.Index(index_name)
     except Exception as e:
         print(f"Error creating/getting index: {e}")
@@ -149,38 +198,61 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     return chunks
 
 
+def _normalize_embedding_response(response):
+    """Normalize Gemini embedding response into a flat list of floats."""
+    embedding = getattr(response, 'embedding', response)
+    if embedding is None and isinstance(response, dict):
+        embedding = response.get('embedding')
+    # Unwrap nested dict structures returned by the SDK
+    visited = set()
+    while isinstance(embedding, dict):
+        dict_id = id(embedding)
+        if dict_id in visited:
+            break
+        visited.add(dict_id)
+        if 'values' in embedding:
+            embedding = embedding['values']
+        elif 'embedding' in embedding:
+            embedding = embedding['embedding']
+        elif 'data' in embedding:
+            embedding = embedding['data']
+        elif 'vector' in embedding:
+            embedding = embedding['vector']
+        else:
+            break
+    # Handle SDK objects that expose .values attribute/property
+    if hasattr(embedding, 'values'):
+        values_attr = embedding.values
+        if callable(values_attr):
+            embedding = values_attr()
+        else:
+            embedding = values_attr
+    if isinstance(embedding, (tuple, set)):
+        embedding = list(embedding)
+    if not isinstance(embedding, list):
+        raise ValueError(f"Unexpected embedding response format: {type(response)}")
+    if len(embedding) != EMBEDDING_DIMENSION:
+        raise ValueError(f"Embedding dimension mismatch. Expected {EMBEDDING_DIMENSION}, got {len(embedding)}")
+    return embedding
+
+
 def generate_embeddings(texts):
     """Generate embeddings using Google Gemini API (matches n8n workflow)"""
-    embeddings = []
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY is not configured. Set the environment variable to enable embeddings.")
     
-    # Process in batches to handle rate limits
-    batch_size = 100
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
-        
+    embeddings = []
+    for idx, text in enumerate(texts):
         try:
-            # Use Gemini's embedding model (same as n8n)
             result = genai.embed_content(
                 model="models/text-embedding-004",
-                content=batch,
+                content=text,
                 task_type="retrieval_document"
             )
-            embeddings.extend(result['embedding'])
+            embeddings.append(_normalize_embedding_response(result))
         except Exception as e:
-            print(f"Error generating embeddings for batch {i}: {e}")
-            # Fallback: process one by one if batch fails
-            for text in batch:
-                try:
-                    result = genai.embed_content(
-                        model="models/text-embedding-004",
-                        content=text,
-                        task_type="retrieval_document"
-                    )
-                    embeddings.append(result['embedding'])
-                except Exception as e2:
-                    print(f"Error generating embedding: {e2}")
-                    # Use zero vector as fallback
-                    embeddings.append([0.0] * EMBEDDING_DIMENSION)
+            print(f"Error generating embedding for chunk {idx}: {e}")
+            raise
     
     return embeddings
 
@@ -357,6 +429,7 @@ def list_documents():
         
         # Get index stats
         index = get_or_create_index(index_name)
+        index_dimension = get_index_dimension(index_name)
         stats = index.describe_index_stats()
         
         # Get namespace stats
@@ -365,7 +438,7 @@ def list_documents():
         # Query for sample documents to get unique document IDs
         # This is a workaround since Pinecone doesn't have a direct "list all docs" API
         sample_results = index.query(
-            vector=[0] * EMBEDDING_DIMENSION,
+            vector=[0.0] * index_dimension,
             top_k=10000,
             namespace=project,
             include_metadata=True
@@ -409,10 +482,11 @@ def delete_document(document_id):
         index_name = request.args.get('index_name', DEFAULT_INDEX_NAME)
         
         index = get_or_create_index(index_name)
+        index_dimension = get_index_dimension(index_name)
         
         # Find all chunks for this document
         results = index.query(
-            vector=[0] * EMBEDDING_DIMENSION,
+            vector=[0.0] * index_dimension,
             top_k=10000,
             namespace=project,
             include_metadata=True,
