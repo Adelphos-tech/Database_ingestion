@@ -25,7 +25,8 @@ CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "DELETE"
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-CHAT_MODEL_NAME = os.getenv('GEMINI_CHAT_MODEL', 'gemini-pro')
+DEFAULT_CHAT_MODEL = 'models/gemini-2.0-flash-exp'
+CHAT_MODEL_NAME = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
