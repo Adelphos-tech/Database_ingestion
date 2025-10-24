@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from collections import deque
 from urllib.parse import urlparse, urljoin, urldefrag
 from flask import Flask, request, jsonify
@@ -20,6 +21,16 @@ from dotenv import load_dotenv
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import Document as LlamaDocument
 
+try:
+    import cloudscraper
+except ImportError:
+    cloudscraper = None
+
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    sync_playwright = None
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -32,6 +43,7 @@ PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 DEFAULT_CHAT_MODEL = 'models/gemini-2.0-flash-exp'
 CONFIGURED_CHAT_MODEL = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
+ENABLE_PLAYWRIGHT_CRAWL = os.getenv('ENABLE_PLAYWRIGHT_CRAWL', 'false').lower() == 'true'
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -369,6 +381,82 @@ def generate_document_id(filename, project):
     return hashlib.md5(unique_string.encode()).hexdigest()
 
 
+HEADLESS_HEADERS = [
+    {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+    },
+    {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+        'Accept-Language': 'en-US,en;q=0.8'
+    },
+]
+
+
+def fetch_with_requests(url, timeout):
+    for headers in HEADLESS_HEADERS:
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout)
+            if response.status_code == 200 and 'text/html' in response.headers.get('Content-Type', ''):
+                return response.text
+        except requests.RequestException:
+            continue
+    return None
+
+
+def fetch_with_cloudscraper(url, timeout):
+    if not cloudscraper:
+        return None
+    try:
+        scraper = cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+        )
+        response = scraper.get(url, timeout=timeout)
+        if response.status_code == 200 and 'text/html' in response.headers.get('Content-Type', ''):
+            return response.text
+    except Exception:
+        return None
+    return None
+
+
+def fetch_with_playwright(url, timeout):
+    if not ENABLE_PLAYWRIGHT_CRAWL or not sync_playwright:
+        return None
+    try:
+        with sync_playwright() as p:
+            browser = None
+            try:
+                browser = p.chromium.launch(headless=True)
+                context = browser.new_context(user_agent=HEADLESS_HEADERS[0]['User-Agent'])
+                page = context.new_page()
+                page.goto(url, wait_until='networkidle', timeout=timeout * 1000)
+                content = page.content()
+                context.close()
+                return content
+            finally:
+                if browser:
+                    browser.close()
+    except Exception as e:
+        logging.warning(f"Playwright fetch failed for {url}: {e}")
+        return None
+
+
+def fetch_page_html(url, timeout=15):
+    html = fetch_with_requests(url, timeout)
+    if html:
+        return html
+
+    html = fetch_with_cloudscraper(url, timeout)
+    if html:
+        return html
+
+    html = fetch_with_playwright(url, timeout)
+    if html:
+        return html
+
+    return None
+
+
 def extract_text_from_html(html_content):
     """Convert raw HTML into clean text and extract title."""
     soup = BeautifulSoup(html_content, 'html.parser')
@@ -401,8 +489,6 @@ def crawl_website(start_url, max_pages=5, max_depth=1, timeout=15):
     visited = set()
     queue = deque([(normalize_url(start_url), 0)])
     pages = []
-    headers = {'User-Agent': 'AtlasIQBot/1.0 (+https://adelphos-tech.github.io)'}
-
     while queue and len(pages) < max_pages:
         current_url, depth = queue.popleft()
         if current_url in visited or depth > max_depth:
@@ -410,11 +496,10 @@ def crawl_website(start_url, max_pages=5, max_depth=1, timeout=15):
         visited.add(current_url)
 
         try:
-            response = requests.get(current_url, headers=headers, timeout=timeout)
-            content_type = response.headers.get('Content-Type', '')
-            if response.status_code != 200 or 'text/html' not in content_type:
+            html = fetch_page_html(current_url, timeout=timeout)
+            if not html:
                 continue
-            title, text = extract_text_from_html(response.text)
+            title, text = extract_text_from_html(html)
             if not text.strip():
                 continue
 
@@ -428,7 +513,7 @@ def crawl_website(start_url, max_pages=5, max_depth=1, timeout=15):
             if depth >= max_depth:
                 continue
 
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(html, 'html.parser')
             for anchor in soup.find_all('a', href=True):
                 linked_url = urljoin(current_url, anchor['href'])
                 normalized_link = normalize_url(linked_url)
