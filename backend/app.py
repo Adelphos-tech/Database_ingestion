@@ -12,6 +12,8 @@ import pandas as pd
 from io import BytesIO
 import traceback
 from dotenv import load_dotenv
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import Document as LlamaDocument
 
 # Load environment variables from .env file
 load_dotenv()
@@ -37,7 +39,7 @@ print("✅ Unlimited usage - no API quotas!")
 DEFAULT_INDEX_NAME = "document-knowledge-base"
 EMBEDDING_DIMENSION = 384  # paraphrase-MiniLM-L3-v2 produces 384-dimensional embeddings
 
-# Chunking configuration
+# Chunking configuration (using LlamaIndex's SentenceSplitter - Recursive Character Text Splitter)
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
@@ -103,7 +105,7 @@ def extract_text_from_excel(file_bytes, filename):
 
 
 def extract_text(file_bytes, filename):
-    """Route to appropriate text extraction based on file type"""
+    """Route to appropriate text extraction based on file type (Default Data Loader functionality)"""
     extension = filename.lower().split('.')[-1]
     
     if extension == 'pdf':
@@ -119,29 +121,29 @@ def extract_text(file_bytes, filename):
 
 
 def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    """Split text into overlapping chunks"""
-    chunks = []
-    start = 0
+    """Split text into overlapping chunks using LlamaIndex's Recursive Character Text Splitter"""
+    # Create LlamaIndex Document
+    document = LlamaDocument(text=text)
     
-    while start < len(text):
-        end = start + chunk_size
-        
-        # Try to break at sentence boundary
-        if end < len(text):
-            sentence_end = text.rfind('.', start, end)
-            if sentence_end > start + chunk_size * 0.5:
-                end = sentence_end + 1
-        
-        chunk_text_content = text[start:end].strip()
-        if chunk_text_content:
-            chunks.append({
-                'text': chunk_text_content,
-                'start_position': start,
-                'end_position': end,
-                'chunk_index': len(chunks)
-            })
-        
-        start = end - overlap
+    # Initialize SentenceSplitter (LlamaIndex's recursive character text splitter)
+    text_splitter = SentenceSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=overlap,
+        separator=" ",  # Default separator
+    )
+    
+    # Split the document into nodes
+    nodes = text_splitter.get_nodes_from_documents([document])
+    
+    # Convert nodes to our chunk format
+    chunks = []
+    for idx, node in enumerate(nodes):
+        chunks.append({
+            'text': node.text,
+            'start_position': node.start_char_idx if hasattr(node, 'start_char_idx') else 0,
+            'end_position': node.end_char_idx if hasattr(node, 'end_char_idx') else len(node.text),
+            'chunk_index': idx
+        })
     
     return chunks
 
