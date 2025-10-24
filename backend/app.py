@@ -25,6 +25,7 @@ CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "DELETE"
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+CHAT_MODEL_NAME = os.getenv('GEMINI_CHAT_MODEL', 'gemini-pro')
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -35,9 +36,13 @@ if not GEMINI_API_KEY:
     print("⚠️ GEMINI_API_KEY not set. Embedding requests will fail until it is provided.")
 else:
     genai.configure(api_key=GEMINI_API_KEY)
+    print(f"✅ Google Gemini chat model configured: {CHAT_MODEL_NAME}")
     print("✅ Google Gemini embeddings configured!")
 print("✅ Using text-embedding-004 model (768 dimensions)")
 print("✅ Matches n8n workflow embedding model")
+
+# Initialize chat model (lazy load fallback inside routes)
+chat_model = genai.GenerativeModel(CHAT_MODEL_NAME) if GEMINI_API_KEY else None
 
 # Index configuration
 DEFAULT_INDEX_NAME = "document-knowledge-base"
@@ -417,6 +422,137 @@ def search_documents():
         
     except Exception as e:
         print(f"Search error: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat', methods=['POST'])
+def chat_with_knowledge_base():
+    """Chat with the knowledge base using RAG"""
+    try:
+        if not GEMINI_API_KEY:
+            return jsonify({'error': 'GEMINI_API_KEY is not configured on the server'}), 500
+
+        data = request.get_json(force=True) or {}
+        query = data.get('query', '').strip()
+        project = data.get('project', 'default')
+        index_name = data.get('index_name', DEFAULT_INDEX_NAME)
+        top_k = data.get('top_k', 5)
+        history = data.get('history', [])
+
+        if not query:
+            return jsonify({'error': 'Query is required'}), 400
+
+        try:
+            top_k = int(top_k)
+        except (TypeError, ValueError):
+            top_k = 5
+        top_k = max(1, min(top_k, 20))
+
+        # Lazily initialize chat model if needed (handles hot reloads)
+        global chat_model
+        if chat_model is None:
+            chat_model = genai.GenerativeModel(CHAT_MODEL_NAME)
+
+        # Embed query and retrieve context from Pinecone
+        query_embedding = generate_embeddings([query])[0]
+        index = get_or_create_index(index_name)
+        results = index.query(
+            vector=query_embedding,
+            top_k=top_k,
+            namespace=project,
+            include_metadata=True
+        )
+
+        if not results.matches:
+            return jsonify({
+                'success': True,
+                'answer': "I couldn't find any relevant information in the selected repo. Please try rephrasing your question or choose another repo.",
+                'sources': []
+            })
+
+        max_context_chars = int(data.get('max_context_chars', 6000))
+        context_sections = []
+        sources = []
+        running_chars = 0
+
+        for idx, match in enumerate(results.matches, start=1):
+            metadata = match.metadata or {}
+            passage = (metadata.get('text') or '').strip()
+            if not passage:
+                continue
+
+            remaining_budget = max_context_chars - running_chars
+            if remaining_budget <= 0:
+                break
+
+            if len(passage) > remaining_budget:
+                passage = passage[:remaining_budget] + '...'
+
+            section_header = f"[Source {idx}] {metadata.get('filename', 'Unknown file')} (chunk {metadata.get('chunk_index', '-')})"
+            context_sections.append(f"{section_header}\n{passage}")
+
+            sources.append({
+                'source_id': idx,
+                'score': float(match.score),
+                'document_id': metadata.get('document_id'),
+                'filename': metadata.get('filename'),
+                'chunk_index': metadata.get('chunk_index'),
+                'text': passage
+            })
+
+            running_chars += len(passage)
+
+        if not context_sections:
+            return jsonify({
+                'success': True,
+                'answer': "I couldn't find any relevant passages in the selected repo for that question.",
+                'sources': []
+            })
+
+        formatted_history = []
+        for turn in history[-6:]:
+            user_turn = turn.get('user', '').strip()
+            assistant_turn = turn.get('assistant', '').strip()
+            if user_turn:
+                formatted_history.append(f"User: {user_turn}")
+            if assistant_turn:
+                formatted_history.append(f"Assistant: {assistant_turn}")
+        conversation_context = "\n".join(formatted_history) if formatted_history else "No previous conversation."
+        context_block = "\n\n".join(context_sections)
+
+        prompt = (
+            "You are an AI assistant that answers questions using the supplied knowledge base excerpts. "
+            "Only use the provided context when forming your answer. If the answer cannot be found in the context, "
+            "state that you do not know.\n\n"
+            f"Conversation so far:\n{conversation_context}\n\n"
+            "Knowledge base context:\n"
+            f"{context_block}\n\n"
+            f"User question: {query}\n\n"
+            "Provide a helpful answer. Quote or reference the source numbers (e.g., [Source 1]) when relevant."
+        )
+
+        response = chat_model.generate_content(prompt)
+        answer_text = getattr(response, 'text', None)
+        if not answer_text and hasattr(response, 'candidates'):
+            for candidate in response.candidates:
+                if hasattr(candidate, 'content') and candidate.content:
+                    parts = getattr(candidate.content, 'parts', None)
+                    if parts:
+                        answer_text = " ".join(getattr(part, 'text', '') for part in parts if getattr(part, 'text', ''))
+                        if answer_text:
+                            break
+
+        if not answer_text:
+            answer_text = "I encountered an issue while generating a response. Please try again."
+
+        return jsonify({
+            'success': True,
+            'answer': answer_text.strip(),
+            'sources': sources
+        })
+
+    except Exception as e:
+        print(f"Chat error: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 
