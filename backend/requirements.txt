@@ -7,5 +7,4 @@ python-docx
 pandas
 openpyxl
 python-dotenv
-llama-index
-llama-index-core
+llama-index-core==0.14.5
