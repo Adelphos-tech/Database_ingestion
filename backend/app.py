@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pinecone import Pinecone, ServerlessSpec
 import google.generativeai as genai
+from google.api_core.exceptions import NotFound, GoogleAPICallError
 import hashlib
 from datetime import datetime
 import PyPDF2
@@ -26,7 +27,7 @@ PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 DEFAULT_CHAT_MODEL = 'models/gemini-2.0-flash-exp'
-CHAT_MODEL_NAME = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
+CONFIGURED_CHAT_MODEL = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -37,13 +38,43 @@ if not GEMINI_API_KEY:
     print("⚠️ GEMINI_API_KEY not set. Embedding requests will fail until it is provided.")
 else:
     genai.configure(api_key=GEMINI_API_KEY)
-    print(f"✅ Google Gemini chat model configured: {CHAT_MODEL_NAME}")
+    print(f"✅ Google Gemini chat model configured (requested): {CONFIGURED_CHAT_MODEL}")
     print("✅ Google Gemini embeddings configured!")
 print("✅ Using text-embedding-004 model (768 dimensions)")
 print("✅ Matches n8n workflow embedding model")
 
 # Initialize chat model (lazy load fallback inside routes)
-chat_model = genai.GenerativeModel(CHAT_MODEL_NAME) if GEMINI_API_KEY else None
+chat_model = None
+active_chat_model_name = None
+
+
+def initialize_chat_model(force_fallback=False):
+    """Initialize Gemini chat model with graceful fallback when needed."""
+    global active_chat_model_name
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is required for chat functionality.")
+
+    requested_model = CONFIGURED_CHAT_MODEL
+    candidate_models = [requested_model]
+    if force_fallback or requested_model != DEFAULT_CHAT_MODEL:
+        candidate_models.append(DEFAULT_CHAT_MODEL)
+
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            active_chat_model_name = model_name
+            print(f"✅ Gemini chat model active: {model_name}")
+            return model
+        except NotFound as not_found_error:
+            print(f"⚠️ Gemini model '{model_name}' not found. Trying fallback...")
+            last_error = not_found_error
+        except GoogleAPICallError as api_error:
+            print(f"⚠️ Gemini API error initialising model '{model_name}': {api_error}")
+            last_error = api_error
+
+    raise RuntimeError(f"Unable to initialise Gemini chat model: {last_error}")
+
 
 # Index configuration
 DEFAULT_INDEX_NAME = "document-knowledge-base"
@@ -437,7 +468,7 @@ def chat_with_knowledge_base():
         query = data.get('query', '').strip()
         project = data.get('project', 'default')
         index_name = data.get('index_name', DEFAULT_INDEX_NAME)
-        top_k = data.get('top_k', 5)
+        top_k = data.get('top_k', 3)
         history = data.get('history', [])
 
         if not query:
@@ -446,13 +477,13 @@ def chat_with_knowledge_base():
         try:
             top_k = int(top_k)
         except (TypeError, ValueError):
-            top_k = 5
+            top_k = 3
         top_k = max(1, min(top_k, 20))
 
         # Lazily initialize chat model if needed (handles hot reloads)
-        global chat_model
+        global chat_model, active_chat_model_name
         if chat_model is None:
-            chat_model = genai.GenerativeModel(CHAT_MODEL_NAME)
+            chat_model = initialize_chat_model()
 
         # Embed query and retrieve context from Pinecone
         query_embedding = generate_embeddings([query])[0]
@@ -522,17 +553,27 @@ def chat_with_knowledge_base():
         context_block = "\n\n".join(context_sections)
 
         prompt = (
-            "You are an AI assistant that answers questions using the supplied knowledge base excerpts. "
-            "Only use the provided context when forming your answer. If the answer cannot be found in the context, "
-            "state that you do not know.\n\n"
+            "You are Habib, a business consultant at Unicorn Pte Ltd. "
+            "Before answering any question, you must rely on the supplied knowledge base excerpts. "
+            "If nothing in the context helps, say so and offer general guidance. "
+            "Keep answers to three or four sentences maximum: start with a friendly acknowledgement, "
+            "share the key insight sourced from the context (cite sources like [Source 1]), and finish with one relevant question. "
+            "Match the user's language and tone.\n\n"
             f"Conversation so far:\n{conversation_context}\n\n"
             "Knowledge base context:\n"
             f"{context_block}\n\n"
             f"User question: {query}\n\n"
-            "Provide a helpful answer. Quote or reference the source numbers (e.g., [Source 1]) when relevant."
+            "Respond now following all instructions exactly."
         )
 
-        response = chat_model.generate_content(prompt)
+        try:
+            response = chat_model.generate_content(prompt)
+        except NotFound:
+            # Fallback once more in case the remote model registry changed between requests
+            chat_model = initialize_chat_model(force_fallback=True)
+            response = chat_model.generate_content(prompt)
+        except GoogleAPICallError as api_error:
+            return jsonify({'error': f'Gemini API error: {api_error.message}'}), 500
         answer_text = getattr(response, 'text', None)
         if not answer_text and hasattr(response, 'candidates'):
             for candidate in response.candidates:
