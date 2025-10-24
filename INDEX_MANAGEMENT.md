@@ -1,163 +1,122 @@
-# 🗂️ Index Management Feature
+# 🗂️ Index Management
 
-## Overview
+## Executive Summary
+Atlas IQ lets you spin up and manage multiple Pinecone indexes directly from the web console. Use indexes for hard isolation (per client or environment) and namespaces (projects) for lightweight separation inside each index.
 
-You can now create and manage multiple Pinecone indexes directly from the web interface! This allows you to completely separate different knowledge bases.
+> **When to create a brand-new index**  
+> - You need contractual or compliance isolation.  
+> - You want a dedicated environment (prod vs. dev).  
+> - You are hitting vector limits and need to shard your corpus.
 
-## What are Indexes?
+---
 
-**Indexes** are separate vector databases in Pinecone. Think of them as different "containers" for your knowledge bases.
+## Concepts at a Glance
 
-### Index vs Project (Namespace)
+| Term | Think of it as | Typical Examples | Notes |
+| --- | --- | --- | --- |
+| **Index** | Separate database | `client-a-kb`, `prod-knowledge-base`, `archive-2024` | Lives in Pinecone, costs per index, total isolation |
+| **Namespace** (Project) | Folder inside an index | `mubest`, `fortius`, `sales` | Cheap subdivision; use first before adding indexes |
 
-- **Index**: Completely separate database (e.g., `company-kb`, `customer-support-kb`, `research-papers`)
-- **Project (Namespace)**: Subdivision within an index (e.g., `mubest`, `fortius`)
-
-**Example Structure:**
 ```
 Index: company-kb
-├── Project: mubest
-│   └── Documents: contracts, reports, etc.
-└── Project: fortius
-    └── Documents: specifications, manuals, etc.
-
-Index: customer-support-kb
-├── Project: mubest
-│   └── Documents: support tickets, FAQs
-└── Project: fortius
-    └── Documents: troubleshooting guides
+├── Namespace: mubest
+│   └── Contracts, reports, pricing sheets
+└── Namespace: fortius
+    └── Specs, manuals, SOPs
 ```
 
-## How to Use
+---
 
-### 1. View All Indexes
+## Operator Playbook
 
-1. Click the **"🗂️ Indexes"** tab
-2. See all your Pinecone indexes
-3. Default index: `document-knowledge-base` (protected, cannot be deleted)
+### 1. Review current indexes
+1. Navigate to **🗂️ Indexes** in the sidebar.
+2. The dashboard lists every Pinecone index detected via API.
+3. `document-knowledge-base` ships as the protected default and cannot be deleted.
 
-### 2. Create New Index
+### 2. Create a new index
+1. From the **🗂️ Indexes** view, enter a name that follows the rules below.
+2. Click **Create Index**. Provisioning takes ~30–60 seconds.
+3. Once ready, the index appears across all dropdown selectors (Upload, Browse, Chat).
 
-1. Go to **"🗂️ Indexes"** tab
-2. Enter a name in the input field
-   - Use lowercase letters, numbers, hyphens, underscores only
-   - Example: `customer-support`, `research_papers`, `legal-docs`
-3. Click **"Create Index"**
-4. Wait for creation (takes ~30-60 seconds)
-5. New index automatically appears in all dropdowns
+### 3. Work with your index
+- **Upload:** Pick an index, then choose the namespace (e.g., Mubest/Fortius) before dragging files.
+- **Search / Chat:** Choose index + namespace to query.
+- **Browse:** Filter the document list by index + namespace combination.
 
-### 3. Use Different Indexes
+### 4. Retire an index
+1. In **🗂️ Indexes**, select **🗑️ Delete** beside the target index.  
+2. Confirm the warning.  
+3. Deletion is immediate and irreversible—every vector inside that index is removed.
 
-**When Uploading:**
-- Select your desired index from the "Select Index" dropdown
-- Select your project (Mubest/Fortius)
-- Upload documents
+> ⚠️ **Safety tip:** Export or snapshot vectors before deleting an index. There is no recycle bin.
 
-**When Searching:**
-- Choose the index to search
-- Choose the project
-- Enter your query
+---
 
-**When Browsing:**
-- Select index and project to view documents
+## Use Case Patterns
 
-### 4. Delete Index
+| Scenario | Suggested Index Strategy |
+| --- | --- |
+| Multiple clients or business units | `client-a-kb`, `client-b-kb`, `internal-kb` |
+| Split by content type | `legal-docs`, `technical-docs`, `marketing-content` |
+| Environment separation | `prod-knowledge-base`, `dev-knowledge-base`, `test-knowledge-base` |
+| Time-based archives | `archive-2023`, `archive-2024`, `current-documents` |
 
-1. Go to **"🗂️ Indexes"** tab
-2. Click **"🗑️ Delete"** on any index (except default)
-3. Confirm deletion
-4. ⚠️ **Warning**: This permanently deletes ALL data in that index!
+---
 
-## Use Cases
+## Technical Reference
 
-### 1. Separate Organizations
-```
-Index: client-a-kb (Client A's data)
-Index: client-b-kb (Client B's data)
-Index: internal-kb  (Your company's data)
-```
+### Provisioning defaults
+- **Embedding dimension:** 768 (Gemini `text-embedding-004`)
+- **Metric:** Cosine similarity
+- **Cloud:** AWS (serverless)
+- **Region:** `us-east-1` by default (configurable)
 
-### 2. Separate Content Types
-```
-Index: legal-documents
-Index: technical-docs
-Index: marketing-content
+### API surface
+```http
+GET    /api/indexes                # list indexes
+POST   /api/indexes               { "index_name": "my-new-index" }
+DELETE /api/indexes/{index_name}  # drop index
 ```
 
-### 3. Development vs Production
-```
-Index: prod-knowledge-base
-Index: dev-knowledge-base
-Index: test-knowledge-base
-```
+### Naming rules
+- Allowed: lowercase letters, numbers, hyphen `-`, underscore `_`
+- Avoid uppercase, spaces, punctuation (`!`, `.`, etc.)
 
-### 4. Time-based Separation
-```
-Index: archive-2023
-Index: archive-2024
-Index: current-documents
-```
+Examples:
+- ✅ `customer-support`, `legal_docs`, `kb-2024`, `research-papers-v2`
+- ❌ `Customer Support`, `KB-2024!`, `Legal.Docs`, `KB_2024_ARCHIVE`
 
-## Technical Details
+---
 
-### Index Configuration
-- **Dimension**: 768 (Gemini embedding size)
-- **Metric**: Cosine similarity
-- **Cloud**: AWS
-- **Region**: us-east-1 (configurable in backend)
-- **Type**: Serverless
+## Cost & Capacity Planning
 
-### API Endpoints
+| Plan | Included indexes | Notes |
+| --- | --- | --- |
+| Pinecone serverless (free) | 1 index | Perfect for pilots; use namespaces for early segmentation |
+| Paid tiers | Multiple indexes | ~$0.096/hour (~$70/month) per active index |
 
-**List all indexes:**
-```bash
-GET /api/indexes
-```
+**Cost-saving tip:** Start with namespaces inside a single index. Move to multiple indexes only when isolation or scale requires it.
 
-**Create new index:**
-```bash
-POST /api/indexes
-Body: { "index_name": "my-new-index" }
-```
+---
 
-**Delete index:**
-```bash
-DELETE /api/indexes/{index_name}
-```
+## Benefits at a Glance
 
-### Naming Rules
+- ✅ **Isolation:** Perfect for client-level compliance or secret projects  
+- ✅ **Organization:** Keep corpora tidy and purposeful  
+- ✅ **Security:** Separate retention policies per index  
+- ✅ **Performance:** Smaller indexes respond faster  
+- ✅ **Flexibility:** Self-service create/delete from the UI
 
-✅ **Valid names:**
-- `customer-support`
-- `legal_docs`
-- `kb-2024`
-- `research-papers-v2`
+---
 
-❌ **Invalid names:**
-- `Customer Support` (no spaces)
-- `KB-2024!` (no special characters)
-- `Legal.Docs` (no periods)
-- `KB_2024_ARCHIVE` (no uppercase)
+## Best Practices Checklist
 
-## Cost Considerations
-
-- **Pinecone Free Tier**: 1 serverless index
-- **To create multiple indexes**: Upgrade to paid plan
-- **Paid Plan**: ~$0.096/hour per index (~$70/month per index)
-
-**Recommendation**: Use namespaces (projects) for organization within the free tier, use multiple indexes only when you need complete data isolation.
-
-## Benefits
-
-✅ **Complete Data Isolation**: Separate clients/departments completely
-✅ **Better Organization**: Group related content together
-✅ **Security**: Keep sensitive data in separate indexes
-✅ **Performance**: Smaller indexes = faster searches
-✅ **Flexible**: Easy to create and delete as needed
-
-## Best Practices
-
-1. **Start with Namespaces**: Use projects (Mubest/Fortius) first
+- [ ] Default to namespaces (projects) for lightweight separation.  
+- [ ] Document your naming convention (`client-purpose-environment`).  
+- [ ] Monitor index usage; archive or delete dormant ones.  
+- [ ] Reuse index + namespace combinations for automation (workflows, integrations).  
+- [ ] Back up critical vectors before retiring an index.
 2. **Create Indexes for**: Complete separation needs
 3. **Naming Convention**: Use descriptive, consistent names
 4. **Document Your Structure**: Keep track of what each index contains
