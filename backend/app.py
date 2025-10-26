@@ -1109,6 +1109,22 @@ def fetch_with_playwright(url, timeout):
                     except Exception as captcha_error:
                         logging.error(f"Captcha solving failed: {captcha_error}")
                 
+                # Scroll to load lazy-loaded images (for property listings, products, etc.)
+                try:
+                    # Scroll down in increments to trigger lazy loading
+                    for scroll_step in range(3):
+                        page.evaluate(f"window.scrollTo(0, document.body.scrollHeight * {(scroll_step + 1) / 3})")
+                        page.wait_for_timeout(1000)  # Wait 1 second between scrolls
+                    
+                    # Scroll back to top
+                    page.evaluate("window.scrollTo(0, 0)")
+                    page.wait_for_timeout(500)
+                    
+                    # Wait for images to load
+                    page.wait_for_load_state('networkidle', timeout=5000)
+                except Exception as scroll_error:
+                    logging.debug(f"Scrolling warning (non-critical): {scroll_error}")
+                
                 # Wait for final content
                 page.wait_for_timeout(2000)  # Wait 2 seconds for any final JS
                 content = page.content()
@@ -1146,14 +1162,33 @@ def extract_text_from_html(html_content, base_url=None):
     # Extract images before removing tags
     images = []
     for img in soup.find_all('img'):
-        img_url = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
-        if img_url:
+        # Try multiple image sources (lazy loading, data attributes, srcset)
+        img_url = (
+            img.get('src') or 
+            img.get('data-src') or 
+            img.get('data-lazy-src') or 
+            img.get('data-original') or
+            img.get('data-lazy')
+        )
+        
+        # Handle srcset for high-quality images
+        if not img_url or 'data:image' in img_url:
+            srcset = img.get('srcset', '')
+            if srcset:
+                # Get the largest image from srcset
+                srcset_urls = [s.strip().split()[0] for s in srcset.split(',') if s.strip()]
+                if srcset_urls:
+                    img_url = srcset_urls[-1]  # Usually the largest
+        
+        if img_url and 'data:image' not in img_url:
             # Convert relative URLs to absolute
             if base_url and not img_url.startswith(('http://', 'https://')):
                 img_url = urljoin(base_url, img_url)
             
-            # Get alt text for context
+            # Get alt text and class for context
             alt_text = img.get('alt', '').strip()
+            img_class = img.get('class', [])
+            img_class_str = ' '.join(img_class) if isinstance(img_class, list) else str(img_class)
             
             # Filter out tiny images, icons, and tracking pixels
             width = img.get('width', '')
@@ -1162,19 +1197,36 @@ def extract_text_from_html(html_content, base_url=None):
             # Skip very small images (likely icons or tracking pixels)
             try:
                 if width and height:
-                    if int(width) < 100 or int(height) < 100:
+                    w = int(width.replace('px', '')) if isinstance(width, str) else int(width)
+                    h = int(height.replace('px', '')) if isinstance(height, str) else int(height)
+                    if w < 100 or h < 100:
                         continue
             except (ValueError, TypeError):
                 pass
             
-            # Skip common tracking/icon patterns
-            if any(x in img_url.lower() for x in ['tracking', 'pixel', 'icon', 'logo.svg', 'favicon']):
+            # Skip common tracking/icon/UI patterns
+            skip_patterns = [
+                'tracking', 'pixel', 'icon', 'logo.svg', 'favicon', 
+                'logo.png', 'logo.jpg', 'spacer.gif', '1x1',
+                'navbar', 'footer', 'header-', 'banner-ad',
+                'social-', 'share-button'
+            ]
+            if any(pattern in img_url.lower() or pattern in img_class_str.lower() for pattern in skip_patterns):
                 continue
+            
+            # Prioritize property/product images based on common patterns
+            priority = 0
+            if any(x in img_class_str.lower() for x in ['property', 'listing', 'card', 'product', 'item', 'photo', 'gallery']):
+                priority = 1
             
             images.append({
                 'url': img_url,
-                'alt': alt_text
+                'alt': alt_text,
+                'priority': priority
             })
+    
+    # Sort by priority (property images first) and limit
+    images.sort(key=lambda x: x.get('priority', 0), reverse=True)
     
     # Remove unwanted tags
     for tag in soup(['script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav']):
