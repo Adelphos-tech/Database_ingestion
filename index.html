@@ -785,7 +785,7 @@
         }
 
         // Chat Functions
-        function appendChatBubble(role, text, sources = []) {
+        function appendChatBubble(role, text, sources = [], propertyImages = []) {
             if (!chatMessages) return;
 
             if (chatPlaceholder) {
@@ -806,6 +806,47 @@
             textEl.className = 'text-sm leading-relaxed';
             textEl.textContent = text;
             bubble.appendChild(textEl);
+
+            // Add property images if present
+            if (role === 'assistant' && propertyImages && propertyImages.length > 0) {
+                const imagesContainer = document.createElement('div');
+                imagesContainer.className = 'mt-4 grid grid-cols-2 gap-3';
+                
+                propertyImages.slice(0, 6).forEach((img, index) => {
+                    const imageCard = document.createElement('div');
+                    imageCard.className = 'relative group overflow-hidden rounded-xl border border-indigo-100 hover:border-indigo-300 transition-all cursor-pointer';
+                    
+                    const image = document.createElement('img');
+                    image.src = img.url;
+                    image.alt = img.title || 'Property Image';
+                    image.className = 'w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300';
+                    image.loading = 'lazy';
+                    
+                    // Error handling for broken images
+                    image.onerror = function() {
+                        this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23e0e7ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%236366f1" text-anchor="middle" dy=".3em"%3EImage unavailable%3C/text%3E%3C/svg%3E';
+                    };
+                    
+                    // Click to open full image
+                    imageCard.onclick = () => {
+                        if (img.source_url) {
+                            window.open(img.source_url, '_blank');
+                        }
+                    };
+                    
+                    imageCard.appendChild(image);
+                    
+                    // Overlay with icon
+                    const overlay = document.createElement('div');
+                    overlay.className = 'absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-end p-2';
+                    overlay.innerHTML = '<span class="text-white text-xs font-semibold">View Listing →</span>';
+                    imageCard.appendChild(overlay);
+                    
+                    imagesContainer.appendChild(imageCard);
+                });
+                
+                bubble.appendChild(imagesContainer);
+            }
 
             const stamp = document.createElement('div');
             stamp.className = `mt-3 text-xs flex items-center gap-2 ${role === 'user' ? 'text-white/70' : 'text-slate-400'}`;
@@ -907,7 +948,8 @@
                 }
 
                 const assistantAnswer = data.answer || 'No response returned.';
-                appendChatBubble('assistant', assistantAnswer, data.sources || []);
+                const propertyImages = data.property_images || [];
+                appendChatBubble('assistant', assistantAnswer, data.sources || [], propertyImages);
                 chatHistoryTurns.push({ user: message, assistant: assistantAnswer });
                 if (chatHistoryTurns.length > 10) {
                     chatHistoryTurns = chatHistoryTurns.slice(-10);
