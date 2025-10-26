@@ -339,8 +339,42 @@
                         </div>
 
                         <div id="chatMessages" class="relative h-96 overflow-y-auto rounded-3xl border border-indigo-50 bg-gradient-to-br from-white via-indigo-50/20 to-rose-50/10 p-6 shadow-inner">
-                            <div id="chatPlaceholder" class="h-full flex items-center justify-center text-indigo-200/70 text-sm text-center px-4">
-                                Ask a question to get started. Your answers will reference the latest documents in the selected repo.
+                            <div id="chatPlaceholder" class="h-full flex flex-col items-center justify-center text-center px-4">
+                                <div class="mb-6">
+                                    <div class="text-4xl mb-3">👋</div>
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-2">Welcome to Habib AI Assistant</h3>
+                                    <p class="text-sm text-slate-500 max-w-md">I can help you find properties based on your preferences. Just ask me anything!</p>
+                                </div>
+                                <div class="w-full max-w-md space-y-2">
+                                    <p class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-3">Try asking:</p>
+                                    <button onclick="quickQuery('Show me 3 bedroom properties under $4000')" class="w-full text-left px-4 py-3 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-2xl">🏠</span>
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium text-slate-800 group-hover:text-indigo-600">Show me 3 bedroom properties under $4000</div>
+                                            </div>
+                                            <span class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                        </div>
+                                    </button>
+                                    <button onclick="quickQuery('What properties are available near MRT stations?')" class="w-full text-left px-4 py-3 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-2xl">🚇</span>
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium text-slate-800 group-hover:text-indigo-600">What properties are available near MRT?</div>
+                                            </div>
+                                            <span class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                        </div>
+                                    </button>
+                                    <button onclick="quickQuery('Show me condominiums for sale')" class="w-full text-left px-4 py-3 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-2xl">🏢</span>
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium text-slate-800 group-hover:text-indigo-600">Show me condominiums for sale</div>
+                                            </div>
+                                            <span class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
                             <div id="typingIndicator" class="hidden absolute bottom-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-indigo-100 shadow-sm">
                                 <span class="typing-dot"></span>
@@ -843,24 +877,33 @@
                     
                     parsed.properties.forEach((property, index) => {
                         const card = document.createElement('div');
-                        card.className = 'flex gap-4 p-4 rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 hover:shadow-lg transition-all';
+                        card.className = 'flex gap-4 p-4 rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 hover:shadow-xl hover:border-indigo-200 transition-all cursor-pointer';
+                        
+                        // Click entire card to open listing
+                        card.onclick = () => {
+                            if (propertyImages[index] && propertyImages[index].source_url) {
+                                window.open(propertyImages[index].source_url, '_blank');
+                            }
+                        };
                         
                         // Property image on the left
                         if (propertyImages[index]) {
                             const imageContainer = document.createElement('div');
-                            imageContainer.className = 'flex-shrink-0 w-32 h-32 rounded-xl overflow-hidden border border-indigo-100 group cursor-pointer';
+                            imageContainer.className = 'flex-shrink-0 w-36 h-36 rounded-xl overflow-hidden border-2 border-indigo-100 shadow-sm';
                             
                             const image = document.createElement('img');
                             image.src = propertyImages[index].url;
                             image.alt = 'Property Image';
-                            image.className = 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-300';
+                            image.className = 'w-full h-full object-cover hover:scale-110 transition-transform duration-500';
                             image.loading = 'lazy';
                             
                             image.onerror = function() {
                                 this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23e0e7ff" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="12" fill="%236366f1" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
                             };
                             
-                            imageContainer.onclick = () => {
+                            // Prevent double trigger from card onclick
+                            imageContainer.onclick = (e) => {
+                                e.stopPropagation();
                                 if (propertyImages[index].source_url) {
                                     window.open(propertyImages[index].source_url, '_blank');
                                 }
@@ -874,14 +917,34 @@
                         const detailsContainer = document.createElement('div');
                         detailsContainer.className = 'flex-1 text-sm';
                         
+                        const headerRow = document.createElement('div');
+                        headerRow.className = 'flex items-center gap-2 mb-2';
+                        
                         const propertyNumber = document.createElement('div');
-                        propertyNumber.className = 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500 text-white text-xs font-bold mb-2';
+                        propertyNumber.className = 'inline-flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xs font-bold shadow-md';
                         propertyNumber.textContent = property.number;
-                        detailsContainer.appendChild(propertyNumber);
+                        headerRow.appendChild(propertyNumber);
+                        
+                        const viewBadge = document.createElement('div');
+                        viewBadge.className = 'ml-auto text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 font-semibold hover:bg-indigo-100 transition-colors';
+                        viewBadge.textContent = 'View Details →';
+                        headerRow.appendChild(viewBadge);
+                        
+                        detailsContainer.appendChild(headerRow);
                         
                         const propertyText = document.createElement('div');
-                        propertyText.className = 'text-slate-700 whitespace-pre-wrap leading-relaxed';
-                        propertyText.textContent = property.text;
+                        propertyText.className = 'text-slate-700 whitespace-pre-wrap leading-relaxed text-sm';
+                        
+                        // Parse and format property details with icons
+                        const formattedText = property.text
+                            .replace(/Price:/gi, '💰 Price:')
+                            .replace(/Type:/gi, '🏠 Type:')
+                            .replace(/Size:/gi, '📐 Size:')
+                            .replace(/Location:/gi, '📍 Location:')
+                            .replace(/MRT:/gi, '🚇 MRT:')
+                            .replace(/Built:/gi, '🏗️ Built:');
+                        
+                        propertyText.textContent = formattedText;
                         detailsContainer.appendChild(propertyText);
                         
                         card.appendChild(detailsContainer);
@@ -934,6 +997,13 @@
             if (!chatStatus) return;
             chatStatus.className = 'text-sm text-indigo-500';
             chatStatus.textContent = '';
+        }
+
+        function quickQuery(query) {
+            if (chatInput) {
+                chatInput.value = query;
+                sendChatMessage();
+            }
         }
 
         function resetChatConversation(reason) {
