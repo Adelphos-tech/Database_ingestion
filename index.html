@@ -785,6 +785,28 @@
         }
 
         // Chat Functions
+        function parsePropertyCards(text, propertyImages) {
+            // Parse numbered properties (1. 2. 3. etc)
+            const propertyRegex = /(\d+)\.\s+(.+?)(?=\n\d+\.|$)/gs;
+            const properties = [];
+            let match;
+            
+            while ((match = propertyRegex.exec(text)) !== null) {
+                const propertyText = match[2].trim();
+                properties.push({
+                    number: match[1],
+                    text: propertyText
+                });
+            }
+            
+            // If we found numbered properties and have images, create cards
+            if (properties.length > 0 && propertyImages && propertyImages.length > 0) {
+                return { hasCards: true, properties, intro: text.split(/\d+\./)[0].trim() };
+            }
+            
+            return { hasCards: false };
+        }
+
         function appendChatBubble(role, text, sources = [], propertyImages = []) {
             if (!chatMessages) return;
 
@@ -800,52 +822,86 @@
             const roleClasses = role === 'user'
                 ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white shadow-xl rounded-br-2xl'
                 : 'bg-white/95 text-slate-900 ring-1 ring-indigo-100/70 shadow-[0_22px_45px_-28px_rgba(79,70,229,0.65)] rounded-bl-2xl';
-            bubble.className = `max-w-xl px-5 py-4 whitespace-pre-wrap rounded-3xl transition-all ${roleClasses}`;
+            bubble.className = `max-w-3xl px-5 py-4 rounded-3xl transition-all ${roleClasses}`;
 
-            const textEl = document.createElement('div');
-            textEl.className = 'text-sm leading-relaxed';
-            textEl.textContent = text;
-            bubble.appendChild(textEl);
-
-            // Add property images if present
+            // Try to parse property cards for assistant responses
             if (role === 'assistant' && propertyImages && propertyImages.length > 0) {
-                const imagesContainer = document.createElement('div');
-                imagesContainer.className = 'mt-4 grid grid-cols-2 gap-3';
+                const parsed = parsePropertyCards(text, propertyImages);
                 
-                propertyImages.slice(0, 6).forEach((img, index) => {
-                    const imageCard = document.createElement('div');
-                    imageCard.className = 'relative group overflow-hidden rounded-xl border border-indigo-100 hover:border-indigo-300 transition-all cursor-pointer';
+                if (parsed.hasCards) {
+                    // Show intro text
+                    if (parsed.intro) {
+                        const introEl = document.createElement('div');
+                        introEl.className = 'text-sm leading-relaxed mb-4';
+                        introEl.textContent = parsed.intro;
+                        bubble.appendChild(introEl);
+                    }
                     
-                    const image = document.createElement('img');
-                    image.src = img.url;
-                    image.alt = img.title || 'Property Image';
-                    image.className = 'w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300';
-                    image.loading = 'lazy';
+                    // Create property cards
+                    const cardsContainer = document.createElement('div');
+                    cardsContainer.className = 'space-y-4';
                     
-                    // Error handling for broken images
-                    image.onerror = function() {
-                        this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23e0e7ff" width="200" height="200"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%236366f1" text-anchor="middle" dy=".3em"%3EImage unavailable%3C/text%3E%3C/svg%3E';
-                    };
-                    
-                    // Click to open full image
-                    imageCard.onclick = () => {
-                        if (img.source_url) {
-                            window.open(img.source_url, '_blank');
+                    parsed.properties.forEach((property, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'flex gap-4 p-4 rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 hover:shadow-lg transition-all';
+                        
+                        // Property image on the left
+                        if (propertyImages[index]) {
+                            const imageContainer = document.createElement('div');
+                            imageContainer.className = 'flex-shrink-0 w-32 h-32 rounded-xl overflow-hidden border border-indigo-100 group cursor-pointer';
+                            
+                            const image = document.createElement('img');
+                            image.src = propertyImages[index].url;
+                            image.alt = 'Property Image';
+                            image.className = 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-300';
+                            image.loading = 'lazy';
+                            
+                            image.onerror = function() {
+                                this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23e0e7ff" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="12" fill="%236366f1" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            };
+                            
+                            imageContainer.onclick = () => {
+                                if (propertyImages[index].source_url) {
+                                    window.open(propertyImages[index].source_url, '_blank');
+                                }
+                            };
+                            
+                            imageContainer.appendChild(image);
+                            card.appendChild(imageContainer);
                         }
-                    };
+                        
+                        // Property details on the right
+                        const detailsContainer = document.createElement('div');
+                        detailsContainer.className = 'flex-1 text-sm';
+                        
+                        const propertyNumber = document.createElement('div');
+                        propertyNumber.className = 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500 text-white text-xs font-bold mb-2';
+                        propertyNumber.textContent = property.number;
+                        detailsContainer.appendChild(propertyNumber);
+                        
+                        const propertyText = document.createElement('div');
+                        propertyText.className = 'text-slate-700 whitespace-pre-wrap leading-relaxed';
+                        propertyText.textContent = property.text;
+                        detailsContainer.appendChild(propertyText);
+                        
+                        card.appendChild(detailsContainer);
+                        cardsContainer.appendChild(card);
+                    });
                     
-                    imageCard.appendChild(image);
-                    
-                    // Overlay with icon
-                    const overlay = document.createElement('div');
-                    overlay.className = 'absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-end p-2';
-                    overlay.innerHTML = '<span class="text-white text-xs font-semibold">View Listing →</span>';
-                    imageCard.appendChild(overlay);
-                    
-                    imagesContainer.appendChild(imageCard);
-                });
-                
-                bubble.appendChild(imagesContainer);
+                    bubble.appendChild(cardsContainer);
+                } else {
+                    // Fallback: regular text display
+                    const textEl = document.createElement('div');
+                    textEl.className = 'text-sm leading-relaxed whitespace-pre-wrap';
+                    textEl.textContent = text;
+                    bubble.appendChild(textEl);
+                }
+            } else {
+                // User message or assistant without images
+                const textEl = document.createElement('div');
+                textEl.className = 'text-sm leading-relaxed whitespace-pre-wrap';
+                textEl.textContent = text;
+                bubble.appendChild(textEl);
             }
 
             const stamp = document.createElement('div');
