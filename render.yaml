@@ -8,6 +8,8 @@ services:
       python --version
       pip install --upgrade pip
       pip install -r backend/requirements.txt
+      playwright install chromium
+      playwright install-deps chromium
     startCommand: cd backend && python app.py
     envVars:
       - key: PYTHON_VERSION
@@ -16,3 +18,19 @@ services:
         sync: false
       - key: PINECONE_ENVIRONMENT
         value: us-east-1
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ENABLE_PLAYWRIGHT_CRAWL
+        value: true
+      - key: TWOCAPTCHA_API_KEY
+        sync: false
+      - key: ANTICAPTCHA_API_KEY
+        sync: false
+      - key: CAPSOLVER_API_KEY
+        sync: false
+      - key: PROXY_URL
+        sync: false
+      - key: PROXY_ROTATION_ENABLED
+        value: false
+      - key: PROXY_LIST
+        sync: false
