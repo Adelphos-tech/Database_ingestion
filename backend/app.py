@@ -1632,17 +1632,18 @@ def chat_with_knowledge_base():
             "Instructions:\n"
             "1. ALWAYS review the knowledge base context before responding.\n"
             "2. When discussing properties, provide specific details like location, price, type, and features from the context.\n"
-            "3. If image URLs are available in the context, include them in your response using markdown format: ![Property Image](image_url)\n"
-            "4. For property listings, structure your response with: brief description, key details (price, location, type), and the image if available.\n"
-            "5. If asked for options or suggestions, provide 2-3 specific examples from the knowledge base with their details.\n"
-            "6. Never invent property details - only use information from the knowledge base context.\n"
-            "7. Keep responses conversational and helpful, focusing on actionable information.\n"
-            "8. Always end with a helpful follow-up question to refine their search.\n\n"
+            "3. For property listings, structure your response with bullet points: brief description, then key details (price, location, size, bedrooms, bathrooms, MRT distance, year built).\n"
+            "4. If asked for options or suggestions, provide 2-3 specific examples from the knowledge base with their details.\n"
+            "5. Never invent property details - only use information from the knowledge base context.\n"
+            "6. Keep responses conversational and helpful, focusing on actionable information.\n"
+            "7. Format property details clearly with bullet points for easy reading.\n"
+            "8. Always end with a helpful follow-up question to refine their search.\n"
+            "9. DO NOT include markdown image syntax - images will be displayed separately by the system.\n\n"
             f"Conversation so far:\n{conversation_context}\n\n"
             "Knowledge base context (use this to answer):\n"
             f"{context_block}\n\n"
             f"User question: {query}\n\n"
-            "Return your answer with property details and include images using markdown format when available."
+            "Return your answer with clear property details in bullet format. Do not include image links."
         )
 
         try:
@@ -1666,10 +1667,24 @@ def chat_with_knowledge_base():
         if not answer_text:
             answer_text = "I encountered an issue while generating a response. Please try again."
 
+        # Collect all unique images from sources for easy frontend rendering
+        all_images = []
+        seen_urls = set()
+        for source in sources:
+            for img_url in source.get('image_urls', []):
+                if img_url and img_url not in seen_urls and 'logo' not in img_url.lower():
+                    seen_urls.add(img_url)
+                    all_images.append({
+                        'url': img_url,
+                        'source_url': source.get('source_url', ''),
+                        'title': source.get('filename', '')
+                    })
+        
         return jsonify({
             'success': True,
             'answer': answer_text.strip(),
-            'sources': sources
+            'sources': sources,
+            'property_images': all_images[:6]  # Limit to 6 images for display
         })
 
     except Exception as e:
