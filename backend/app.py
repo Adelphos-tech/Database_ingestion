@@ -1139,16 +1139,52 @@ def fetch_page_html(url, timeout=15):
     return None
 
 
-def extract_text_from_html(html_content):
-    """Convert raw HTML into clean text and extract title."""
+def extract_text_from_html(html_content, base_url=None):
+    """Convert raw HTML into clean text, extract title and images."""
     soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # Extract images before removing tags
+    images = []
+    for img in soup.find_all('img'):
+        img_url = img.get('src') or img.get('data-src') or img.get('data-lazy-src')
+        if img_url:
+            # Convert relative URLs to absolute
+            if base_url and not img_url.startswith(('http://', 'https://')):
+                img_url = urljoin(base_url, img_url)
+            
+            # Get alt text for context
+            alt_text = img.get('alt', '').strip()
+            
+            # Filter out tiny images, icons, and tracking pixels
+            width = img.get('width', '')
+            height = img.get('height', '')
+            
+            # Skip very small images (likely icons or tracking pixels)
+            try:
+                if width and height:
+                    if int(width) < 100 or int(height) < 100:
+                        continue
+            except (ValueError, TypeError):
+                pass
+            
+            # Skip common tracking/icon patterns
+            if any(x in img_url.lower() for x in ['tracking', 'pixel', 'icon', 'logo.svg', 'favicon']):
+                continue
+            
+            images.append({
+                'url': img_url,
+                'alt': alt_text
+            })
+    
+    # Remove unwanted tags
     for tag in soup(['script', 'style', 'noscript', 'iframe', 'header', 'footer', 'nav']):
         tag.decompose()
 
     title = soup.title.string.strip() if soup.title and soup.title.string else ""
     text_lines = [line.strip() for line in soup.get_text(separator='\n').splitlines()]
     text = "\n".join([line for line in text_lines if line])
-    return title, text
+    
+    return title, text, images
 
 
 def normalize_url(url):
@@ -1181,7 +1217,7 @@ def crawl_website(start_url, max_pages=5, max_depth=1, timeout=15):
             html = fetch_page_html(current_url, timeout=timeout)
             if not html:
                 continue
-            title, text = extract_text_from_html(html)
+            title, text, images = extract_text_from_html(html, current_url)
             if not text.strip():
                 continue
 
@@ -1189,6 +1225,7 @@ def crawl_website(start_url, max_pages=5, max_depth=1, timeout=15):
                 'url': current_url,
                 'title': title or current_url,
                 'text': text,
+                'images': images,  # Include extracted images
                 'depth': depth
             })
 
@@ -1323,8 +1360,18 @@ def ingest_url():
 
         for idx, page in enumerate(pages, start=1):
             try:
+                # Prepare image URLs for metadata
+                image_urls = [img['url'] for img in page.get('images', [])[:10]]  # Limit to 10 images per page
+                image_alts = [img['alt'] for img in page.get('images', [])[:10]]
+                
+                # Add image context to text for better search
+                text_with_images = page['text']
+                if image_urls:
+                    image_context = "\n\n[Page Images]: " + ", ".join([f"{alt or 'Image'}" for alt in image_alts if alt])
+                    text_with_images += image_context
+                
                 ingest_result = ingest_text_payload(
-                    page['text'],
+                    text_with_images,
                     page['title'],
                     project,
                     index_name,
@@ -1334,7 +1381,9 @@ def ingest_url():
                         'source_url': page['url'],
                         'crawl_depth': page['depth'],
                         'content_type': 'web_page',
-                        'page_index': idx
+                        'page_index': idx,
+                        'image_urls': json.dumps(image_urls) if image_urls else '',  # Store as JSON string
+                        'image_count': len(image_urls)
                     }
                 )
                 ingested.append({
@@ -1342,7 +1391,8 @@ def ingest_url():
                     'title': page['title'],
                     'depth': page['depth'],
                     'chunks_created': ingest_result['chunks_created'],
-                    'total_characters': ingest_result['total_characters']
+                    'total_characters': ingest_result['total_characters'],
+                    'images_found': len(image_urls)
                 })
             except Exception as page_error:
                 print(f"URL ingest error for {page['url']}: {page_error}")
@@ -1474,8 +1524,24 @@ def chat_with_knowledge_base():
             if len(passage) > remaining_budget:
                 passage = passage[:remaining_budget] + '...'
 
+            # Extract image URLs if available
+            image_urls_json = metadata.get('image_urls', '')
+            image_urls = []
+            if image_urls_json:
+                try:
+                    image_urls = json.loads(image_urls_json)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            source_url = metadata.get('source_url', '')
             section_header = f"[Source {idx}] {metadata.get('filename', 'Unknown file')} (chunk {metadata.get('chunk_index', '-')})"
-            context_sections.append(f"{section_header}\n{passage}")
+            
+            # Add images to context if available
+            context_content = f"{section_header}\n{passage}"
+            if image_urls and source_url:
+                context_content += f"\n[Images from {source_url}]: {', '.join(image_urls[:3])}"  # Include up to 3 image URLs
+            
+            context_sections.append(context_content)
 
             sources.append({
                 'source_id': idx,
@@ -1483,7 +1549,9 @@ def chat_with_knowledge_base():
                 'document_id': metadata.get('document_id'),
                 'filename': metadata.get('filename'),
                 'chunk_index': metadata.get('chunk_index'),
-                'text': passage
+                'text': passage,
+                'source_url': source_url,
+                'image_urls': image_urls[:3] if image_urls else []  # Include up to 3 images in response
             })
 
             running_chars += len(passage)
@@ -1507,19 +1575,22 @@ def chat_with_knowledge_base():
         context_block = "\n\n".join(context_sections)
 
         prompt = (
-            "You are Habib, a business consultant at Unicorn Pte Ltd.\n"
+            "You are Habib, a property consultant helping users find rental and sale properties in Singapore.\n"
             "Before answering, you must leverage the supplied knowledge base excerpts as your primary source of truth.\n"
             "Instructions:\n"
             "1. ALWAYS review the knowledge base context before responding.\n"
-            "2. If no relevant context exists, say so clearly and offer high-level guidance only.\n"
-            "3. Keep replies to a maximum of four sentences: sentence one = warm acknowledgement, sentence two = key insight grounded in the context (plain language, no citations), sentence three = optional supporting detail or analogy, sentence four = end with a single relevant follow-up question.\n"
-            "4. Match the user's language and keep a conversational, confident tone.\n"
-            "5. Never invent data, never reference filenames, source IDs, or metadata in the answer.\n\n"
+            "2. When discussing properties, provide specific details like location, price, type, and features from the context.\n"
+            "3. If image URLs are available in the context, include them in your response using markdown format: ![Property Image](image_url)\n"
+            "4. For property listings, structure your response with: brief description, key details (price, location, type), and the image if available.\n"
+            "5. If asked for options or suggestions, provide 2-3 specific examples from the knowledge base with their details.\n"
+            "6. Never invent property details - only use information from the knowledge base context.\n"
+            "7. Keep responses conversational and helpful, focusing on actionable information.\n"
+            "8. Always end with a helpful follow-up question to refine their search.\n\n"
             f"Conversation so far:\n{conversation_context}\n\n"
             "Knowledge base context (use this to answer):\n"
             f"{context_block}\n\n"
             f"User question: {query}\n\n"
-            "Return only the answer that satisfies all instructions."
+            "Return your answer with property details and include images using markdown format when available."
         )
 
         try:
