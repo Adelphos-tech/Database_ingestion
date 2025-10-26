@@ -1,2 +1,23 @@
 # Local Netlify folder
 .netlify
+
+# Environment variables (contains API keys - DO NOT COMMIT)
+.env
+backend/.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride

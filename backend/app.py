@@ -31,6 +31,16 @@ try:
 except ImportError:
     sync_playwright = None
 
+try:
+    from playwright_stealth import stealth_sync
+except ImportError:
+    stealth_sync = None
+
+try:
+    import undetected_chromedriver as uc
+except ImportError:
+    uc = None
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -44,6 +54,16 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 DEFAULT_CHAT_MODEL = 'models/gemini-2.0-flash-exp'
 CONFIGURED_CHAT_MODEL = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
 ENABLE_PLAYWRIGHT_CRAWL = os.getenv('ENABLE_PLAYWRIGHT_CRAWL', 'false').lower() == 'true'
+
+# Captcha solving service configurations
+TWOCAPTCHA_API_KEY = os.getenv('TWOCAPTCHA_API_KEY', '')
+ANTICAPTCHA_API_KEY = os.getenv('ANTICAPTCHA_API_KEY', '')
+CAPSOLVER_API_KEY = os.getenv('CAPSOLVER_API_KEY', '')
+
+# Proxy configuration (supports http, https, socks5)
+PROXY_URL = os.getenv('PROXY_URL', '')  # Format: http://user:pass@host:port or socks5://host:port
+PROXY_ROTATION_ENABLED = os.getenv('PROXY_ROTATION_ENABLED', 'false').lower() == 'true'
+PROXY_LIST = os.getenv('PROXY_LIST', '').split(',') if os.getenv('PROXY_LIST') else []
 
 # Initialize clients
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -383,20 +403,462 @@ def generate_document_id(filename, project):
 
 HEADLESS_HEADERS = [
     {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
     },
     {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
-        'Accept-Language': 'en-US,en;q=0.8'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
     },
+    {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    }
 ]
 
 
+class CaptchaSolver:
+    """Unified captcha solving interface supporting multiple services"""
+    
+    @staticmethod
+    def solve_recaptcha_v2(site_key, page_url, api_key=None, service='2captcha'):
+        """Solve reCAPTCHA v2"""
+        if service == '2captcha' and (api_key or TWOCAPTCHA_API_KEY):
+            return CaptchaSolver._solve_2captcha_v2(site_key, page_url, api_key or TWOCAPTCHA_API_KEY)
+        elif service == 'anticaptcha' and (api_key or ANTICAPTCHA_API_KEY):
+            return CaptchaSolver._solve_anticaptcha_v2(site_key, page_url, api_key or ANTICAPTCHA_API_KEY)
+        elif service == 'capsolver' and (api_key or CAPSOLVER_API_KEY):
+            return CaptchaSolver._solve_capsolver_v2(site_key, page_url, api_key or CAPSOLVER_API_KEY)
+        return None
+    
+    @staticmethod
+    def solve_recaptcha_v3(site_key, page_url, action='verify', api_key=None, service='2captcha'):
+        """Solve reCAPTCHA v3"""
+        if service == '2captcha' and (api_key or TWOCAPTCHA_API_KEY):
+            return CaptchaSolver._solve_2captcha_v3(site_key, page_url, action, api_key or TWOCAPTCHA_API_KEY)
+        elif service == 'anticaptcha' and (api_key or ANTICAPTCHA_API_KEY):
+            return CaptchaSolver._solve_anticaptcha_v3(site_key, page_url, action, api_key or ANTICAPTCHA_API_KEY)
+        elif service == 'capsolver' and (api_key or CAPSOLVER_API_KEY):
+            return CaptchaSolver._solve_capsolver_v3(site_key, page_url, action, api_key or CAPSOLVER_API_KEY)
+        return None
+    
+    @staticmethod
+    def solve_hcaptcha(site_key, page_url, api_key=None, service='2captcha'):
+        """Solve hCaptcha"""
+        if service == '2captcha' and (api_key or TWOCAPTCHA_API_KEY):
+            return CaptchaSolver._solve_2captcha_hcaptcha(site_key, page_url, api_key or TWOCAPTCHA_API_KEY)
+        elif service == 'anticaptcha' and (api_key or ANTICAPTCHA_API_KEY):
+            return CaptchaSolver._solve_anticaptcha_hcaptcha(site_key, page_url, api_key or ANTICAPTCHA_API_KEY)
+        elif service == 'capsolver' and (api_key or CAPSOLVER_API_KEY):
+            return CaptchaSolver._solve_capsolver_hcaptcha(site_key, page_url, api_key or CAPSOLVER_API_KEY)
+        return None
+    
+    @staticmethod
+    def _solve_2captcha_v2(site_key, page_url, api_key):
+        """Solve reCAPTCHA v2 using 2Captcha service"""
+        try:
+            import time
+            # Submit captcha
+            submit_url = 'http://2captcha.com/in.php'
+            params = {
+                'key': api_key,
+                'method': 'userrecaptcha',
+                'googlekey': site_key,
+                'pageurl': page_url,
+                'json': 1
+            }
+            response = requests.post(submit_url, data=params, timeout=30)
+            result = response.json()
+            
+            if result.get('status') != 1:
+                logging.error(f"2Captcha submission failed: {result.get('request')}")
+                return None
+            
+            captcha_id = result.get('request')
+            
+            # Poll for result
+            result_url = 'http://2captcha.com/res.php'
+            for _ in range(60):  # Wait up to 2 minutes
+                time.sleep(2)
+                params = {
+                    'key': api_key,
+                    'action': 'get',
+                    'id': captcha_id,
+                    'json': 1
+                }
+                response = requests.get(result_url, params=params, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 1:
+                    return result.get('request')
+                elif result.get('request') != 'CAPCHA_NOT_READY':
+                    logging.error(f"2Captcha error: {result.get('request')}")
+                    return None
+            
+            logging.error("2Captcha timeout")
+            return None
+        except Exception as e:
+            logging.error(f"2Captcha error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_2captcha_v3(site_key, page_url, action, api_key):
+        """Solve reCAPTCHA v3 using 2Captcha service"""
+        try:
+            import time
+            submit_url = 'http://2captcha.com/in.php'
+            params = {
+                'key': api_key,
+                'method': 'userrecaptcha',
+                'version': 'v3',
+                'action': action,
+                'googlekey': site_key,
+                'pageurl': page_url,
+                'json': 1,
+                'min_score': 0.3
+            }
+            response = requests.post(submit_url, data=params, timeout=30)
+            result = response.json()
+            
+            if result.get('status') != 1:
+                return None
+            
+            captcha_id = result.get('request')
+            result_url = 'http://2captcha.com/res.php'
+            
+            for _ in range(60):
+                time.sleep(2)
+                params = {'key': api_key, 'action': 'get', 'id': captcha_id, 'json': 1}
+                response = requests.get(result_url, params=params, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 1:
+                    return result.get('request')
+                elif result.get('request') != 'CAPCHA_NOT_READY':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"2Captcha v3 error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_2captcha_hcaptcha(site_key, page_url, api_key):
+        """Solve hCaptcha using 2Captcha service"""
+        try:
+            import time
+            submit_url = 'http://2captcha.com/in.php'
+            params = {
+                'key': api_key,
+                'method': 'hcaptcha',
+                'sitekey': site_key,
+                'pageurl': page_url,
+                'json': 1
+            }
+            response = requests.post(submit_url, data=params, timeout=30)
+            result = response.json()
+            
+            if result.get('status') != 1:
+                return None
+            
+            captcha_id = result.get('request')
+            result_url = 'http://2captcha.com/res.php'
+            
+            for _ in range(60):
+                time.sleep(2)
+                params = {'key': api_key, 'action': 'get', 'id': captcha_id, 'json': 1}
+                response = requests.get(result_url, params=params, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 1:
+                    return result.get('request')
+                elif result.get('request') != 'CAPCHA_NOT_READY':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"2Captcha hCaptcha error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_anticaptcha_v2(site_key, page_url, api_key):
+        """Solve reCAPTCHA v2 using AntiCaptcha service"""
+        try:
+            import time
+            submit_url = 'https://api.anti-captcha.com/createTask'
+            payload = {
+                'clientKey': api_key,
+                'task': {
+                    'type': 'RecaptchaV2TaskProxyless',
+                    'websiteURL': page_url,
+                    'websiteKey': site_key
+                }
+            }
+            response = requests.post(submit_url, json=payload, timeout=30)
+            result = response.json()
+            
+            if result.get('errorId') != 0:
+                logging.error(f"AntiCaptcha error: {result.get('errorDescription')}")
+                return None
+            
+            task_id = result.get('taskId')
+            result_url = 'https://api.anti-captcha.com/getTaskResult'
+            
+            for _ in range(60):
+                time.sleep(2)
+                payload = {'clientKey': api_key, 'taskId': task_id}
+                response = requests.post(result_url, json=payload, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 'ready':
+                    return result.get('solution', {}).get('gRecaptchaResponse')
+                elif result.get('status') != 'processing':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"AntiCaptcha error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_anticaptcha_v3(site_key, page_url, action, api_key):
+        """Solve reCAPTCHA v3 using AntiCaptcha service"""
+        try:
+            import time
+            submit_url = 'https://api.anti-captcha.com/createTask'
+            payload = {
+                'clientKey': api_key,
+                'task': {
+                    'type': 'RecaptchaV3TaskProxyless',
+                    'websiteURL': page_url,
+                    'websiteKey': site_key,
+                    'minScore': 0.3,
+                    'pageAction': action
+                }
+            }
+            response = requests.post(submit_url, json=payload, timeout=30)
+            result = response.json()
+            
+            if result.get('errorId') != 0:
+                return None
+            
+            task_id = result.get('taskId')
+            result_url = 'https://api.anti-captcha.com/getTaskResult'
+            
+            for _ in range(60):
+                time.sleep(2)
+                payload = {'clientKey': api_key, 'taskId': task_id}
+                response = requests.post(result_url, json=payload, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 'ready':
+                    return result.get('solution', {}).get('gRecaptchaResponse')
+                elif result.get('status') != 'processing':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"AntiCaptcha v3 error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_anticaptcha_hcaptcha(site_key, page_url, api_key):
+        """Solve hCaptcha using AntiCaptcha service"""
+        try:
+            import time
+            submit_url = 'https://api.anti-captcha.com/createTask'
+            payload = {
+                'clientKey': api_key,
+                'task': {
+                    'type': 'HCaptchaTaskProxyless',
+                    'websiteURL': page_url,
+                    'websiteKey': site_key
+                }
+            }
+            response = requests.post(submit_url, json=payload, timeout=30)
+            result = response.json()
+            
+            if result.get('errorId') != 0:
+                return None
+            
+            task_id = result.get('taskId')
+            result_url = 'https://api.anti-captcha.com/getTaskResult'
+            
+            for _ in range(60):
+                time.sleep(2)
+                payload = {'clientKey': api_key, 'taskId': task_id}
+                response = requests.post(result_url, json=payload, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 'ready':
+                    return result.get('solution', {}).get('gRecaptchaResponse')
+                elif result.get('status') != 'processing':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"AntiCaptcha hCaptcha error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_capsolver_v2(site_key, page_url, api_key):
+        """Solve reCAPTCHA v2 using CapSolver service"""
+        try:
+            import time
+            submit_url = 'https://api.capsolver.com/createTask'
+            payload = {
+                'clientKey': api_key,
+                'task': {
+                    'type': 'ReCaptchaV2TaskProxyLess',
+                    'websiteURL': page_url,
+                    'websiteKey': site_key
+                }
+            }
+            response = requests.post(submit_url, json=payload, timeout=30)
+            result = response.json()
+            
+            if result.get('errorId') != 0:
+                return None
+            
+            task_id = result.get('taskId')
+            result_url = 'https://api.capsolver.com/getTaskResult'
+            
+            for _ in range(60):
+                time.sleep(2)
+                payload = {'clientKey': api_key, 'taskId': task_id}
+                response = requests.post(result_url, json=payload, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 'ready':
+                    return result.get('solution', {}).get('gRecaptchaResponse')
+                elif result.get('status') != 'processing':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"CapSolver error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_capsolver_v3(site_key, page_url, action, api_key):
+        """Solve reCAPTCHA v3 using CapSolver service"""
+        try:
+            import time
+            submit_url = 'https://api.capsolver.com/createTask'
+            payload = {
+                'clientKey': api_key,
+                'task': {
+                    'type': 'ReCaptchaV3TaskProxyLess',
+                    'websiteURL': page_url,
+                    'websiteKey': site_key,
+                    'pageAction': action
+                }
+            }
+            response = requests.post(submit_url, json=payload, timeout=30)
+            result = response.json()
+            
+            if result.get('errorId') != 0:
+                return None
+            
+            task_id = result.get('taskId')
+            result_url = 'https://api.capsolver.com/getTaskResult'
+            
+            for _ in range(60):
+                time.sleep(2)
+                payload = {'clientKey': api_key, 'taskId': task_id}
+                response = requests.post(result_url, json=payload, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 'ready':
+                    return result.get('solution', {}).get('gRecaptchaResponse')
+                elif result.get('status') != 'processing':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"CapSolver v3 error: {e}")
+            return None
+    
+    @staticmethod
+    def _solve_capsolver_hcaptcha(site_key, page_url, api_key):
+        """Solve hCaptcha using CapSolver service"""
+        try:
+            import time
+            submit_url = 'https://api.capsolver.com/createTask'
+            payload = {
+                'clientKey': api_key,
+                'task': {
+                    'type': 'HCaptchaTaskProxyLess',
+                    'websiteURL': page_url,
+                    'websiteKey': site_key
+                }
+            }
+            response = requests.post(submit_url, json=payload, timeout=30)
+            result = response.json()
+            
+            if result.get('errorId') != 0:
+                return None
+            
+            task_id = result.get('taskId')
+            result_url = 'https://api.capsolver.com/getTaskResult'
+            
+            for _ in range(60):
+                time.sleep(2)
+                payload = {'clientKey': api_key, 'taskId': task_id}
+                response = requests.post(result_url, json=payload, timeout=30)
+                result = response.json()
+                
+                if result.get('status') == 'ready':
+                    return result.get('solution', {}).get('gRecaptchaResponse')
+                elif result.get('status') != 'processing':
+                    return None
+            
+            return None
+        except Exception as e:
+            logging.error(f"CapSolver hCaptcha error: {e}")
+            return None
+
+
+def get_random_proxy():
+    """Get a random proxy from the proxy list"""
+    if PROXY_ROTATION_ENABLED and PROXY_LIST:
+        import random
+        return random.choice(PROXY_LIST).strip()
+    return PROXY_URL if PROXY_URL else None
+
+
 def fetch_with_requests(url, timeout):
+    """Fetch with requests library supporting proxies"""
+    proxy = get_random_proxy()
+    proxies = {'http': proxy, 'https': proxy} if proxy else None
+    
     for headers in HEADLESS_HEADERS:
         try:
-            response = requests.get(url, headers=headers, timeout=timeout)
+            response = requests.get(
+                url, 
+                headers=headers, 
+                timeout=timeout,
+                proxies=proxies,
+                allow_redirects=True,
+                verify=True
+            )
             if response.status_code == 200 and 'text/html' in response.headers.get('Content-Type', ''):
                 return response.text
         except requests.RequestException:
@@ -405,32 +867,252 @@ def fetch_with_requests(url, timeout):
 
 
 def fetch_with_cloudscraper(url, timeout):
+    """Fetch with cloudscraper for Cloudflare bypass"""
     if not cloudscraper:
         return None
     try:
+        proxy = get_random_proxy()
+        proxies = {'http': proxy, 'https': proxy} if proxy else None
+        
         scraper = cloudscraper.create_scraper(
-            browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False}
+            browser={
+                'browser': 'chrome',
+                'platform': 'windows',
+                'mobile': False,
+                'desktop': True
+            },
+            delay=10  # Add random delay to appear more human-like
         )
-        response = scraper.get(url, timeout=timeout)
+        response = scraper.get(
+            url, 
+            timeout=timeout,
+            proxies=proxies,
+            allow_redirects=True
+        )
         if response.status_code == 200 and 'text/html' in response.headers.get('Content-Type', ''):
             return response.text
-    except Exception:
+    except Exception as e:
+        logging.warning(f"Cloudscraper fetch failed for {url}: {e}")
         return None
     return None
 
 
 def fetch_with_playwright(url, timeout):
+    """Enhanced Playwright fetch with anti-detection and captcha handling"""
     if not ENABLE_PLAYWRIGHT_CRAWL or not sync_playwright:
         return None
     try:
         with sync_playwright() as p:
             browser = None
             try:
-                browser = p.chromium.launch(headless=True)
-                context = browser.new_context(user_agent=HEADLESS_HEADERS[0]['User-Agent'])
+                proxy = get_random_proxy()
+                proxy_config = None
+                if proxy:
+                    # Parse proxy URL
+                    from urllib.parse import urlparse
+                    parsed_proxy = urlparse(proxy)
+                    proxy_config = {
+                        'server': f"{parsed_proxy.scheme}://{parsed_proxy.hostname}:{parsed_proxy.port}"
+                    }
+                    if parsed_proxy.username and parsed_proxy.password:
+                        proxy_config['username'] = parsed_proxy.username
+                        proxy_config['password'] = parsed_proxy.password
+                
+                # Launch browser with anti-detection args
+                launch_options = {
+                    'headless': True,
+                    'args': [
+                        '--disable-blink-features=AutomationControlled',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--no-first-run',
+                        '--no-zygote',
+                        '--disable-gpu',
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--window-size=1920,1080',
+                    ]
+                }
+                
+                if proxy_config:
+                    launch_options['proxy'] = proxy_config
+                
+                browser = p.chromium.launch(**launch_options)
+                
+                # Create context with realistic settings
+                context = browser.new_context(
+                    user_agent=HEADLESS_HEADERS[0]['User-Agent'],
+                    viewport={'width': 1920, 'height': 1080},
+                    locale='en-US',
+                    timezone_id='America/New_York',
+                    geolocation={'latitude': 40.7128, 'longitude': -74.0060},
+                    permissions=['geolocation'],
+                    color_scheme='light',
+                    device_scale_factor=1,
+                    has_touch=False,
+                    is_mobile=False,
+                    java_script_enabled=True,
+                    extra_http_headers={
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Sec-Fetch-User': '?1',
+                        'Upgrade-Insecure-Requests': '1'
+                    }
+                )
+                
                 page = context.new_page()
-                page.goto(url, wait_until='networkidle', timeout=timeout * 1000)
+                
+                # Apply stealth techniques if available
+                if stealth_sync:
+                    stealth_sync(page)
+                
+                # Add anti-detection scripts
+                page.add_init_script("""
+                    // Override the navigator.webdriver property
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                    
+                    // Override the navigator.plugins property
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5]
+                    });
+                    
+                    // Override the navigator.languages property
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en']
+                    });
+                    
+                    // Override chrome property
+                    window.chrome = {
+                        runtime: {}
+                    };
+                    
+                    // Override permissions
+                    const originalQuery = window.navigator.permissions.query;
+                    window.navigator.permissions.query = (parameters) => (
+                        parameters.name === 'notifications' ?
+                            Promise.resolve({ state: Notification.permission }) :
+                            originalQuery(parameters)
+                    );
+                """)
+                
+                # Navigate with retries
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        page.goto(url, wait_until='domcontentloaded', timeout=timeout * 1000)
+                        break
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            raise e
+                        import time
+                        time.sleep(2)
+                
+                # Check for captchas
+                captcha_detected = False
+                captcha_type = None
+                
+                # Detect reCAPTCHA v2
+                if page.locator('iframe[src*="recaptcha"]').count() > 0:
+                    captcha_detected = True
+                    captcha_type = 'recaptcha_v2'
+                    logging.info(f"reCAPTCHA v2 detected on {url}")
+                
+                # Detect reCAPTCHA v3
+                elif page.locator('script[src*="recaptcha/releases"]').count() > 0:
+                    captcha_detected = True
+                    captcha_type = 'recaptcha_v3'
+                    logging.info(f"reCAPTCHA v3 detected on {url}")
+                
+                # Detect hCaptcha
+                elif page.locator('iframe[src*="hcaptcha"]').count() > 0:
+                    captcha_detected = True
+                    captcha_type = 'hcaptcha'
+                    logging.info(f"hCaptcha detected on {url}")
+                
+                # Attempt to solve captcha if detected
+                if captcha_detected and any([TWOCAPTCHA_API_KEY, ANTICAPTCHA_API_KEY, CAPSOLVER_API_KEY]):
+                    try:
+                        site_key = None
+                        
+                        if captcha_type == 'recaptcha_v2':
+                            # Extract site key
+                            site_key = page.evaluate("""
+                                () => {
+                                    const iframe = document.querySelector('iframe[src*="recaptcha"]');
+                                    if (iframe) {
+                                        const src = iframe.src;
+                                        const match = src.match(/k=([^&]+)/);
+                                        return match ? match[1] : null;
+                                    }
+                                    return null;
+                                }
+                            """)
+                            
+                            if site_key:
+                                logging.info(f"Attempting to solve reCAPTCHA v2 with site key: {site_key}")
+                                solution = CaptchaSolver.solve_recaptcha_v2(site_key, url)
+                                
+                                if solution:
+                                    # Inject solution
+                                    page.evaluate(f"""
+                                        () => {{
+                                            document.getElementById('g-recaptcha-response').innerHTML = '{solution}';
+                                            if (typeof ___grecaptcha_cfg !== 'undefined') {{
+                                                Object.keys(___grecaptcha_cfg.clients).forEach(key => {{
+                                                    ___grecaptcha_cfg.clients[key].callback('{solution}');
+                                                }});
+                                            }}
+                                        }}
+                                    """)
+                                    logging.info("reCAPTCHA v2 solved successfully")
+                                    import time
+                                    time.sleep(2)
+                        
+                        elif captcha_type == 'hcaptcha':
+                            # Extract site key
+                            site_key = page.evaluate("""
+                                () => {
+                                    const iframe = document.querySelector('iframe[src*="hcaptcha"]');
+                                    if (iframe) {
+                                        const src = iframe.src;
+                                        const match = src.match(/sitekey=([^&]+)/);
+                                        return match ? match[1] : null;
+                                    }
+                                    return null;
+                                }
+                            """)
+                            
+                            if site_key:
+                                logging.info(f"Attempting to solve hCaptcha with site key: {site_key}")
+                                solution = CaptchaSolver.solve_hcaptcha(site_key, url)
+                                
+                                if solution:
+                                    # Inject solution
+                                    page.evaluate(f"""
+                                        () => {{
+                                            const textarea = document.querySelector('textarea[name="h-captcha-response"]');
+                                            if (textarea) {{
+                                                textarea.innerHTML = '{solution}';
+                                            }}
+                                        }}
+                                    """)
+                                    logging.info("hCaptcha solved successfully")
+                                    import time
+                                    time.sleep(2)
+                    
+                    except Exception as captcha_error:
+                        logging.error(f"Captcha solving failed: {captcha_error}")
+                
+                # Wait for final content
+                page.wait_for_timeout(2000)  # Wait 2 seconds for any final JS
                 content = page.content()
+                
                 context.close()
                 return content
             finally:
