@@ -53,8 +53,8 @@
         .doc-close-btn:hover { background: rgba(255,255,255,0.15); color: white; transform: translateY(-1px); }
         .doc-split-container { display: grid; grid-template-columns: 40% 60%; gap: 0; height: calc(100vh - 70px); animation: fadeInScale 0.8s ease-out; }
         @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #1a1a1a; border-right: 1px solid rgba(255,255,255,0.08); padding: 2rem 1.5rem; overflow-y: auto; max-height: calc(100vh - 70px); position: relative; z-index: 100; box-shadow: 2px 0 10px rgba(0,0,0,0.3); }
-        .doc-data-preview-panel { position: relative; display: flex; flex-direction: column; background: #ffffff; padding: 0; overflow: hidden; border-radius: 0 1.5rem 1.5rem 0; }
+        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #0f0f0f; border-right: 1px solid rgba(255,255,255,0.06); padding: 2rem 1.5rem; overflow-y: auto; max-height: calc(100vh - 70px); position: relative; z-index: 100; }
+        .doc-data-preview-panel { position: relative; display: flex; flex-direction: column; background: #1a1a1a; padding: 0; overflow: hidden; }
         .doc-preview-panel { overflow: auto; background: #ffffff; padding: 2rem; }
         .ai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(16, 185, 129, 0.15); border-radius: 6px; color: #10b981; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
         .ai-analysis-summary { color: #e8e8e8; font-size: 13px; line-height: 1.5; margin-bottom: 1rem; }
@@ -515,7 +515,7 @@
     <div id="docAnalyserFullscreen" class="doc-analyser-fullscreen hidden">
         <div class="doc-analyser-container">
             <!-- Beautiful Header -->
-            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.1);">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span class="iconify" data-icon="fluent-emoji:bar-chart" style="width:48px;height:48px;filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></span>
                     <div>
@@ -524,11 +524,11 @@
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <button onclick="resetDocAnalyser()" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 0.625rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                    <button onclick="resetDocAnalyser()" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.625rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
                         <span class="iconify" data-icon="fluent-emoji:counterclockwise-arrows-button" style="width:18px;height:18px;"></span>
                         <span>New Document</span>
                     </button>
-                    <button onclick="closeDocAnalyser()" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.625rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15);" onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='scale(1)'">
+                    <button onclick="closeDocAnalyser()" style="background: rgba(236,72,153,0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.625rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15);" onmouseover="this.style.background='rgba(236,72,153,0.4)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(236,72,153,0.3)'; this.style.transform='translateY(0)'">
                         <span class="iconify" data-icon="fluent-emoji:cross-mark" style="width:18px;height:18px;"></span>
                         <span>Close</span>
                     </button>
@@ -557,9 +557,9 @@
                     
                     <div id="aiChartsSection" class="hidden"></div>
                     
-                    <div class="mt-4 pt-4 border-t border-white border-opacity-10">
-                        <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 resize-none text-sm text-white placeholder-gray-400" placeholder="Ask follow-up questions..."></textarea>
-                        <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50">
+                    <div class="mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                        <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none text-sm outline-none" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e5e5e5;" placeholder="Ask follow-up questions..."></textarea>
+                        <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50 hover:from-purple-500 hover:to-pink-500">
                             Ask AI ↗
                         </button>
                     </div>
@@ -568,42 +568,43 @@
                 <!-- Right Panel: Data Preview (70%) -->
                 <div class="doc-data-preview-panel">
                     <!-- URL Input Section -->
-                    <div id="docUrlInputZone" class="mb-4 p-4 bg-gradient-to-r from-slate-50 to-indigo-50 rounded-xl border border-slate-200">
+                    <div id="docUrlInputZone" class="mb-4 p-4 rounded-xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                         <div class="flex items-center gap-3">
                             <div class="flex-shrink-0">
-                                <span class="iconify" data-icon="fluent-emoji:globe-showing-americas" style="width:28px;height:28px;"></span>
+                                <span class="iconify" data-icon="fluent-emoji:globe-showing-americas" style="width:24px;height:24px;"></span>
                             </div>
                             <div class="flex-1">
                                 <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/article)" 
-                                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                       class="w-full px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm outline-none"
+                                       style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e5e5e5;"
                                        onkeypress="if(event.key==='Enter') analyzeUrl()">
                             </div>
-                            <button onclick="analyzeUrl()" class="flex-shrink-0 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-500 hover:to-purple-500 transition shadow-lg hover:shadow-xl flex items-center gap-2">
-                                <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:20px;height:20px;"></span>
+                            <button onclick="analyzeUrl()" class="flex-shrink-0 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-500 hover:to-pink-500 transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                                <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:18px;height:18px;"></span>
                                 <span>Analyze</span>
                             </button>
                         </div>
-                        <div class="mt-3 ml-10 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                            <span class="iconify text-amber-600 flex-shrink-0" data-icon="fluent-emoji:warning" style="width:16px;height:16px;margin-top:2px;"></span>
-                            <p class="text-xs text-amber-700">
+                        <div class="mt-3 ml-9 flex items-start gap-2 rounded-lg px-3 py-2" style="background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15);">
+                            <span class="iconify flex-shrink-0" data-icon="fluent-emoji:warning" style="width:14px;height:14px;margin-top:2px;color:#fb923c;"></span>
+                            <p class="text-xs" style="color: #fbbf24;">
                                 <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work.
                             </p>
                         </div>
-                        <p class="text-xs text-slate-500 mt-2 ml-10">Or upload a file below</p>
+                        <p class="text-xs mt-2 ml-9" style="color: #737373;">Or upload a file below</p>
                     </div>
                     
-                    <div id="docUploadZone" class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer bg-slate-50">
+                    <div id="docUploadZone" class="border-2 border-dashed rounded-xl p-8 text-center hover:border-purple-500 transition cursor-pointer" style="border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">
                         <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
                         <div class="text-5xl mb-4">📄</div>
-                        <p class="text-slate-700 mb-2">
-                            <span class="text-indigo-600 font-semibold cursor-pointer" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
+                        <p class="mb-2" style="color: #d4d4d4;">
+                            <span class="font-semibold cursor-pointer" style="color: #a855f7;" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
                         </p>
-                        <p class="text-sm text-slate-500">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
+                        <p class="text-sm" style="color: #737373;">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
                     </div>
                     
-                    <div id="docPreviewHeader" class="hidden mt-6 flex items-center justify-between pb-3 border-b border-slate-200">
+                    <div id="docPreviewHeader" class="hidden mt-6 flex items-center justify-between pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
                         <div>
-                            <h3 class="font-semibold text-slate-900 text-lg" id="docFileName"></h3>
+                            <h3 class="font-semibold text-lg" id="docFileName" style="color: #e5e5e5;"></h3>
                             <p class="text-xs text-slate-500 mt-1" id="docFileInfo"></p>
                         </div>
                         <button onclick="clearDocAnalysis()" class="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1">
