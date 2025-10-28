@@ -2343,7 +2343,32 @@
                 offset: 100
             });
             
+            // Add event listeners to all tab buttons as backup
+            const tabButtons = {
+                'uploadTab': 'upload',
+                'browseTab': 'browse',
+                'indexesTab': 'indexes',
+                'chatTab': 'chat',
+                'docAnalyserTab': 'docAnalyser'
+            };
+            
+            Object.keys(tabButtons).forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Button clicked:', buttonId, '-> switching to:', tabButtons[buttonId]);
+                        switchTab(tabButtons[buttonId]);
+                    });
+                    console.log('✓ Event listener added to:', buttonId);
+                } else {
+                    console.warn('✗ Button not found:', buttonId);
+                }
+            });
+            
             console.log('✨ UI Libraries loaded: Lucide Icons, Apache ECharts, DaisyUI, AOS');
+            console.log('✨ Tab event listeners initialized');
         });
     </script>
 </body>
