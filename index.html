@@ -42,9 +42,9 @@
         .doc-analyser-fullscreen::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.35), transparent 50%), radial-gradient(circle at 40% 60%, rgba(16,185,129,0.3), transparent 50%); animation: rotate 30s linear infinite; pointer-events: none; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .doc-analyser-container { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; padding: 2rem; max-width: 100%; margin: 0 auto; }
-        .doc-analyser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; animation: slideDown 0.6s ease-out; }
+        .doc-analyser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); animation: slideDown 0.6s ease-out; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-        .doc-analyser-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
+        .doc-analyser-title { font-size: 1.75rem; font-weight: 700; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
         .doc-close-btn { background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.18); color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 600; transition: all 0.3s; cursor: pointer; }
         .doc-close-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
         .doc-split-container { display: grid; grid-template-columns: 30% 70%; gap: 0; height: calc(100vh - 120px); animation: fadeInScale 0.8s ease-out; }
@@ -75,6 +75,11 @@
         @keyframes glow { 0%, 100% { opacity: 1; box-shadow: 0 0 10px #10b981; } 50% { opacity: 0.7; box-shadow: 0 0 20px #10b981; } }
         .hide-when-analyser { transition: opacity 0.3s, transform 0.3s; }
         .hide-when-analyser.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        .loading-dots { display: inline-flex; gap: 6px; align-items: center; padding: 8px 0; }
+        .loading-dots span { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: bounce 1.4s infinite ease-in-out both; }
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
         @media (max-width: 1024px) { .doc-split-container { grid-template-columns: 1fr; height: auto; } .doc-analyser-title { font-size: 1.75rem; } }
     </style>
 </head>
@@ -1952,59 +1957,101 @@
                 return;
             }
 
-            // Disable button
+            // Disable button and show loading
             docAnalyserSendBtn.disabled = true;
-            docAnalyserSendBtn.textContent = 'Thinking...';
+            docAnalyserSendBtn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
 
-            // Show user question in summary
-            const currentSummary = document.getElementById('aiAnalysisSummary').textContent;
-            document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-emerald-400 text-sm mb-2">You asked: "${question}"</div><div class="text-slate-400">Thinking...</div>`;
+            // Show user question with loading
+            document.getElementById('aiAnalysisSummary').innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    <div class="text-emerald-400 text-sm font-medium mb-1">You:</div>
+                    <div class="text-gray-300">${question}</div>
+                </div>
+                <div>
+                    <div class="text-purple-400 text-sm font-medium mb-1">AI:</div>
+                    <div class="loading-dots"><span></span><span></span><span></span></div>
+                </div>
+            `;
 
             docAnalyserQuestion.value = '';
 
             try {
-                const formData = new FormData();
-                formData.append('question', question);
-                formData.append('file_type', currentDocData.type);
-                formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                // Check if user wants chart
+                const wantsChart = question.toLowerCase().includes('chart') || 
+                                  question.toLowerCase().includes('graph') ||
+                                  question.toLowerCase().includes('visualiz') ||
+                                  question.toLowerCase().includes('pie') ||
+                                  question.toLowerCase().includes('plot') ||
+                                  question.toLowerCase().includes('show');
                 
-                if (currentDocData.type === 'excel') {
-                    formData.append('excel_data', JSON.stringify(currentDocData.data));
-                } else if (currentDocData.type === 'text') {
-                    formData.append('text_content', currentDocData.content);
-                }
-
-                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.answer) {
-                    // Display answer in summary area
-                    document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-emerald-400 text-sm mb-2">You: "${question}"</div><div class="text-gray-300">${data.answer}</div>`;
+                // If wants chart, skip API and generate directly
+                if (wantsChart && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
+                    // Determine chart type
+                    let chartType = 'pie';
+                    if (question.toLowerCase().includes('line')) chartType = 'line';
+                    if (question.toLowerCase().includes('bar')) chartType = 'bar';
                     
-                    // Check if user asked for visualization
-                    const wantsChart = question.toLowerCase().includes('chart') || 
-                                      question.toLowerCase().includes('graph') ||
-                                      question.toLowerCase().includes('visualiz') ||
-                                      question.toLowerCase().includes('trend') ||
-                                      question.toLowerCase().includes('show me') ||
-                                      question.toLowerCase().includes('pie') ||
-                                      question.toLowerCase().includes('distribution');
+                    // Display immediate response
+                    document.getElementById('aiAnalysisSummary').innerHTML = `
+                        <div style="margin-bottom: 1rem;">
+                            <div class="text-emerald-400 text-sm font-medium mb-1">You:</div>
+                            <div class="text-gray-300">${question}</div>
+                        </div>
+                        <div>
+                            <div class="text-purple-400 text-sm font-medium mb-1">AI:</div>
+                            <div class="text-gray-300">✓ Generating ${chartType} chart...</div>
+                        </div>
+                    `;
                     
-                    // Generate chart if requested and we have Excel data
-                    if (wantsChart && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
-                        generateCharts(currentDocData.data, {});
-                    }
+                    // Generate chart
+                    setTimeout(() => {
+                        generateCharts(currentDocData.data, {}, chartType);
+                    }, 500);
                     
                     docConversationHistory.push({
                         user: question,
-                        assistant: data.answer
+                        assistant: `Generated ${chartType} chart for you.`
                     });
                 } else {
-                    throw new Error(data.error || 'Failed to get answer');
+                    // Regular question - call API
+                    const formData = new FormData();
+                    formData.append('question', question);
+                    formData.append('file_type', currentDocData.type);
+                    formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                    
+                    if (currentDocData.type === 'excel') {
+                        formData.append('excel_data', JSON.stringify(currentDocData.data));
+                    } else if (currentDocData.type === 'text') {
+                        formData.append('text_content', currentDocData.content);
+                    }
+
+                    const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.answer) {
+                        // Display chat thread
+                        document.getElementById('aiAnalysisSummary').innerHTML = `
+                            <div style="margin-bottom: 1rem;">
+                                <div class="text-emerald-400 text-sm font-medium mb-1">You:</div>
+                                <div class="text-gray-300">${question}</div>
+                            </div>
+                            <div>
+                                <div class="text-purple-400 text-sm font-medium mb-1">AI:</div>
+                                <div class="text-gray-300">${data.answer}</div>
+                            </div>
+                        `;
+                        
+                        docConversationHistory.push({
+                            user: question,
+                            assistant: data.answer
+                        });
+                    } else {
+                        throw new Error(data.error || 'Failed to get answer');
+                    }
                 }
             } catch (error) {
                 const errorMessage = formatErrorMessage(error.message);
