@@ -42,22 +42,22 @@
         @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .doc-analyser-fullscreen::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.35), transparent 50%), radial-gradient(circle at 40% 60%, rgba(16,185,129,0.3), transparent 50%); animation: rotate 30s linear infinite; pointer-events: none; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .doc-analyser-container { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; padding: 2rem; max-width: 100%; margin: 0 auto; }
-        .doc-analyser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); animation: slideDown 0.6s ease-out; }
+        .doc-analyser-container { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; padding: 1rem 1.5rem; max-width: 100%; margin: 0 auto; }
+        .doc-analyser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); animation: slideDown 0.6s ease-out; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-        .doc-analyser-title { font-size: 1.25rem; font-weight: 700; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
-        .doc-close-btn { background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.18); color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 600; transition: all 0.3s; cursor: pointer; }
-        .doc-close-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
-        .doc-split-container { display: grid; grid-template-columns: 30% 70%; gap: 0; height: calc(100vh - 100px); animation: fadeInScale 0.8s ease-out; }
+        .doc-analyser-title { font-size: 1rem; font-weight: 600; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
+        .doc-close-btn { background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; transition: all 0.3s; cursor: pointer; }
+        .doc-close-btn:hover { background: rgba(255,255,255,0.15); color: white; transform: translateY(-1px); }
+        .doc-split-container { display: grid; grid-template-columns: 280px 1fr; gap: 0; height: calc(100vh - 70px); animation: fadeInScale 0.8s ease-out; }
         @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #1a1a1a; border-right: 1px solid rgba(255,255,255,0.1); padding: 2rem 1.5rem; overflow-y: auto; max-height: calc(100vh - 100px); position: relative; z-index: 100; }
+        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #1a1a1a; border-right: 1px solid rgba(255,255,255,0.08); padding: 1.5rem 1rem; overflow-y: auto; max-height: calc(100vh - 70px); position: relative; z-index: 100; box-shadow: 2px 0 10px rgba(0,0,0,0.3); }
         .doc-data-preview-panel { position: relative; display: flex; flex-direction: column; background: #ffffff; padding: 0; overflow: hidden; border-radius: 0 1.5rem 1.5rem 0; }
         .doc-preview-panel { overflow: auto; background: #ffffff; padding: 2rem; }
-        .ai-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(16, 185, 129, 0.15); border-radius: 20px; color: #10b981; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; }
-        .ai-analysis-summary { color: #e8e8e8; font-size: 15px; line-height: 1.6; margin-bottom: 2rem; }
-        .insights-section { margin-top: 2rem; position: relative; z-index: 10; }
-        .insights-title { display: flex; align-items: center; gap: 8px; color: #fbbf24; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; }
-        .insight-item { color: #d1d5db; font-size: 14px; line-height: 1.6; margin-bottom: 0.75rem; padding-left: 1.25rem; position: relative; }
+        .ai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(16, 185, 129, 0.15); border-radius: 6px; color: #10b981; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+        .ai-analysis-summary { color: #e8e8e8; font-size: 13px; line-height: 1.5; margin-bottom: 1rem; }
+        .insights-section { margin-top: 1rem; position: relative; z-index: 10; }
+        .insights-title { display: flex; align-items: center; gap: 6px; color: #fbbf24; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+        .insight-item { color: #d1d5db; font-size: 13px; line-height: 1.5; margin-bottom: 0.5rem; padding-left: 1rem; position: relative; }
         .insight-item::before { content: '•'; position: absolute; left: 0; color: #10b981; font-weight: bold; }
         .insight-item strong { color: #10b981; font-weight: 600; }
         .chart-container { margin: 2rem 0; padding: 1.5rem; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 10; }
@@ -574,7 +574,7 @@
                             <i data-lucide="alert-circle" class="text-amber-600 flex-shrink-0" style="width:14px;height:14px;margin-top:2px;"></i>
                             <p class="text-xs text-amber-700">
                                 <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work. 
-                                <span class="font-semibold">Use file upload below instead</span> for guaranteed access.
+                                <span class="font-semibold">Use file upload below instead.</span>
                             </p>
                         </div>
                         <p class="text-xs text-slate-500 mt-2 ml-10">Or upload a file below</p>
