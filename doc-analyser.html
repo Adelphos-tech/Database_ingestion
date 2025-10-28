@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Analyser - Atlas IQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #1a0b2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; }
+        .doc-split-container { display: grid; grid-template-columns: 40% 60%; gap: 0; height: 100vh; }
+        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #1a1a1a; border-right: 1px solid rgba(255,255,255,0.08); padding: 2rem 1.5rem; overflow-y: auto; }
+        .doc-data-preview-panel { position: relative; display: flex; flex-direction: column; background: #ffffff; padding: 0; overflow: hidden; }
+        .ai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(16, 185, 129, 0.15); border-radius: 6px; color: #10b981; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+        .insights-title { display: flex; align-items: center; gap: 8px; color: #10b981; font-size: 14px; font-weight: 600; margin-bottom: 0.75rem; }
+        .insight-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; color: #d1d5db; font-size: 12px; line-height: 1.5; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="doc-split-container">
+        <!-- Left Panel: AI Insights (40%) -->
+        <div class="doc-ai-insights-panel">
+            <div class="ai-badge">
+                <span class="iconify" data-icon="fluent-emoji:robot" style="width:14px;height:14px;"></span>
+                <span>Active Analysis</span>
+            </div>
+            
+            <div id="aiInsightsSection" class="hidden">
+                <div class="insights-title">
+                    <span class="iconify" data-icon="fluent-emoji:light-bulb" style="width:14px;height:14px;"></span>
+                    <span>Key Insights</span>
+                </div>
+                <div id="aiInsightsList"></div>
+            </div>
+            
+            <div id="aiAnalysisSummary" style="color: #e8e8e8; font-size: 13px; line-height: 1.5; margin-bottom: 1rem;">
+                Upload a document to start AI-powered analysis. I'll provide insights, trends, and visualizations automatically.
+            </div>
+            
+            <div id="aiChartsSection" class="hidden"></div>
+            
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 resize-none text-sm text-white placeholder-gray-400" placeholder="Ask follow-up questions..."></textarea>
+                <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold shadow-lg hover:shadow-xl transition">
+                    Ask AI ↗
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Data Preview (60%) -->
+        <div class="doc-data-preview-panel">
+            <!-- Close Button -->
+            <div class="absolute top-4 right-4 z-50">
+                <button onclick="window.close()" class="flex items-center gap-1.5 px-3 py-2 bg-white/90 hover:bg-white border border-slate-200 rounded-lg shadow-md hover:shadow-lg transition-all text-slate-700 hover:text-slate-900 text-sm font-medium">
+                    <span class="iconify" data-icon="fluent-emoji:cross-mark" style="width:16px;height:16px;"></span>
+                    <span>Close</span>
+                </button>
+            </div>
+            
+            <!-- URL Input Section -->
+            <div id="docUrlInputZone" class="mb-4 p-4 bg-gradient-to-r from-slate-50 to-indigo-50 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0">
+                        <span class="iconify" data-icon="fluent-emoji:globe-showing-americas" style="width:28px;height:28px;"></span>
+                    </div>
+                    <div class="flex-1">
+                        <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/article)" 
+                               class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                               onkeypress="if(event.key==='Enter') analyzeUrl()">
+                    </div>
+                    <button onclick="analyzeUrl()" class="flex-shrink-0 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-500 hover:to-purple-500 transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                        <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:20px;height:20px;"></span>
+                        <span>Analyze</span>
+                    </button>
+                </div>
+                <div class="mt-3 ml-10 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <span class="iconify text-amber-600 flex-shrink-0" data-icon="fluent-emoji:warning" style="width:16px;height:16px;margin-top:2px;"></span>
+                    <p class="text-xs text-amber-700">
+                        <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work.
+                    </p>
+                </div>
+                <p class="text-xs text-slate-500 mt-2 ml-10">Or upload a file below</p>
+            </div>
+            
+            <div id="docUploadZone" class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer bg-slate-50">
+                <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                <div class="text-5xl mb-4"><span class="iconify" data-icon="fluent-emoji:page-facing-up" style="width:64px;height:64px;"></span></div>
+                <p class="text-slate-700 mb-2">
+                    <span class="text-indigo-600 font-semibold cursor-pointer" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
+                </p>
+                <p class="text-xs text-slate-500">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
+            </div>
+            
+            <div id="docPreviewContent" class="hidden" style="position: absolute; top: 80px; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://database-ingestion-production.up.railway.app/api';
+        console.log('📊 Doc Analyser loaded in new tab');
+        
+        // Add all your doc analyser JavaScript functions here
+        // (analyzeUrl, file upload handlers, chart generation, etc.)
+    </script>
+</body>
+</html>
