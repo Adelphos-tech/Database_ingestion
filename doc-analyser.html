@@ -26,8 +26,11 @@
         /* Dark theme for Luckysheet and preview content */
         #docPreviewContent { background: #1a1a1a !important; }
         #luckysheet { background: #1a1a1a !important; }
+        #luckysheet * { color: #10b981 !important; }
         
-        /* Override Luckysheet white backgrounds */
+        /* Override ALL Luckysheet backgrounds */
+        #luckysheet div,
+        #luckysheet canvas,
         .luckysheet-grid-container, 
         .luckysheet-cell-main,
         .luckysheet-cols-h-c,
@@ -37,29 +40,55 @@
         .luckysheet-rows-h-c,
         .luckysheet-sheet-container,
         .luckysheet-sheet-content,
-        .luckysheet-grid-window-1 { 
+        .luckysheet-grid-window-1,
+        .luckysheet-cell-flow,
+        .luckysheet-cols-h-size,
+        .luckysheet-rows-h-size { 
             background: #1a1a1a !important; 
+            background-color: #1a1a1a !important;
             color: #10b981 !important;
         }
         
-        /* Luckysheet cells */
-        .luckysheet-cell-input { 
+        /* Luckysheet cells - force dark */
+        .luckysheet-cell-input,
+        .luckysheet-cell-selected { 
             background: #0f0f0f !important; 
+            background-color: #0f0f0f !important;
             color: #10b981 !important; 
             border-color: rgba(16, 185, 129, 0.3) !important;
         }
         
-        /* Luckysheet headers */
+        /* Luckysheet headers - dark */
         .luckysheet-cols-h-cells, 
-        .luckysheet-rows-h-cells {
+        .luckysheet-rows-h-cells,
+        .luckysheet-cols-h-cell,
+        .luckysheet-rows-h-cell {
             background: #0f0f0f !important;
+            background-color: #0f0f0f !important;
             color: #10b981 !important;
             border-color: rgba(16, 185, 129, 0.2) !important;
         }
         
-        /* Luckysheet grid lines */
-        .luckysheet-cell-flow {
-            border-color: rgba(16, 185, 129, 0.15) !important;
+        /* Luckysheet bottom bar - dark */
+        .luckysheet-sheet-area,
+        .luckysheet-sheet-container-c,
+        .luckysheet-sheets-item,
+        .luckysheet-sheets-item-active,
+        .luckysheet-sheets-item-name {
+            background: #0f0f0f !important;
+            background-color: #0f0f0f !important;
+            color: #10b981 !important;
+            border-color: rgba(16, 185, 129, 0.2) !important;
+        }
+        
+        /* Luckysheet scrollbars */
+        .luckysheet-scrollbar-ltr {
+            background: #0f0f0f !important;
+        }
+        
+        /* Force canvas background */
+        canvas {
+            background: #1a1a1a !important;
         }
         
         /* PDF and iframe dark mode */
