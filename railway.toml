@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install --no-cache-dir -r backend/requirements.txt"
+buildCommand = "pip install --no-cache-dir -r backend/requirements.txt && playwright install chromium"
 
 [deploy]
 startCommand = "cd backend && python app.py"
