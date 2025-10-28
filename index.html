@@ -1350,7 +1350,6 @@
         const docUploadZone = document.getElementById('docUploadZone');
         const docPreviewHeader = document.getElementById('docPreviewHeader');
         const docPreviewContent = document.getElementById('docPreviewContent');
-        const docAnalysisResult = document.getElementById('docAnalysisResult');
         const docAnalyserQuestion = document.getElementById('docAnalyserQuestion');
         const docAnalyserSendBtn = document.getElementById('docAnalyserSendBtn');
 
@@ -1419,8 +1418,8 @@
             // Show loading in preview
             docPreviewContent.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-slate-600">Loading document...</p></div>';
             
-            // Show loading in analysis
-            docAnalysisResult.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-slate-600">Analyzing document...</p></div>';
+            // Show loading in AI summary
+            document.getElementById('aiAnalysisSummary').textContent = 'Analyzing your document... Please wait.';
 
             try {
                 if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
@@ -1436,7 +1435,7 @@
                 }
             } catch (error) {
                 docPreviewContent.innerHTML = `<div class="text-red-600 text-center py-8">Error loading file: ${error.message}</div>`;
-                docAnalysisResult.innerHTML = `<div class="text-red-600 text-center py-8">Error analyzing file: ${error.message}</div>`;
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400">⚠️ Error: ${error.message}</div>`;
             }
         }
 
@@ -1558,15 +1557,7 @@
                 }
             } catch (error) {
                 const errorMessage = formatErrorMessage(error.message);
-                docAnalysisResult.innerHTML = `<div class="bg-red-50 border-l-4 border-red-500 p-4 rounded text-sm">
-                    <div class="flex items-start gap-2">
-                        <span class="text-2xl">⚠️</span>
-                        <div>
-                            <p class="font-semibold text-red-800 mb-1">Analysis Error</p>
-                            <p class="text-red-700">${errorMessage}</p>
-                        </div>
-                    </div>
-                </div>`;
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400 text-sm">⚠️ ${errorMessage}</div>`;
             }
         }
 
@@ -1715,10 +1706,9 @@
             docAnalyserSendBtn.disabled = true;
             docAnalyserSendBtn.textContent = 'Thinking...';
 
-            // Add user question to display
-            const userMsg = `<div class="bg-indigo-100 border-l-4 border-indigo-500 p-3 rounded text-sm mb-3"><strong>You:</strong> ${question}</div>`;
-            docAnalysisResult.innerHTML += userMsg;
-            docAnalysisResult.scrollTop = docAnalysisResult.scrollHeight;
+            // Show user question in summary
+            const currentSummary = document.getElementById('aiAnalysisSummary').textContent;
+            document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-emerald-400 text-sm mb-2">You asked: "${question}"</div><div class="text-slate-400">Thinking...</div>`;
 
             docAnalyserQuestion.value = '';
 
