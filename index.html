@@ -2179,10 +2179,12 @@
             } catch (error) {
                 let errorMessage = error.message || 'Unknown error occurred';
                 let helpText = 'Please try a different URL.';
+                let showUploadButton = false;
                 
                 if (errorMessage.includes('403') || errorMessage.includes('blocked') || errorMessage.includes('Forbidden')) {
                     errorMessage = '🔒 Website Blocked Access';
-                    helpText = 'This website has anti-bot protection. Try uploading a saved copy instead, or try a news article/blog URL.';
+                    helpText = 'This website has anti-bot protection and cannot be accessed directly.';
+                    showUploadButton = true;
                 } else if (errorMessage.includes('404')) {
                     errorMessage = '❌ Page Not Found';
                     helpText = 'The URL doesn\'t exist. Please check the link and try again.';
@@ -2196,20 +2198,56 @@
                         <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
                         <div class="loader-text" style="color: #ef4444;">${errorMessage}</div>
                         <div class="loader-subtext">${helpText}</div>
+                        ${showUploadButton ? `
+                            <div style="margin-top: 1.5rem;">
+                                <div style="color: #10b981; font-size: 14px; font-weight: 600; margin-bottom: 0.5rem;">💡 Alternative Solution:</div>
+                                <div style="color: #9ca3af; font-size: 12px; margin-bottom: 1rem;">Upload content via our main chat interface for AI analysis</div>
+                                <button onclick="switchTab('chat')" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-teal-500 transition shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto">
+                                    <i data-lucide="upload" style="width:16px;height:16px;"></i>
+                                    <span>Go to Upload Tab</span>
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
+                lucide.createIcons();
+                
                 docPreviewContent.innerHTML = `
                     <div class="flex items-center justify-center h-full p-8">
-                        <div class="text-center">
+                        <div class="text-center max-w-md">
                             <div class="text-6xl mb-4">🚫</div>
-                            <p class="text-red-600 font-semibold mb-2">Failed to Load Webpage</p>
-                            <p class="text-slate-600 text-sm">${helpText}</p>
-                            <button onclick="document.getElementById('docUrlInput').focus()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500">
-                                Try Another URL
-                            </button>
+                            <p class="text-red-600 font-semibold mb-2 text-lg">Failed to Load Webpage</p>
+                            <p class="text-slate-600 text-sm mb-6">${helpText}</p>
+                            
+                            ${showUploadButton ? `
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-2xl">💡</div>
+                                        <div class="text-left">
+                                            <div class="font-semibold text-emerald-700 mb-1">Recommended Solution</div>
+                                            <div class="text-sm text-emerald-600 mb-3">
+                                                Save this webpage locally, then upload the file in our main chat tab. 
+                                                You'll get the same AI-powered analysis without restrictions!
+                                            </div>
+                                            <button onclick="switchTab('chat')" class="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-teal-500 transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                                                <i data-lucide="message-circle" style="width:18px;height:18px;"></i>
+                                                <span>Switch to Chat & Upload</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-slate-500 italic">
+                                    Or try a different URL (news articles usually work)
+                                </div>
+                            ` : `
+                                <button onclick="document.getElementById('docUrlInput').focus()" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-500 transition shadow-lg">
+                                    Try Another URL
+                                </button>
+                            `}
                         </div>
                     </div>
                 `;
+                lucide.createIcons();
             }
         }
         
