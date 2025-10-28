@@ -608,24 +608,51 @@
         
         // Tab Switching
         function switchTab(tab) {
+            console.log('switchTab called with:', tab);
+            
             // Special handling for Doc Analyser - open in fullscreen
             if (tab === 'docAnalyser') {
                 openDocAnalyserFullscreen();
                 return;
             }
 
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('[id$="Tab"]').forEach(el => {
-                el.classList.remove('tab-active');
-            });
-            
-            document.getElementById(tab + 'Content').classList.remove('hidden');
-            document.getElementById(tab + 'Tab').classList.add('tab-active');
-            
-            if (tab === 'browse') loadDocuments();
-            if (tab === 'indexes') loadIndexes();
-            if (tab === 'chat' && chatInput) {
-                setTimeout(() => chatInput.focus(), 100);
+            try {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(el => {
+                    el.classList.add('hidden');
+                    console.log('Hiding:', el.id);
+                });
+                
+                // Remove active class from all tabs
+                document.querySelectorAll('[id$="Tab"]').forEach(el => {
+                    el.classList.remove('tab-active');
+                });
+                
+                // Show selected tab content
+                const contentEl = document.getElementById(tab + 'Content');
+                if (contentEl) {
+                    contentEl.classList.remove('hidden');
+                    console.log('Showing:', contentEl.id);
+                } else {
+                    console.error('Content element not found:', tab + 'Content');
+                }
+                
+                // Activate selected tab
+                const tabEl = document.getElementById(tab + 'Tab');
+                if (tabEl) {
+                    tabEl.classList.add('tab-active');
+                } else {
+                    console.error('Tab element not found:', tab + 'Tab');
+                }
+                
+                // Tab-specific actions
+                if (tab === 'browse') loadDocuments();
+                if (tab === 'indexes') loadIndexes();
+                if (tab === 'chat' && typeof chatInput !== 'undefined' && chatInput) {
+                    setTimeout(() => chatInput.focus(), 100);
+                }
+            } catch (error) {
+                console.error('Error in switchTab:', error);
             }
         }
 
