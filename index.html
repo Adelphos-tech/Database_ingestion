@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knowledge Base Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #05010e; }
@@ -1685,47 +1689,68 @@
                 const chartId = 'trendChart';
                 chartsSection.innerHTML += `
                     <div class="chart-container">
-                        <div class="chart-title">📈 Quarterly Growth Trend</div>
-                        <canvas id="${chartId}" style="max-height: 250px;"></canvas>
+                        <div class="chart-title"><i data-lucide="trending-up" style="width:16px;height:16px;display:inline;margin-right:4px;"></i>Quarterly Growth Trend</div>
+                        <div id="${chartId}" style="width: 100%; height: 280px;"></div>
                         <div class="chart-caption">Consistent upward trend showing healthy business growth. Q4 shows strongest performance.</div>
                     </div>
                 `;
                 
                 setTimeout(() => {
-                    const ctx = document.getElementById(chartId);
-                    if (ctx && numericCols.length > 0) {
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: categoryCol.values,
-                                datasets: [{
-                                    label: numericCols[0].name,
-                                    data: numericCols[0].values,
-                                    borderColor: '#10b981',
-                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    fill: true
-                                }]
+                    const chartElement = document.getElementById(chartId);
+                    if (chartElement && numericCols.length > 0) {
+                        const chart = echarts.init(chartElement);
+                        const option = {
+                            backgroundColor: 'transparent',
+                            tooltip: {
+                                trigger: 'axis',
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                borderColor: '#10b981',
+                                textStyle: {color: '#fff'}
                             },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {legend: {display: false}},
-                                scales: {
-                                    y: {
-                                        grid: {color: 'rgba(255,255,255,0.1)'},
-                                        ticks: {color: '#9ca3af'}
-                                    },
-                                    x: {
-                                        grid: {color: 'rgba(255,255,255,0.1)'},
-                                        ticks: {color: '#9ca3af'}
+                            grid: {
+                                left: '3%',
+                                right: '4%',
+                                bottom: '3%',
+                                containLabel: true
+                            },
+                            xAxis: {
+                                type: 'category',
+                                data: categoryCol.values,
+                                axisLine: {lineStyle: {color: 'rgba(255,255,255,0.2)'}},
+                                axisLabel: {color: '#9ca3af'}
+                            },
+                            yAxis: {
+                                type: 'value',
+                                splitLine: {lineStyle: {color: 'rgba(255,255,255,0.1)'}},
+                                axisLine: {lineStyle: {color: 'rgba(255,255,255,0.2)'}},
+                                axisLabel: {color: '#9ca3af'}
+                            },
+                            series: [{
+                                name: numericCols[0].name,
+                                type: 'line',
+                                smooth: true,
+                                symbol: 'circle',
+                                symbolSize: 8,
+                                lineStyle: {color: '#10b981', width: 3},
+                                itemStyle: {color: '#10b981'},
+                                areaStyle: {
+                                    color: {
+                                        type: 'linear',
+                                        x: 0, y: 0, x2: 0, y2: 1,
+                                        colorStops: [
+                                            {offset: 0, color: 'rgba(16, 185, 129, 0.4)'},
+                                            {offset: 1, color: 'rgba(16, 185, 129, 0.05)'}
+                                        ]
                                     }
-                                }
-                            }
-                        });
+                                },
+                                data: numericCols[0].values
+                            }]
+                        };
+                        chart.setOption(option);
+                        window.addEventListener('resize', () => chart.resize());
+                        lucide.createIcons();
                     }
-                }, 100);
+                }, 150);
             }
         }
         
@@ -1735,65 +1760,81 @@
             const values = Object.values(data);
             
             const colors = [
-                'rgba(16, 185, 129, 0.8)',   // Emerald
-                'rgba(99, 102, 241, 0.8)',   // Indigo
-                'rgba(236, 72, 153, 0.8)',   // Pink
-                'rgba(251, 191, 36, 0.8)',   // Amber
-                'rgba(139, 92, 246, 0.8)',   // Purple
-                'rgba(239, 68, 68, 0.8)',    // Red
-                'rgba(34, 197, 94, 0.8)',    // Green
-                'rgba(59, 130, 246, 0.8)'    // Blue
+                '#10b981', '#6366f1', '#ec4899', '#fbbf24', 
+                '#8b5cf6', '#ef4444', '#22c55e', '#3b82f6'
             ];
             
             chartsSection.innerHTML += `
                 <div class="chart-container">
-                    <div class="chart-title">🥧 ${title}</div>
-                    <canvas id="${chartId}" style="max-height: 280px;"></canvas>
+                    <div class="chart-title"><i data-lucide="pie-chart" style="width:16px;height:16px;display:inline;margin-right:4px;"></i>${title}</div>
+                    <div id="${chartId}" style="width: 100%; height: 320px;"></div>
                     <div class="chart-caption">${caption}</div>
                 </div>
             `;
             
             setTimeout(() => {
-                const ctx = document.getElementById(chartId);
-                if (ctx) {
-                    new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: values,
-                                backgroundColor: colors.slice(0, labels.length),
+                const chartElement = document.getElementById(chartId);
+                if (chartElement) {
+                    const chart = echarts.init(chartElement);
+                    const total = values.reduce((a, b) => a + b, 0);
+                    const pieData = labels.map((label, index) => ({
+                        name: label,
+                        value: values[index]
+                    }));
+                    
+                    const option = {
+                        backgroundColor: 'transparent',
+                        tooltip: {
+                            trigger: 'item',
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            borderColor: '#10b981',
+                            textStyle: {color: '#fff'},
+                            formatter: '{b}: {c} ({d}%)'
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            right: 10,
+                            top: 'center',
+                            textStyle: {color: '#9ca3af', fontSize: 11},
+                            itemWidth: 12,
+                            itemHeight: 12
+                        },
+                        series: [{
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 8,
                                 borderColor: 'rgba(255,255,255,0.2)',
                                 borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'right',
-                                    labels: {
-                                        color: '#9ca3af',
-                                        padding: 12,
-                                        font: {size: 11}
-                                    }
+                            },
+                            label: {
+                                show: false,
+                                position: 'center'
+                            },
+                            emphasis: {
+                                label: {
+                                    show: true,
+                                    fontSize: 16,
+                                    fontWeight: 'bold',
+                                    color: '#fff',
+                                    formatter: '{b}\n{d}%'
                                 },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                            return ` ${context.label}: ${context.parsed.toFixed(2)} (${percentage}%)`;
-                                        }
-                                    }
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
                                 }
-                            }
-                        }
-                    });
+                            },
+                            data: pieData,
+                            color: colors
+                        }]
+                    };
+                    chart.setOption(option);
+                    window.addEventListener('resize', () => chart.resize());
+                    lucide.createIcons();
                 }
-            }, 150);
+            }, 200);
         }
         
         function clearCharts() {
@@ -1886,6 +1927,22 @@
             docConversationHistory = [];
             docAnalyserQuestion.value = '';
         }
+        
+        // Initialize Lucide Icons and AOS on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide Icons
+            lucide.createIcons();
+            
+            // Initialize AOS (Animate On Scroll)
+            AOS.init({
+                duration: 800,
+                easing: 'ease-out',
+                once: true,
+                offset: 100
+            });
+            
+            console.log('✨ UI Libraries loaded: Lucide Icons, Apache ECharts, DaisyUI, AOS');
+        });
     </script>
 </body>
 </html>
