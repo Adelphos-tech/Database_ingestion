@@ -27,8 +27,8 @@
             0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
             40% { transform: translateY(-6px); opacity: 1; }
         }
-        .doc-analyser-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: linear-gradient(135deg, #0a0118 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #1a0b2e 100%); animation: gradientShift 15s ease infinite; overflow: hidden; }
-        @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .doc-analyser-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: linear-gradient(135deg, #0a0118 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #1a0b2e 100%); background-size: 400% 400%; animation: gradientShift 15s ease infinite; overflow: hidden; }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .doc-analyser-fullscreen::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.35), transparent 50%), radial-gradient(circle at 40% 60%, rgba(16,185,129,0.3), transparent 50%); animation: rotate 30s linear infinite; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .doc-analyser-container { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; padding: 2rem; max-width: 100%; margin: 0 auto; }
@@ -355,73 +355,6 @@
             <!-- Doc Analyser Tab -->
             <div id="docAnalyserContent" class="tab-content hidden"></div>
 
-            <!-- Doc Analyser Fullscreen Mode -->
-            <div id="docAnalyserFullscreen" class="doc-analyser-fullscreen hidden">
-                <div class="doc-analyser-container">
-                    <div class="doc-analyser-header">
-                        <div>
-                            <h1 class="doc-analyser-title">📊 Document Analyser</h1>
-                            <p class="text-slate-300 mt-2 text-sm">AI-powered analysis for Excel, PDF, DOCX, and TXT files</p>
-                        </div>
-                        <button onclick="closeDocAnalyser()" class="doc-close-btn">
-                            ✕ Close
-                        </button>
-                    </div>
-
-                    <div class="doc-split-container">
-                    <!-- Left Panel: Document Preview (70%) -->
-                    <div class="doc-preview-panel">
-                        <div id="docUploadZone" class="border-2 border-dashed border-indigo-200 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer">
-                            <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
-                            <div class="text-5xl mb-4">📄</div>
-                            <p class="text-slate-700 mb-2">
-                                <span class="text-indigo-600 font-semibold cursor-pointer" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
-                            </p>
-                            <p class="text-sm text-slate-500">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
-                        </div>
-                        
-                        <div id="docPreviewHeader" class="hidden mt-4 flex items-center justify-between pb-3 border-b border-slate-200">
-                            <div>
-                                <h3 class="font-semibold text-slate-900" id="docFileName"></h3>
-                                <p class="text-xs text-slate-500" id="docFileInfo"></p>
-                            </div>
-                            <button onclick="clearDocAnalysis()" class="text-red-500 hover:text-red-700 text-sm font-medium">
-                                🗑️ Clear
-                            </button>
-                        </div>
-                        
-                        <div id="docPreviewContent" class="hidden mt-4 max-h-[500px] overflow-auto"></div>
-                    </div>
-
-                    <!-- Right Panel: AI Chat (30%) -->
-                    <div class="doc-chat-panel">
-                        <div class="mb-3">
-                            <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2">AI Data Analyst</h3>
-                            <div class="model-badge">
-                                <span class="model-icon">⚡</span>
-                                <span class="model-name" id="docAnalyserModelName">Gemini 2.0 Flash</span>
-                                <span class="model-status" title="Active"></span>
-                            </div>
-                        </div>
-
-                        <div id="docAnalysisResult" class="flex-1 overflow-y-auto mb-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
-                            <div class="text-center text-slate-400 text-sm py-8">
-                                <div class="text-3xl mb-2">🤖</div>
-                                <p>Upload a document to start analysis</p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 resize-none text-sm text-slate-800" placeholder="Ask questions about the document..."></textarea>
-                            <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50">
-                                Send Question ↗
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                </div>
-            </div>
-
             <!-- Chat Tab -->
             <div id="chatContent" class="tab-content hidden">
                 <div class="max-w-3xl mx-auto">
@@ -518,6 +451,73 @@
                 <span>Audit-ready · SOC2-aligned · GDPR safe</span>
             </div>
         </footer>
+    </div>
+
+    <!-- Doc Analyser Fullscreen Mode -->
+    <div id="docAnalyserFullscreen" class="doc-analyser-fullscreen hidden">
+        <div class="doc-analyser-container">
+            <div class="doc-analyser-header">
+                <div>
+                    <h1 class="doc-analyser-title">📊 Document Analyser</h1>
+                    <p class="text-slate-300 mt-2 text-sm">AI-powered analysis for Excel, PDF, DOCX, and TXT files</p>
+                </div>
+                <button onclick="closeDocAnalyser()" class="doc-close-btn">
+                    ✕ Close
+                </button>
+            </div>
+
+            <div class="doc-split-container">
+                <!-- Left Panel: Document Preview (70%) -->
+                <div class="doc-preview-panel">
+                    <div id="docUploadZone" class="border-2 border-dashed border-indigo-200 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer">
+                        <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                        <div class="text-5xl mb-4">📄</div>
+                        <p class="text-slate-700 mb-2">
+                            <span class="text-indigo-600 font-semibold cursor-pointer" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
+                        </p>
+                        <p class="text-sm text-slate-500">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
+                    </div>
+                    
+                    <div id="docPreviewHeader" class="hidden mt-4 flex items-center justify-between pb-3 border-b border-slate-200">
+                        <div>
+                            <h3 class="font-semibold text-slate-900" id="docFileName"></h3>
+                            <p class="text-xs text-slate-500" id="docFileInfo"></p>
+                        </div>
+                        <button onclick="clearDocAnalysis()" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                    
+                    <div id="docPreviewContent" class="hidden mt-4 max-h-[500px] overflow-auto"></div>
+                </div>
+
+                <!-- Right Panel: AI Chat (30%) -->
+                <div class="doc-chat-panel">
+                    <div class="mb-3">
+                        <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2">AI Data Analyst</h3>
+                        <div class="model-badge">
+                            <span class="model-icon">⚡</span>
+                            <span class="model-name" id="docAnalyserModelName">Gemini 2.0 Flash</span>
+                            <span class="model-status" title="Active"></span>
+                        </div>
+                    </div>
+
+                    <div id="docAnalysisResult" class="flex-1 overflow-y-auto mb-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                        <div class="text-center text-slate-400 text-sm py-8">
+                            <div class="text-3xl mb-2">🤖</div>
+                            <p>Upload a document to start analysis</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 resize-none text-sm text-slate-800" placeholder="Ask questions about the document..."></textarea>
+                        <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50">
+                            Send Question ↗
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
