@@ -11,6 +11,11 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #05010e; }
@@ -42,10 +47,10 @@
         .doc-analyser-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
         .doc-close-btn { background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.18); color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; font-weight: 600; transition: all 0.3s; cursor: pointer; }
         .doc-close-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
-        .doc-split-container { display: grid; grid-template-columns: 30% 70%; gap: 0; height: calc(100vh - 200px); animation: fadeInScale 0.8s ease-out; }
+        .doc-split-container { display: grid; grid-template-columns: 30% 70%; gap: 0; height: calc(100vh - 120px); animation: fadeInScale 0.8s ease-out; }
         @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #1a1a1a; border-right: 1px solid rgba(255,255,255,0.1); padding: 2rem 1.5rem; overflow-y: auto; max-height: calc(100vh - 200px); }
-        .doc-data-preview-panel { display: flex; flex-direction: column; background: #ffffff; padding: 2rem; overflow-y: auto; border-radius: 0 1.5rem 1.5rem 0; }
+        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #1a1a1a; border-right: 1px solid rgba(255,255,255,0.1); padding: 2rem 1.5rem; overflow-y: auto; max-height: calc(100vh - 120px); }
+        .doc-data-preview-panel { position: relative; display: flex; flex-direction: column; background: #ffffff; padding: 0; overflow: hidden; border-radius: 0 1.5rem 1.5rem 0; }
         .doc-preview-panel { overflow: auto; background: #ffffff; padding: 2rem; }
         .ai-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: rgba(16, 185, 129, 0.15); border-radius: 20px; color: #10b981; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; }
         .ai-analysis-summary { color: #e8e8e8; font-size: 15px; line-height: 1.6; margin-bottom: 2rem; }
@@ -533,7 +538,7 @@
                         </button>
                     </div>
                     
-                    <div id="docPreviewContent" class="hidden mt-4 overflow-auto"></div>
+                    <div id="docPreviewContent" class="hidden" style="position: absolute; top: 80px; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
                 </div>
             </div>
         </div>
@@ -1453,31 +1458,56 @@
                     const worksheet = workbook.Sheets[firstSheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    // Display as HTML table
-                    let tableHTML = '<div class="overflow-auto"><table class="excel-table"><thead><tr>';
-                    
                     if (jsonData.length > 0) {
-                        // Headers
-                        jsonData[0].forEach(header => {
-                            tableHTML += `<th>${header || ''}</th>`;
-                        });
-                        tableHTML += '</tr></thead><tbody>';
-
-                        // Data rows
-                        for (let i = 1; i < Math.min(jsonData.length, 101); i++) {
-                            tableHTML += '<tr>';
-                            jsonData[i].forEach(cell => {
-                                tableHTML += `<td>${cell !== undefined ? cell : ''}</td>`;
+                        // Create Luckysheet container
+                        docPreviewContent.innerHTML = '<div id="luckysheet" style="width:100%; height:100%; position:absolute; top:0; left:0; right:0; bottom:0;"></div>';
+                        
+                        // Transform data to Luckysheet format
+                        const celldata = [];
+                        jsonData.forEach((row, rowIndex) => {
+                            row.forEach((cell, colIndex) => {
+                                if (cell !== undefined && cell !== null && cell !== '') {
+                                    celldata.push({
+                                        r: rowIndex,
+                                        c: colIndex,
+                                        v: {
+                                            v: cell,
+                                            m: String(cell),
+                                            ct: { fa: 'General', t: 'g' }
+                                        }
+                                    });
+                                }
                             });
-                            tableHTML += '</tr>';
-                        }
-                        tableHTML += '</tbody></table></div>';
+                        });
 
-                        if (jsonData.length > 101) {
-                            tableHTML += `<p class="text-xs text-slate-500 mt-3 text-center">Showing first 100 rows of ${jsonData.length - 1} total rows</p>`;
-                        }
-
-                        docPreviewContent.innerHTML = tableHTML;
+                        // Initialize Luckysheet
+                        setTimeout(() => {
+                            luckysheet.create({
+                                container: 'luckysheet',
+                                showinfobar: false,
+                                showsheetbar: false,
+                                showstatisticBar: false,
+                                enableAddRow: false,
+                                enableAddCol: false,
+                                userInfo: false,
+                                myFolderUrl: false,
+                                allowEdit: false,
+                                showToolbar: true,
+                                showsheetbarConfig: {
+                                    add: false,
+                                    menu: false,
+                                    sheet: true
+                                },
+                                data: [{
+                                    name: firstSheetName,
+                                    celldata: celldata,
+                                    row: jsonData.length,
+                                    column: Math.max(...jsonData.map(row => row.length))
+                                }],
+                                title: file.name,
+                                lang: 'en'
+                            });
+                        }, 100);
 
                         // Store data for analysis
                         currentDocData = {
@@ -1986,6 +2016,15 @@
         }
 
         function clearDocAnalysis() {
+            // Destroy Luckysheet if it exists
+            if (window.luckysheet && luckysheet.destroy) {
+                try {
+                    luckysheet.destroy();
+                } catch (e) {
+                    console.log('Luckysheet destroy error:', e);
+                }
+            }
+            
             docAnalyserFileInput.value = '';
             docUploadZone.classList.remove('hidden');
             docPreviewHeader.classList.add('hidden');
