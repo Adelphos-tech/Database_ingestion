@@ -1570,11 +1570,20 @@
             const lines = analysis.split('\n');
             let summary = '';
             let insights = [];
+            let chartSuggestions = [];
             let inInsights = false;
+            let inCharts = false;
             
             for (let line of lines) {
                 line = line.trim();
                 if (!line) continue;
+                
+                // Check for chart suggestions section
+                if (line.match(/suggested charts/i) || line.match(/chart.*suggestions/i)) {
+                    inCharts = true;
+                    inInsights = false;
+                    continue;
+                }
                 
                 // Check if we're in insights section
                 if (line.match(/key insights|insights|observations|findings/i) && line.includes(':')) {
@@ -1582,10 +1591,14 @@
                     continue;
                 }
                 
+                // Extract chart suggestions
+                if (inCharts && (line.includes('Chart') || line.includes('Plot'))) {
+                    chartSuggestions.push(line);
+                }
                 // Extract bullet points as insights
-                if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*') || line.match(/^\d+\./)) {
+                else if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*') || line.match(/^\d+\./)) {
                     insights.push(line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''));
-                } else if (!inInsights && insights.length === 0) {
+                } else if (!inInsights && !inCharts && insights.length === 0) {
                     summary += line + ' ';
                 }
             }
@@ -1604,22 +1617,58 @@
                 }).join('');
             }
             
-            // Generate charts only if AI suggests visualization or mentions trends/growth
-            const needsVisualization = analysis.toLowerCase().includes('trend') || 
-                                      analysis.toLowerCase().includes('growth') ||
-                                      analysis.toLowerCase().includes('chart') ||
-                                      analysis.toLowerCase().includes('visualiz') ||
-                                      analysis.toLowerCase().includes('graph') ||
-                                      analysis.toLowerCase().includes('pie') ||
-                                      analysis.toLowerCase().includes('distribution') ||
-                                      analysis.toLowerCase().includes('breakdown');
-            
-            if (needsVisualization && dataSummary && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
-                generateCharts(currentDocData.data, dataSummary);
+            // Show chart suggestions as buttons
+            if (chartSuggestions.length > 0 && dataSummary && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
+                const chartsSection = document.getElementById('aiChartsSection');
+                chartsSection.classList.remove('hidden');
+                chartsSection.innerHTML = `
+                    <div style="margin-top: 2rem;">
+                        <div class="insights-title">
+                            <span><i data-lucide="bar-chart-3" style="width:16px;height:16px;display:inline;"></i></span>
+                            <span>Recommended Visualizations</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                            ${chartSuggestions.map((suggestion, index) => {
+                                const chartType = suggestion.match(/(Pie|Line|Bar|Scatter)\s+Chart/i)?.[0] || 'Chart';
+                                return `
+                                    <button onclick="generateSpecificChart('${chartType.toLowerCase()}')" 
+                                            class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+                                        <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+                                        <span>Generate ${chartType}</span>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div style="color: #6b7280; font-size: 11px; margin-top: 1rem; font-style: italic;">
+                            Click a button to create the visualization
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
             }
         }
         
-        function generateCharts(data, summary) {
+        function generateSpecificChart(chartType) {
+            if (!currentDocData || !currentDocData.data) {
+                alert('No data available for chart generation');
+                return;
+            }
+            
+            const chartsSection = document.getElementById('aiChartsSection');
+            chartsSection.innerHTML = '<div style="color:#10b981;margin:1rem 0;">Generating chart...</div>';
+            
+            setTimeout(() => {
+                if (chartType.includes('pie')) {
+                    generateCharts(currentDocData.data, {}, 'pie');
+                } else if (chartType.includes('line')) {
+                    generateCharts(currentDocData.data, {}, 'line');
+                } else if (chartType.includes('bar')) {
+                    generateCharts(currentDocData.data, {}, 'bar');
+                }
+            }, 300);
+        }
+        
+        function generateCharts(data, summary, forceType = null) {
             const chartsSection = document.getElementById('aiChartsSection');
             chartsSection.classList.remove('hidden');
             chartsSection.innerHTML = '';
@@ -1659,7 +1708,7 @@
             const categoryColIndex = headers.findIndex(h => h && (h.toLowerCase().includes('category') || h.toLowerCase().includes('product')));
             
             // Generate PIE CHART for Regional Distribution
-            if (regionColIndex >= 0 && numericCols.length > 0) {
+            if ((forceType === 'pie' || !forceType) && regionColIndex >= 0 && numericCols.length > 0) {
                 const regionData = {};
                 rows.forEach(row => {
                     const region = row[regionColIndex];
@@ -1672,7 +1721,7 @@
             }
             
             // Generate PIE CHART for Category Distribution
-            if (categoryColIndex >= 0 && numericCols.length > 0 && categoryColIndex !== regionColIndex) {
+            if ((forceType === 'pie' || !forceType) && categoryColIndex >= 0 && numericCols.length > 0 && categoryColIndex !== regionColIndex) {
                 const categoryData = {};
                 rows.forEach(row => {
                     const category = row[categoryColIndex];
@@ -1685,7 +1734,7 @@
             }
             
             // Generate trend chart if we have quarters or time periods
-            if (categoryCol && (categoryCol.name.toLowerCase().includes('quarter') || categoryCol.name.toLowerCase().includes('q'))) {
+            if ((forceType === 'line' || !forceType) && categoryCol && (categoryCol.name.toLowerCase().includes('quarter') || categoryCol.name.toLowerCase().includes('q'))) {
                 const chartId = 'trendChart';
                 chartsSection.innerHTML += `
                     <div class="chart-container">
@@ -1756,12 +1805,25 @@
         
         function createPieChart(chartId, title, data, caption) {
             const chartsSection = document.getElementById('aiChartsSection');
-            const labels = Object.keys(data);
-            const values = Object.values(data);
+            
+            // Sort by value and take top 5, aggregate rest as "Others"
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            const top5 = sorted.slice(0, 5);
+            const others = sorted.slice(5);
+            
+            let labels = top5.map(([key]) => key);
+            let values = top5.map(([, val]) => val);
+            
+            // Add "Others" if there are more categories
+            if (others.length > 0) {
+                const othersSum = others.reduce((sum, [, val]) => sum + val, 0);
+                labels.push('Others');
+                values.push(othersSum);
+            }
             
             const colors = [
                 '#10b981', '#6366f1', '#ec4899', '#fbbf24', 
-                '#8b5cf6', '#ef4444', '#22c55e', '#3b82f6'
+                '#8b5cf6', '#94a3b8'
             ];
             
             chartsSection.innerHTML += `
@@ -1786,45 +1848,52 @@
                         backgroundColor: 'transparent',
                         tooltip: {
                             trigger: 'item',
-                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            backgroundColor: 'rgba(0,0,0,0.9)',
                             borderColor: '#10b981',
-                            textStyle: {color: '#fff'},
+                            borderWidth: 1,
+                            textStyle: {color: '#fff', fontSize: 12},
                             formatter: '{b}: {c} ({d}%)'
                         },
                         legend: {
                             orient: 'vertical',
-                            right: 10,
+                            right: '5%',
                             top: 'center',
-                            textStyle: {color: '#9ca3af', fontSize: 11},
-                            itemWidth: 12,
-                            itemHeight: 12
+                            textStyle: {color: '#9ca3af', fontSize: 12},
+                            itemWidth: 14,
+                            itemHeight: 14,
+                            itemGap: 12,
+                            formatter: function(name) {
+                                return name.length > 15 ? name.substring(0, 12) + '...' : name;
+                            }
                         },
                         series: [{
                             type: 'pie',
-                            radius: ['40%', '70%'],
-                            avoidLabelOverlap: false,
+                            radius: ['50%', '75%'],
+                            center: ['35%', '50%'],
+                            avoidLabelOverlap: true,
                             itemStyle: {
-                                borderRadius: 8,
-                                borderColor: 'rgba(255,255,255,0.2)',
-                                borderWidth: 2
+                                borderRadius: 10,
+                                borderColor: 'rgba(26,26,26,0.8)',
+                                borderWidth: 3
                             },
                             label: {
-                                show: false,
-                                position: 'center'
+                                show: false
                             },
                             emphasis: {
                                 label: {
                                     show: true,
-                                    fontSize: 16,
+                                    fontSize: 18,
                                     fontWeight: 'bold',
                                     color: '#fff',
-                                    formatter: '{b}\n{d}%'
+                                    formatter: '{d}%'
                                 },
                                 itemStyle: {
-                                    shadowBlur: 10,
+                                    shadowBlur: 15,
                                     shadowOffsetX: 0,
-                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
-                                }
+                                    shadowColor: 'rgba(0, 0, 0, 0.7)'
+                                },
+                                scale: true,
+                                scaleSize: 10
                             },
                             data: pieData,
                             color: colors

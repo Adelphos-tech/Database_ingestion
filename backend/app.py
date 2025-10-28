@@ -2016,26 +2016,25 @@ Sample data (first 5 rows):
             
             prompt += """
 
-IMPORTANT: Keep your analysis CONCISE and USER-FRIENDLY.
+CRITICAL: BE EXTREMELY BRIEF. Maximum 50 words total.
 
-Provide ONLY:
-1. One sentence describing what this data represents
-2. Top 2-3 KEY INSIGHTS ONLY (use bullet points with numbers/percentages)
+Format (EXACTLY):
+"This is [type] data with [X] rows.
 
-DO NOT include:
-- Long paragraphs or detailed explanations
-- Statistical terminology
-- Multiple sections or comprehensive analysis
-- More than 3 insights
+• [One key finding with number]
+• [Second key finding with number]
+• [Third key finding with number]
 
-Format:
-"I've analyzed your [type] data. Here's what I found:
+SUGGESTED CHARTS:
+[Chart Type 1]: [Why - 5 words max]
+[Chart Type 2]: [Why - 5 words max]"
 
-• [Key insight 1 with specific number/percentage]
-• [Key insight 2 with specific number/percentage]  
-• [Key insight 3 with specific number/percentage]"
-
-Keep it short - users can ask follow-up questions for more details."""
+RULES:
+- NO paragraphs, NO explanations, NO calculations
+- Just 3 bullet points (each max 8 words)
+- Then suggest 1-2 appropriate chart types
+- Chart types: Pie Chart, Line Chart, Bar Chart, or Scatter Plot
+- Briefly explain why each chart fits"""
             
             # Generate analysis
             chat_model = initialize_chat_model()
