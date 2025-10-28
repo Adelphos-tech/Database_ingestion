@@ -2177,9 +2177,39 @@
                     throw new Error(data.error || 'Failed to analyze URL');
                 }
             } catch (error) {
-                const errorMessage = formatErrorMessage(error.message);
-                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400 text-sm">⚠️ Error: ${errorMessage}</div>`;
-                docPreviewContent.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-red-600">Failed to load webpage. Please check the URL and try again.</p></div>`;
+                let errorMessage = error.message || 'Unknown error occurred';
+                let helpText = 'Please try a different URL.';
+                
+                if (errorMessage.includes('403') || errorMessage.includes('blocked') || errorMessage.includes('Forbidden')) {
+                    errorMessage = '🔒 Website Blocked Access';
+                    helpText = 'This website has anti-bot protection. Try uploading a saved copy instead, or try a news article/blog URL.';
+                } else if (errorMessage.includes('404')) {
+                    errorMessage = '❌ Page Not Found';
+                    helpText = 'The URL doesn\'t exist. Please check the link and try again.';
+                } else if (errorMessage.includes('timeout')) {
+                    errorMessage = '⏱️ Request Timeout';
+                    helpText = 'The website took too long to respond. Try again later.';
+                }
+                
+                document.getElementById('aiAnalysisSummary').innerHTML = `
+                    <div class="premium-loader-container" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); border-color: rgba(239, 68, 68, 0.3);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <div class="loader-text" style="color: #ef4444;">${errorMessage}</div>
+                        <div class="loader-subtext">${helpText}</div>
+                    </div>
+                `;
+                docPreviewContent.innerHTML = `
+                    <div class="flex items-center justify-center h-full p-8">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">🚫</div>
+                            <p class="text-red-600 font-semibold mb-2">Failed to Load Webpage</p>
+                            <p class="text-slate-600 text-sm">${helpText}</p>
+                            <button onclick="document.getElementById('docUrlInput').focus()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500">
+                                Try Another URL
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
         }
         

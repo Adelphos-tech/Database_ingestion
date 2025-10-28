@@ -1931,21 +1931,51 @@ def analyse_document():
                 return jsonify({'error': 'URL is required'}), 400
             
             try:
-                import requests
                 from bs4 import BeautifulSoup
                 
-                headers_req = {'User-Agent': 'Mozilla/5.0'}
-                response = requests.get(url, headers=headers_req, timeout=10)
-                response.raise_for_status()
+                # Try cloudscraper first (bypasses Cloudflare and bot protection)
+                try:
+                    import cloudscraper
+                    scraper = cloudscraper.create_scraper(
+                        browser={
+                            'browser': 'chrome',
+                            'platform': 'windows',
+                            'mobile': False
+                        }
+                    )
+                    response = scraper.get(url, timeout=15)
+                    response.raise_for_status()
+                except:
+                    # Fallback to requests with comprehensive headers
+                    import requests
+                    headers_req = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1'
+                    }
+                    response = requests.get(url, headers=headers_req, timeout=15, allow_redirects=True)
+                    response.raise_for_status()
                 
+                # Parse HTML
                 soup = BeautifulSoup(response.content, 'html.parser')
-                for script in soup(["script", "style"]):
-                    script.decompose()
                 
+                # Remove unwanted elements
+                for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+                    element.decompose()
+                
+                # Extract text
                 text = soup.get_text()
                 lines = (line.strip() for line in text.splitlines())
                 chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                 text_content = ' '.join(chunk for chunk in chunks if chunk)[:5000]
+                
+                # Check if we got meaningful content
+                if len(text_content.strip()) < 100:
+                    return jsonify({'error': 'Unable to extract content from this webpage. It may be protected or require JavaScript.'}), 400
                 
                 prompt = f"""Analyze this webpage from {url}:
 
@@ -1963,7 +1993,15 @@ CRITICAL: Maximum 50 words.
                 
                 return jsonify({'success': True, 'analysis': analysis, 'text_content': text_content})
             except Exception as e:
-                return jsonify({'error': f'URL error: {str(e)}'}), 400
+                error_msg = str(e)
+                if '403' in error_msg or 'Forbidden' in error_msg:
+                    return jsonify({'error': 'This website blocks automated access. Try a different URL or use the file upload feature.'}), 403
+                elif '404' in error_msg:
+                    return jsonify({'error': 'Page not found. Please check the URL.'}), 404
+                elif 'timeout' in error_msg.lower():
+                    return jsonify({'error': 'Request timeout. The website took too long to respond.'}), 408
+                else:
+                    return jsonify({'error': f'Unable to fetch webpage: {error_msg}'}), 400
         
         # Handle follow-up questions
         question = request.form.get('question')
