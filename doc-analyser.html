@@ -110,12 +110,371 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         const API_BASE_URL = 'https://database-ingestion-production.up.railway.app/api';
         console.log('📊 Doc Analyser loaded in new tab');
         
-        // Add all your doc analyser JavaScript functions here
-        // (analyzeUrl, file upload handlers, chart generation, etc.)
+        // Doc Analyser Variables
+        let currentDocData = null;
+        let docConversationHistory = [];
+
+        // Helper function to format error messages
+        function formatErrorMessage(errorMsg) {
+            const lowerMsg = errorMsg.toLowerCase();
+            
+            if (lowerMsg.includes('quota') || lowerMsg.includes('429') || lowerMsg.includes('rate limit')) {
+                return '🚫 API quota limit reached. Please try again later.';
+            }
+            if (lowerMsg.includes('api key') || lowerMsg.includes('unauthorized') || lowerMsg.includes('401')) {
+                return '🔑 Authentication error. Please check API configuration.';
+            }
+            if (lowerMsg.includes('network') || lowerMsg.includes('fetch') || lowerMsg.includes('connection')) {
+                return '🌐 Network error. Please check your connection.';
+            }
+            if (lowerMsg.includes('timeout')) {
+                return '⏱️ Request timeout. Please try again.';
+            }
+            return errorMsg;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Initialize event listeners
+        const docAnalyserFileInput = document.getElementById('docAnalyserFileInput');
+        const docUploadZone = document.getElementById('docUploadZone');
+        const docPreviewContent = document.getElementById('docPreviewContent');
+        const docAnalyserQuestion = document.getElementById('docAnalyserQuestion');
+        const docAnalyserSendBtn = document.getElementById('docAnalyserSendBtn');
+
+        if (docAnalyserFileInput) {
+            docAnalyserFileInput.addEventListener('change', handleDocAnalyserFile);
+        }
+
+        if (docUploadZone) {
+            docUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                docUploadZone.style.borderColor = 'rgba(124, 58, 237, 0.5)';
+            });
+
+            docUploadZone.addEventListener('dragleave', () => {
+                docUploadZone.style.borderColor = 'rgba(148, 163, 184, 0.5)';
+            });
+
+            docUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                docUploadZone.style.borderColor = 'rgba(148, 163, 184, 0.5)';
+                if (docAnalyserFileInput) {
+                    docAnalyserFileInput.files = e.dataTransfer.files;
+                    handleDocAnalyserFile();
+                }
+            });
+        }
+
+        if (docAnalyserQuestion) {
+            docAnalyserQuestion.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDocAnalyserQuestion();
+                }
+            });
+        }
+
+        async function handleDocAnalyserFile() {
+            const file = docAnalyserFileInput.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileSize = formatFileSize(file.size);
+            const fileExt = fileName.split('.').pop().toLowerCase();
+
+            docUploadZone.classList.add('hidden');
+            docPreviewContent.classList.remove('hidden');
+            docPreviewContent.innerHTML = '<div style="text-align:center;padding:2rem;color:#d4d4d4;"><div style="font-size:3rem;">⏳</div><p>Loading document...</p></div>';
+            
+            document.getElementById('aiAnalysisSummary').innerHTML = '<div style="color:#10b981;"><div style="font-size:2rem;margin-bottom:1rem;">✨</div><div>Analyzing Document...</div><div style="font-size:0.85rem;color:#6b7280;margin-top:0.5rem;">AI is processing your data...</div></div>';
+
+            try {
+                if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
+                    await handleExcelFile(file);
+                } else if (fileExt === 'pdf') {
+                    await handlePDFFile(file);
+                } else if (fileExt === 'txt') {
+                    await handleTextFile(file);
+                } else if (fileExt === 'docx' || fileExt === 'doc') {
+                    await handleDocxFile(file);
+                } else {
+                    throw new Error('Unsupported file format');
+                }
+            } catch (error) {
+                docPreviewContent.innerHTML = `<div style="color:#ef4444;text-center;padding:2rem;">Error: ${error.message}</div>`;
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;">⚠️ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function handleExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length > 0) {
+                        docPreviewContent.innerHTML = '<div id="luckysheet" style="width:100%; height:100%; position:absolute; top:0; left:0;"></div>';
+                        
+                        const celldata = [];
+                        jsonData.forEach((row, rowIndex) => {
+                            row.forEach((cell, colIndex) => {
+                                if (cell !== undefined && cell !== null && cell !== '') {
+                                    celldata.push({
+                                        r: rowIndex,
+                                        c: colIndex,
+                                        v: { v: cell, m: String(cell), ct: { fa: 'General', t: 'g' } }
+                                    });
+                                }
+                            });
+                        });
+
+                        setTimeout(() => {
+                            luckysheet.create({
+                                container: 'luckysheet',
+                                showinfobar: false,
+                                showsheetbar: false,
+                                showstatisticBar: false,
+                                enableAddRow: false,
+                                enableAddCol: false,
+                                userInfo: false,
+                                myFolderUrl: false,
+                                allowEdit: false,
+                                showToolbar: true,
+                                showsheetbarConfig: { add: false, menu: false, sheet: true },
+                                data: [{
+                                    name: firstSheetName,
+                                    celldata: celldata,
+                                    row: jsonData.length,
+                                    column: Math.max(...jsonData.map(row => row.length))
+                                }],
+                                title: file.name,
+                                lang: 'en'
+                            });
+                        }, 100);
+
+                        currentDocData = {
+                            type: 'excel',
+                            data: jsonData,
+                            rows: jsonData.length - 1,
+                            columns: jsonData[0].length,
+                            headers: jsonData[0]
+                        };
+
+                        await analyzeDocument(file, 'excel', jsonData);
+                    }
+                } catch (error) {
+                    throw new Error('Failed to parse Excel file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function handlePDFFile(file) {
+            const fileURL = URL.createObjectURL(file);
+            docPreviewContent.innerHTML = `<iframe src="${fileURL}" style="width:100%;height:100%;border:0;"></iframe>`;
+            await analyzeDocument(file, 'pdf');
+        }
+
+        async function handleTextFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                docPreviewContent.innerHTML = `<pre style="white-space:pre-wrap;font-size:13px;color:#d4d4d4;background:#0f0f0f;padding:1rem;border-radius:8px;height:100%;overflow:auto;">${text}</pre>`;
+                
+                currentDocData = { type: 'text', content: text };
+                await analyzeDocument(file, 'text', text);
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleDocxFile(file) {
+            docPreviewContent.innerHTML = '<div style="color:#d4d4d4;text-center;padding:2rem;">📄 DOCX file loaded. Use AI chat to analyze.</div>';
+            await analyzeDocument(file, 'docx');
+        }
+
+        async function analyzeDocument(file, fileType, parsedData = null) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('file_type', fileType);
+            
+            if (fileType === 'excel' && parsedData) {
+                formData.append('excel_data', JSON.stringify({
+                    rows: parsedData.length - 1,
+                    columns: parsedData[0].length,
+                    headers: parsedData[0],
+                    sample_data: parsedData.slice(1, 6)
+                }));
+            } else if (fileType === 'text' && parsedData) {
+                formData.append('text_content', parsedData);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayAnalysis(data.analysis, data.data_summary);
+                    docConversationHistory = [];
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
+            }
+        }
+
+        function displayAnalysis(analysis, dataSummary = null) {
+            const lines = analysis.split('\n');
+            let summary = '';
+            let insights = [];
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*') || line.match(/^\d+\./)) {
+                    insights.push(line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''));
+                } else if (insights.length === 0) {
+                    summary += line + ' ';
+                }
+            }
+            
+            document.getElementById('aiAnalysisSummary').textContent = summary || "I've analyzed your data.";
+            
+            if (insights.length > 0) {
+                document.getElementById('aiInsightsSection').classList.remove('hidden');
+                const insightsList = document.getElementById('aiInsightsList');
+                insightsList.innerHTML = insights.map(insight => {
+                    const highlighted = insight.replace(/(\$?[\d,]+\.?\d*%?)/g, '<strong>$1</strong>');
+                    return `<div class="insight-item">${highlighted}</div>`;
+                }).join('');
+            }
+        }
+
+        async function sendDocAnalyserQuestion() {
+            const question = docAnalyserQuestion.value.trim();
+            if (!question || !currentDocData) return;
+
+            docAnalyserSendBtn.disabled = true;
+            docAnalyserSendBtn.textContent = 'Thinking...';
+
+            try {
+                const formData = new FormData();
+                formData.append('question', question);
+                formData.append('file_type', currentDocData.type);
+                formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                
+                if (currentDocData.type === 'excel') {
+                    formData.append('excel_data', JSON.stringify(currentDocData.data));
+                } else if (currentDocData.type === 'text') {
+                    formData.append('text_content', currentDocData.content);
+                }
+
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.answer) {
+                    document.getElementById('aiAnalysisSummary').innerHTML = `
+                        <div style="margin-bottom:1rem;padding:0.75rem;background:rgba(16,185,129,0.1);border-left:3px solid #10b981;border-radius:4px;">
+                            <div style="color:#10b981;font-size:11px;font-weight:600;margin-bottom:0.5rem;">YOU</div>
+                            <div style="color:#d4d4d4;font-size:13px;">${question}</div>
+                        </div>
+                        <div style="padding:0.75rem;background:rgba(99,102,241,0.1);border-left:3px solid #6366f1;border-radius:4px;">
+                            <div style="color:#6366f1;font-size:11px;font-weight:600;margin-bottom:0.5rem;">AI</div>
+                            <div style="color:#d4d4d4;font-size:13px;">${data.answer}</div>
+                        </div>
+                    `;
+                    
+                    docConversationHistory.push({ user: question, assistant: data.answer });
+                    docAnalyserQuestion.value = '';
+                } else {
+                    throw new Error(data.error || 'Failed to get answer');
+                }
+            } catch (error) {
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
+            } finally {
+                docAnalyserSendBtn.disabled = false;
+                docAnalyserSendBtn.textContent = 'Ask AI ↗';
+            }
+        }
+
+        async function analyzeUrl() {
+            const urlInput = document.getElementById('docUrlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            docUploadZone.classList.add('hidden');
+            docPreviewContent.classList.remove('hidden');
+            
+            document.getElementById('aiAnalysisSummary').innerHTML = '<div style="color:#10b981;"><div style="font-size:2rem;margin-bottom:1rem;">🌐</div><div>Fetching Web Content...</div></div>';
+            docPreviewContent.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:0;background:#fff;"></iframe>`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('url', url);
+                formData.append('file_type', 'url');
+                
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.analysis) {
+                    currentDocData = { type: 'url', url: url, content: data.text_content || '' };
+                    displayAnalysis(data.analysis, data.summary);
+                } else {
+                    throw new Error(data.error || 'Failed to analyze URL');
+                }
+            } catch (error) {
+                let errorMessage = error.message || 'Unknown error occurred';
+                if (errorMessage.includes('403') || errorMessage.includes('blocked')) {
+                    errorMessage = '🔒 Website blocked access';
+                } else if (errorMessage.includes('404')) {
+                    errorMessage = '❌ Page not found';
+                }
+                
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
+            }
+        }
+
+        console.log('✅ Doc Analyser fully loaded with all functions');
     </script>
 </body>
 </html>
