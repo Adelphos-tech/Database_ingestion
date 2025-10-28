@@ -1908,6 +1908,244 @@ def delete_index(index_name):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/analyse-document', methods=['POST'])
+def analyse_document():
+    """Analyze documents (Excel, PDF, DOCX, TXT) with AI"""
+    try:
+        if not GEMINI_API_KEY:
+            return jsonify({'error': 'GEMINI_API_KEY is not configured on the server'}), 500
+        
+        file_type = request.form.get('file_type', '').lower()
+        question = request.form.get('question', '').strip()
+        conversation_history_json = request.form.get('conversation_history', '[]')
+        
+        try:
+            conversation_history = json.loads(conversation_history_json)
+        except:
+            conversation_history = []
+        
+        # If it's a follow-up question
+        if question:
+            if file_type == 'excel':
+                excel_data_json = request.form.get('excel_data', '[]')
+                try:
+                    excel_data = json.loads(excel_data_json)
+                except:
+                    return jsonify({'error': 'Invalid Excel data format'}), 400
+                
+                # Build context from Excel data
+                headers = excel_data[0] if len(excel_data) > 0 else []
+                sample_rows = excel_data[1:6] if len(excel_data) > 1 else []
+                
+                context = f"""You are a data analyst. You have access to an Excel spreadsheet with the following structure:
+
+Columns: {', '.join(str(h) for h in headers)}
+Total rows: {len(excel_data) - 1}
+
+Sample data (first 5 rows):
+"""
+                for i, row in enumerate(sample_rows, 1):
+                    context += f"\nRow {i}: {dict(zip(headers, row))}"
+                
+                # Add conversation history
+                if conversation_history:
+                    context += "\n\nPrevious conversation:\n"
+                    for turn in conversation_history[-3:]:
+                        context += f"User: {turn.get('user', '')}\n"
+                        context += f"Assistant: {turn.get('assistant', '')}\n"
+                
+                context += f"\n\nUser question: {question}\n\nProvide a detailed answer based on the data. If calculations are needed, perform them accurately."
+                
+            elif file_type == 'text':
+                text_content = request.form.get('text_content', '')
+                
+                context = f"""You are analyzing the following text document:
+
+{text_content[:2000]}...
+
+"""
+                if conversation_history:
+                    context += "\n\nPrevious conversation:\n"
+                    for turn in conversation_history[-3:]:
+                        context += f"User: {turn.get('user', '')}\n"
+                        context += f"Assistant: {turn.get('assistant', '')}\n"
+                
+                context += f"\n\nUser question: {question}\n\nProvide a detailed answer based on the document."
+                
+            else:
+                context = f"User question: {question}\n\nAnswer based on the uploaded document."
+            
+            # Generate answer using Gemini
+            chat_model = initialize_chat_model()
+            response = chat_model.generate_content(context)
+            answer = response.text if hasattr(response, 'text') else str(response)
+            
+            return jsonify({
+                'success': True,
+                'answer': answer
+            })
+        
+        # Initial analysis (no question provided)
+        file = request.files.get('file')
+        if not file:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        if file_type == 'excel':
+            excel_data_json = request.form.get('excel_data', '{}')
+            try:
+                excel_metadata = json.loads(excel_data_json)
+            except:
+                return jsonify({'error': 'Invalid Excel metadata'}), 400
+            
+            rows = excel_metadata.get('rows', 0)
+            columns = excel_metadata.get('columns', 0)
+            headers = excel_metadata.get('headers', [])
+            sample_data = excel_metadata.get('sample_data', [])
+            
+            # Create analysis prompt
+            prompt = f"""You are an expert data analyst. Analyze this Excel spreadsheet:
+
+Rows: {rows}
+Columns: {columns}
+Column headers: {', '.join(str(h) for h in headers)}
+
+Sample data (first 5 rows):
+"""
+            for i, row in enumerate(sample_data, 1):
+                prompt += f"\nRow {i}: {dict(zip(headers, row))}"
+            
+            prompt += """
+
+Provide a comprehensive analysis including:
+1. What this data represents
+2. Key insights and patterns you observe
+3. Data quality observations (missing values, anomalies)
+4. Statistical summary if applicable
+5. Interesting findings or recommendations
+
+Be specific and actionable."""
+            
+            # Generate analysis
+            chat_model = initialize_chat_model()
+            response = chat_model.generate_content(prompt)
+            analysis = response.text if hasattr(response, 'text') else str(response)
+            
+            # Infer column types
+            column_types = {}
+            if len(sample_data) > 0:
+                for i, header in enumerate(headers):
+                    sample_values = [row[i] for row in sample_data if i < len(row)]
+                    if all(isinstance(v, (int, float)) for v in sample_values if v):
+                        column_types[str(header)] = 'numeric'
+                    else:
+                        column_types[str(header)] = 'text'
+            
+            return jsonify({
+                'success': True,
+                'analysis': analysis,
+                'data_summary': {
+                    'rows': rows,
+                    'columns': columns,
+                    'column_types': column_types
+                }
+            })
+        
+        elif file_type == 'pdf':
+            # Extract text from PDF
+            try:
+                pdf_reader = PyPDF2.PdfReader(file)
+                text_content = ''
+                for page in pdf_reader.pages[:10]:  # First 10 pages
+                    text_content += page.extract_text()
+                
+                prompt = f"""You are a document analyst. Analyze this PDF document:
+
+{text_content[:3000]}...
+
+Provide a comprehensive analysis including:
+1. Document type and purpose
+2. Main topics and themes
+3. Key information and insights
+4. Structure and organization
+5. Important findings or takeaways
+
+Be concise but thorough."""
+                
+                chat_model = initialize_chat_model()
+                response = chat_model.generate_content(prompt)
+                analysis = response.text if hasattr(response, 'text') else str(response)
+                
+                return jsonify({
+                    'success': True,
+                    'analysis': analysis
+                })
+            except Exception as e:
+                return jsonify({'error': f'PDF parsing error: {str(e)}'}), 400
+        
+        elif file_type == 'text':
+            text_content = request.form.get('text_content', '')
+            if not text_content:
+                text_content = file.read().decode('utf-8')
+            
+            prompt = f"""You are a document analyst. Analyze this text document:
+
+{text_content[:3000]}...
+
+Provide a comprehensive analysis including:
+1. Document type and purpose
+2. Main topics and themes
+3. Key information and insights
+4. Important findings or takeaways
+
+Be concise but thorough."""
+            
+            chat_model = initialize_chat_model()
+            response = chat_model.generate_content(prompt)
+            analysis = response.text if hasattr(response, 'text') else str(response)
+            
+            return jsonify({
+                'success': True,
+                'analysis': analysis
+            })
+        
+        elif file_type == 'docx':
+            # Extract text from DOCX
+            try:
+                doc = docx.Document(file)
+                text_content = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+                
+                prompt = f"""You are a document analyst. Analyze this Word document:
+
+{text_content[:3000]}...
+
+Provide a comprehensive analysis including:
+1. Document type and purpose
+2. Main topics and themes
+3. Key information and insights
+4. Structure and organization
+5. Important findings or takeaways
+
+Be concise but thorough."""
+                
+                chat_model = initialize_chat_model()
+                response = chat_model.generate_content(prompt)
+                analysis = response.text if hasattr(response, 'text') else str(response)
+                
+                return jsonify({
+                    'success': True,
+                    'analysis': analysis
+                })
+            except Exception as e:
+                return jsonify({'error': f'DOCX parsing error: {str(e)}'}), 400
+        
+        else:
+            return jsonify({'error': 'Unsupported file type'}), 400
+    
+    except Exception as e:
+        print(f"Document analysis error: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     # Get port from environment variable (required for Render)
     port = int(os.environ.get('PORT', 5001))

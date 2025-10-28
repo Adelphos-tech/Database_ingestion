@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knowledge Base Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #05010e; }
@@ -26,6 +27,18 @@
             0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
             40% { transform: translateY(-6px); opacity: 1; }
         }
+        .doc-split-container { display: grid; grid-template-columns: 70% 30%; gap: 1.5rem; height: 600px; }
+        .doc-preview-panel { overflow: auto; background: white; border-radius: 1rem; border: 1px solid rgba(148,163,184,0.18); padding: 1.5rem; }
+        .doc-chat-panel { display: flex; flex-direction: column; background: white; border-radius: 1rem; border: 1px solid rgba(148,163,184,0.18); padding: 1rem; }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .excel-table th { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 10px; text-align: left; position: sticky; top: 0; font-weight: 600; }
+        .excel-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+        .excel-table tr:hover { background: #f8fafc; }
+        .excel-table tr:nth-child(even) { background: #fafbfc; }
+        .model-badge { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(30, 30, 30, 0.95); border-radius: 8px; font-size: 12px; color: rgba(255,255,255,0.85); border: 1px solid rgba(99,102,241,0.3); margin-bottom: 0.75rem; }
+        .model-badge .model-icon { font-size: 16px; }
+        .model-badge .model-status { width: 8px; height: 8px; border-radius: 50%; background: #10b981; margin-left: auto; }
+        @media (max-width: 1024px) { .doc-split-container { grid-template-columns: 1fr; height: auto; } }
     </style>
 </head>
 <body>
@@ -193,6 +206,9 @@
                             <button onclick="switchTab('chat')" id="chatTab" class="tab-link">
                                 💬 Assistant
                             </button>
+                            <button onclick="switchTab('docAnalyser')" id="docAnalyserTab" class="tab-link">
+                                📊 Doc Analyser
+                            </button>
                         </div>
 
                         <div class="mt-10">
@@ -319,6 +335,66 @@
                 </div>
             </div>
 
+            <!-- Doc Analyser Tab -->
+            <div id="docAnalyserContent" class="tab-content hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-2">📊 Document Analyser</h2>
+                    <p class="text-slate-500">Upload documents (Excel, PDF, DOCX, TXT) and get AI-powered analysis and insights</p>
+                </div>
+
+                <div class="doc-split-container">
+                    <!-- Left Panel: Document Preview (70%) -->
+                    <div class="doc-preview-panel">
+                        <div id="docUploadZone" class="border-2 border-dashed border-indigo-200 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer">
+                            <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                            <div class="text-5xl mb-4">📄</div>
+                            <p class="text-slate-700 mb-2">
+                                <span class="text-indigo-600 font-semibold cursor-pointer" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
+                            </p>
+                            <p class="text-sm text-slate-500">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
+                        </div>
+                        
+                        <div id="docPreviewHeader" class="hidden mt-4 flex items-center justify-between pb-3 border-b border-slate-200">
+                            <div>
+                                <h3 class="font-semibold text-slate-900" id="docFileName"></h3>
+                                <p class="text-xs text-slate-500" id="docFileInfo"></p>
+                            </div>
+                            <button onclick="clearDocAnalysis()" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                                🗑️ Clear
+                            </button>
+                        </div>
+                        
+                        <div id="docPreviewContent" class="hidden mt-4 max-h-[500px] overflow-auto"></div>
+                    </div>
+
+                    <!-- Right Panel: AI Chat (30%) -->
+                    <div class="doc-chat-panel">
+                        <div class="mb-3">
+                            <h3 class="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-2">AI Data Analyst</h3>
+                            <div class="model-badge">
+                                <span class="model-icon">⚡</span>
+                                <span class="model-name" id="docAnalyserModelName">Gemini 2.0 Flash</span>
+                                <span class="model-status" title="Active"></span>
+                            </div>
+                        </div>
+
+                        <div id="docAnalysisResult" class="flex-1 overflow-y-auto mb-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                            <div class="text-center text-slate-400 text-sm py-8">
+                                <div class="text-3xl mb-2">🤖</div>
+                                <p>Upload a document to start analysis</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 resize-none text-sm text-slate-800" placeholder="Ask questions about the document..."></textarea>
+                            <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50">
+                                Send Question ↗
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Chat Tab -->
             <div id="chatContent" class="tab-content hidden">
                 <div class="max-w-3xl mx-auto">
@@ -434,6 +510,9 @@
             if (tab === 'indexes') loadIndexes();
             if (tab === 'chat' && chatInput) {
                 setTimeout(() => chatInput.focus(), 100);
+            }
+            if (tab === 'docAnalyser') {
+                fetchModelInfo();
             }
         }
 
@@ -1119,6 +1198,318 @@
             };
             
             element.innerHTML = `<div class="border ${colors[type]} p-4 rounded-lg fade-in">${message}</div>`;
+        }
+
+        // Doc Analyser Functions
+        let currentDocData = null;
+        let docConversationHistory = [];
+
+        const docAnalyserFileInput = document.getElementById('docAnalyserFileInput');
+        const docUploadZone = document.getElementById('docUploadZone');
+        const docPreviewHeader = document.getElementById('docPreviewHeader');
+        const docPreviewContent = document.getElementById('docPreviewContent');
+        const docAnalysisResult = document.getElementById('docAnalysisResult');
+        const docAnalyserQuestion = document.getElementById('docAnalyserQuestion');
+        const docAnalyserSendBtn = document.getElementById('docAnalyserSendBtn');
+
+        if (docAnalyserFileInput) {
+            docAnalyserFileInput.addEventListener('change', handleDocAnalyserFile);
+        }
+
+        if (docUploadZone) {
+            docUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                docUploadZone.classList.add('border-indigo-400', 'bg-indigo-50');
+            });
+
+            docUploadZone.addEventListener('dragleave', () => {
+                docUploadZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+            });
+
+            docUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                docUploadZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+                if (docAnalyserFileInput) {
+                    docAnalyserFileInput.files = e.dataTransfer.files;
+                    handleDocAnalyserFile();
+                }
+            });
+        }
+
+        if (docAnalyserQuestion) {
+            docAnalyserQuestion.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDocAnalyserQuestion();
+                }
+            });
+        }
+
+        async function fetchModelInfo() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                const modelNameEl = document.getElementById('docAnalyserModelName');
+                if (modelNameEl && data.embedding_model) {
+                    // Show the model being used
+                    modelNameEl.textContent = 'Gemini 2.0 Flash';
+                }
+            } catch (error) {
+                console.error('Error fetching model info:', error);
+            }
+        }
+
+        async function handleDocAnalyserFile() {
+            const file = docAnalyserFileInput.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileSize = formatFileSize(file.size);
+            const fileExt = fileName.split('.').pop().toLowerCase();
+
+            // Update UI
+            document.getElementById('docFileName').textContent = fileName;
+            document.getElementById('docFileInfo').textContent = `${fileSize} • ${fileExt.toUpperCase()}`;
+            docPreviewHeader.classList.remove('hidden');
+            docUploadZone.classList.add('hidden');
+            docPreviewContent.classList.remove('hidden');
+
+            // Show loading in preview
+            docPreviewContent.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-slate-600">Loading document...</p></div>';
+            
+            // Show loading in analysis
+            docAnalysisResult.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-slate-600">Analyzing document...</p></div>';
+
+            try {
+                if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
+                    await handleExcelFile(file);
+                } else if (fileExt === 'pdf') {
+                    await handlePDFFile(file);
+                } else if (fileExt === 'txt') {
+                    await handleTextFile(file);
+                } else if (fileExt === 'docx' || fileExt === 'doc') {
+                    await handleDocxFile(file);
+                } else {
+                    throw new Error('Unsupported file format');
+                }
+            } catch (error) {
+                docPreviewContent.innerHTML = `<div class="text-red-600 text-center py-8">Error loading file: ${error.message}</div>`;
+                docAnalysisResult.innerHTML = `<div class="text-red-600 text-center py-8">Error analyzing file: ${error.message}</div>`;
+            }
+        }
+
+        async function handleExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    // Display as HTML table
+                    let tableHTML = '<div class="overflow-auto"><table class="excel-table"><thead><tr>';
+                    
+                    if (jsonData.length > 0) {
+                        // Headers
+                        jsonData[0].forEach(header => {
+                            tableHTML += `<th>${header || ''}</th>`;
+                        });
+                        tableHTML += '</tr></thead><tbody>';
+
+                        // Data rows
+                        for (let i = 1; i < Math.min(jsonData.length, 101); i++) {
+                            tableHTML += '<tr>';
+                            jsonData[i].forEach(cell => {
+                                tableHTML += `<td>${cell !== undefined ? cell : ''}</td>`;
+                            });
+                            tableHTML += '</tr>';
+                        }
+                        tableHTML += '</tbody></table></div>';
+
+                        if (jsonData.length > 101) {
+                            tableHTML += `<p class="text-xs text-slate-500 mt-3 text-center">Showing first 100 rows of ${jsonData.length - 1} total rows</p>`;
+                        }
+
+                        docPreviewContent.innerHTML = tableHTML;
+
+                        // Store data for analysis
+                        currentDocData = {
+                            type: 'excel',
+                            data: jsonData,
+                            rows: jsonData.length - 1,
+                            columns: jsonData[0].length,
+                            headers: jsonData[0]
+                        };
+
+                        // Send to backend for AI analysis
+                        await analyzeDocument(file, 'excel', jsonData);
+                    }
+                } catch (error) {
+                    throw new Error('Failed to parse Excel file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function handlePDFFile(file) {
+            // Display PDF using iframe
+            const fileURL = URL.createObjectURL(file);
+            docPreviewContent.innerHTML = `<iframe src="${fileURL}" class="w-full h-full min-h-[500px] border-0 rounded-lg"></iframe>`;
+            
+            // Send to backend for analysis
+            await analyzeDocument(file, 'pdf');
+        }
+
+        async function handleTextFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                docPreviewContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm text-slate-700 bg-slate-50 p-4 rounded-lg">${text}</pre>`;
+                
+                currentDocData = {
+                    type: 'text',
+                    content: text
+                };
+
+                await analyzeDocument(file, 'text', text);
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleDocxFile(file) {
+            // For DOCX, we'll send to backend and display extracted text
+            docPreviewContent.innerHTML = '<div class="text-slate-600 text-center py-8">📄 DOCX file loaded. Use AI chat to analyze the content.</div>';
+            await analyzeDocument(file, 'docx');
+        }
+
+        async function analyzeDocument(file, fileType, parsedData = null) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('file_type', fileType);
+            
+            if (fileType === 'excel' && parsedData) {
+                formData.append('excel_data', JSON.stringify({
+                    rows: parsedData.length - 1,
+                    columns: parsedData[0].length,
+                    headers: parsedData[0],
+                    sample_data: parsedData.slice(1, 6)
+                }));
+            } else if (fileType === 'text' && parsedData) {
+                formData.append('text_content', parsedData);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayAnalysis(data.analysis, data.data_summary);
+                    docConversationHistory = [];
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                docAnalysisResult.innerHTML = `<div class="text-red-600 text-sm p-3">⚠️ Analysis error: ${error.message}</div>`;
+            }
+        }
+
+        function displayAnalysis(analysis, dataSummary = null) {
+            let html = '<div class="space-y-3 text-sm">';
+            
+            if (dataSummary) {
+                html += '<div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">';
+                html += '<div class="font-semibold text-indigo-900 mb-2">📊 Data Summary</div>';
+                html += `<div class="text-xs text-indigo-700 space-y-1">`;
+                if (dataSummary.rows) html += `<div>• Rows: ${dataSummary.rows}</div>`;
+                if (dataSummary.columns) html += `<div>• Columns: ${dataSummary.columns}</div>`;
+                if (dataSummary.column_types) {
+                    html += `<div>• Types: ${Object.entries(dataSummary.column_types).map(([k,v]) => `${k}(${v})`).join(', ')}</div>`;
+                }
+                html += '</div></div>';
+            }
+
+            html += '<div class="bg-white border border-slate-200 rounded-lg p-3">';
+            html += '<div class="font-semibold text-slate-900 mb-2 flex items-center gap-2"><span>🤖</span> AI Analysis</div>';
+            html += `<div class="text-slate-700 whitespace-pre-wrap leading-relaxed">${analysis}</div>`;
+            html += '</div>';
+            
+            html += '</div>';
+            docAnalysisResult.innerHTML = html;
+        }
+
+        async function sendDocAnalyserQuestion() {
+            const question = docAnalyserQuestion.value.trim();
+            if (!question || !currentDocData) {
+                return;
+            }
+
+            // Disable button
+            docAnalyserSendBtn.disabled = true;
+            docAnalyserSendBtn.textContent = 'Thinking...';
+
+            // Add user question to display
+            const userMsg = `<div class="bg-indigo-100 border-l-4 border-indigo-500 p-3 rounded text-sm mb-3"><strong>You:</strong> ${question}</div>`;
+            docAnalysisResult.innerHTML += userMsg;
+            docAnalysisResult.scrollTop = docAnalysisResult.scrollHeight;
+
+            docAnalyserQuestion.value = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('question', question);
+                formData.append('file_type', currentDocData.type);
+                formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                
+                if (currentDocData.type === 'excel') {
+                    formData.append('excel_data', JSON.stringify(currentDocData.data));
+                } else if (currentDocData.type === 'text') {
+                    formData.append('text_content', currentDocData.content);
+                }
+
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.answer) {
+                    const aiMsg = `<div class="bg-slate-100 border-l-4 border-purple-500 p-3 rounded text-sm mb-3"><strong>AI:</strong> ${data.answer}</div>`;
+                    docAnalysisResult.innerHTML += aiMsg;
+                    
+                    docConversationHistory.push({
+                        user: question,
+                        assistant: data.answer
+                    });
+                } else {
+                    throw new Error(data.error || 'Failed to get answer');
+                }
+            } catch (error) {
+                const errorMsg = `<div class="bg-red-100 border-l-4 border-red-500 p-3 rounded text-sm mb-3"><strong>Error:</strong> ${error.message}</div>`;
+                docAnalysisResult.innerHTML += errorMsg;
+            } finally {
+                docAnalyserSendBtn.disabled = false;
+                docAnalyserSendBtn.textContent = 'Send Question ↗';
+                docAnalysisResult.scrollTop = docAnalysisResult.scrollHeight;
+            }
+        }
+
+        function clearDocAnalysis() {
+            docAnalyserFileInput.value = '';
+            docUploadZone.classList.remove('hidden');
+            docPreviewHeader.classList.add('hidden');
+            docPreviewContent.classList.add('hidden');
+            docPreviewContent.innerHTML = '';
+            docAnalysisResult.innerHTML = '<div class="text-center text-slate-400 text-sm py-8"><div class="text-3xl mb-2">🤖</div><p>Upload a document to start analysis</p></div>';
+            currentDocData = null;
+            docConversationHistory = [];
+            docAnalyserQuestion.value = '';
         }
     </script>
 </body>
