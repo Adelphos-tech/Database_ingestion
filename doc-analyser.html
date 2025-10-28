@@ -23,85 +23,32 @@
         .insight-item { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; color: #10b981; font-size: 12px; line-height: 1.5; }
         .hidden { display: none !important; }
         
-        /* Dark theme for Luckysheet and preview content */
-        #docPreviewContent { background: #1a1a1a !important; }
-        #luckysheet { background: #1a1a1a !important; }
-        #luckysheet * { color: #10b981 !important; }
-        
-        /* Override ALL Luckysheet backgrounds */
-        #luckysheet div,
-        #luckysheet canvas,
-        .luckysheet-grid-container, 
-        .luckysheet-cell-main,
-        .luckysheet-cols-h-c,
-        .luckysheet-rows-h,
-        .luckysheet-cell,
-        .luckysheet-cols-h,
-        .luckysheet-rows-h-c,
-        .luckysheet-sheet-container,
-        .luckysheet-sheet-content,
-        .luckysheet-grid-window-1,
-        .luckysheet-cell-flow,
-        .luckysheet-cols-h-size,
-        .luckysheet-rows-h-size { 
-            background: #1a1a1a !important; 
-            background-color: #1a1a1a !important;
-            color: #10b981 !important;
+        /* Preview content - keep container dark but let content display normally */
+        #docPreviewContent { 
+            background: #1a1a1a;
+            padding: 1rem;
         }
         
-        /* Luckysheet cells - force dark */
-        .luckysheet-cell-input,
-        .luckysheet-cell-selected { 
-            background: #0f0f0f !important; 
-            background-color: #0f0f0f !important;
-            color: #10b981 !important; 
-            border-color: rgba(16, 185, 129, 0.3) !important;
+        /* Let Luckysheet display with its default light theme for readability */
+        #luckysheet { 
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
         }
         
-        /* Luckysheet headers - dark */
-        .luckysheet-cols-h-cells, 
-        .luckysheet-rows-h-cells,
-        .luckysheet-cols-h-cell,
-        .luckysheet-rows-h-cell {
-            background: #0f0f0f !important;
-            background-color: #0f0f0f !important;
-            color: #10b981 !important;
-            border-color: rgba(16, 185, 129, 0.2) !important;
-        }
-        
-        /* Luckysheet bottom bar - dark */
-        .luckysheet-sheet-area,
-        .luckysheet-sheet-container-c,
-        .luckysheet-sheets-item,
-        .luckysheet-sheets-item-active,
-        .luckysheet-sheets-item-name {
-            background: #0f0f0f !important;
-            background-color: #0f0f0f !important;
-            color: #10b981 !important;
-            border-color: rgba(16, 185, 129, 0.2) !important;
-        }
-        
-        /* Luckysheet scrollbars */
-        .luckysheet-scrollbar-ltr {
-            background: #0f0f0f !important;
-        }
-        
-        /* Force canvas background */
-        canvas {
-            background: #1a1a1a !important;
-        }
-        
-        /* PDF and iframe dark mode */
+        /* PDF and iframe - display normally */
         iframe {
-            filter: invert(0.9) hue-rotate(180deg);
-            background: #1a1a1a !important;
+            background: white;
+            border-radius: 8px;
         }
         
         /* Text preview dark mode */
         pre {
-            background: #0f0f0f !important;
-            color: #10b981 !important;
+            background: #0f0f0f;
+            color: #10b981;
             border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
         }
     </style>
 </head>
