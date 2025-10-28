@@ -1916,7 +1916,7 @@ def analyse_document():
             return jsonify({'error': 'GEMINI_API_KEY is not configured on the server'}), 500
         
         file_type = request.form.get('file_type', '').lower()
-        question = request.form.get('question', '').strip()
+        file_type = request.form.get('file_type')
         conversation_history_json = request.form.get('conversation_history', '[]')
         
         try:
@@ -1924,7 +1924,49 @@ def analyse_document():
         except:
             conversation_history = []
         
-        # If it's a follow-up question
+        if file_type == 'url':
+            # Handle URL analysis
+            url = request.form.get('url')
+            if not url:
+                return jsonify({'error': 'URL is required'}), 400
+            
+            try:
+                import requests
+                from bs4 import BeautifulSoup
+                
+                headers_req = {'User-Agent': 'Mozilla/5.0'}
+                response = requests.get(url, headers=headers_req, timeout=10)
+                response.raise_for_status()
+                
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for script in soup(["script", "style"]):
+                    script.decompose()
+                
+                text = soup.get_text()
+                lines = (line.strip() for line in text.splitlines())
+                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                text_content = ' '.join(chunk for chunk in chunks if chunk)[:5000]
+                
+                prompt = f"""Analyze this webpage from {url}:
+
+{text_content}
+
+CRITICAL: Maximum 50 words.
+
+• [Key point 1]
+• [Key point 2]
+• [Key point 3]"""
+                
+                chat_model = initialize_chat_model()
+                ai_response = chat_model.generate_content(prompt)
+                analysis = ai_response.text if hasattr(ai_response, 'text') else str(ai_response)
+                
+                return jsonify({'success': True, 'analysis': analysis, 'text_content': text_content})
+            except Exception as e:
+                return jsonify({'error': f'URL error: {str(e)}'}), 400
+        
+        # Handle follow-up questions
+        question = request.form.get('question')
         if question:
             if file_type == 'excel':
                 excel_data_json = request.form.get('excel_data', '[]')
@@ -1933,57 +1975,50 @@ def analyse_document():
                 except:
                     return jsonify({'error': 'Invalid Excel data format'}), 400
                 
-                # Build context from Excel data
                 headers = excel_data[0] if len(excel_data) > 0 else []
                 sample_rows = excel_data[1:6] if len(excel_data) > 1 else []
                 
-                context = f"""You are a data analyst. You have access to an Excel spreadsheet with the following structure:
-
+                context = f"""You are a data analyst. Excel data:
 Columns: {', '.join(str(h) for h in headers)}
-Total rows: {len(excel_data) - 1}
+Rows: {len(excel_data) - 1}
 
-Sample data (first 5 rows):
-"""
+Sample:"""
                 for i, row in enumerate(sample_rows, 1):
                     context += f"\nRow {i}: {dict(zip(headers, row))}"
                 
-                # Add conversation history
                 if conversation_history:
-                    context += "\n\nPrevious conversation:\n"
+                    context += "\n\nConversation:\n"
                     for turn in conversation_history[-3:]:
-                        context += f"User: {turn.get('user', '')}\n"
-                        context += f"Assistant: {turn.get('assistant', '')}\n"
+                        context += f"User: {turn.get('user', '')}\nAssistant: {turn.get('assistant', '')}\n"
                 
-                context += f"\n\nUser question: {question}\n\nProvide a detailed answer based on the data. If calculations are needed, perform them accurately."
+                context += f"\n\nQuestion: {question}\nAnswer in max 20 words."
                 
             elif file_type == 'text':
                 text_content = request.form.get('text_content', '')
-                
-                context = f"""You are analyzing the following text document:
-
-{text_content[:2000]}...
-
-"""
+                context = f"""Text: {text_content[:2000]}..."""
                 if conversation_history:
-                    context += "\n\nPrevious conversation:\n"
+                    context += "\nConversation:\n"
                     for turn in conversation_history[-3:]:
-                        context += f"User: {turn.get('user', '')}\n"
-                        context += f"Assistant: {turn.get('assistant', '')}\n"
-                
-                context += f"\n\nUser question: {question}\n\nProvide a detailed answer based on the document."
-                
-            else:
-                context = f"User question: {question}\n\nAnswer based on the uploaded document."
+                        context += f"User: {turn.get('user', '')}\nAI: {turn.get('assistant', '')}\n"
+                context += f"\nQuestion: {question}\nAnswer in max 20 words."
             
-            # Generate answer using Gemini
+            elif file_type == 'url':
+                text_content = request.form.get('text_content', '')
+                context = f"""Webpage content: {text_content[:2000]}..."""
+                if conversation_history:
+                    context += "\nConversation:\n"
+                    for turn in conversation_history[-3:]:
+                        context += f"User: {turn.get('user', '')}\nAI: {turn.get('assistant', '')}\n"
+                context += f"\nQuestion: {question}\nAnswer in max 20 words."
+            
+            else:
+                context = f"Question: {question}\nAnswer briefly."
+            
             chat_model = initialize_chat_model()
             response = chat_model.generate_content(context)
             answer = response.text if hasattr(response, 'text') else str(response)
             
-            return jsonify({
-                'success': True,
-                'answer': answer
-            })
+            return jsonify({'success': True, 'answer': answer})
         
         # Initial analysis (no question provided)
         file = request.files.get('file')
