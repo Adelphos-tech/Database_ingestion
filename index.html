@@ -1600,9 +1600,15 @@
                 }).join('');
             }
             
-            // Generate charts if we have Excel data
-            if (dataSummary && currentDocData) {
-                generateCharts(currentDocData, dataSummary);
+            // Generate charts only if AI suggests visualization or mentions trends/growth
+            const needsVisualization = analysis.toLowerCase().includes('trend') || 
+                                      analysis.toLowerCase().includes('growth') ||
+                                      analysis.toLowerCase().includes('chart') ||
+                                      analysis.toLowerCase().includes('visualiz') ||
+                                      analysis.toLowerCase().includes('graph');
+            
+            if (needsVisualization && dataSummary && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
+                generateCharts(currentDocData.data, dataSummary);
             }
         }
         
@@ -1611,7 +1617,11 @@
             chartsSection.classList.remove('hidden');
             chartsSection.innerHTML = '';
             
-            if (!data || data.length < 2) return;
+            // Validate data is an array
+            if (!data || !Array.isArray(data) || data.length < 2) {
+                console.log('Invalid data for chart generation:', data);
+                return;
+            }
             
             const headers = data[0];
             const rows = data.slice(1);
@@ -1734,6 +1744,18 @@
                 if (data.success && data.answer) {
                     // Display answer in summary area
                     document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-emerald-400 text-sm mb-2">You: "${question}"</div><div class="text-gray-300">${data.answer}</div>`;
+                    
+                    // Check if user asked for visualization
+                    const wantsChart = question.toLowerCase().includes('chart') || 
+                                      question.toLowerCase().includes('graph') ||
+                                      question.toLowerCase().includes('visualiz') ||
+                                      question.toLowerCase().includes('trend') ||
+                                      question.toLowerCase().includes('show me');
+                    
+                    // Generate chart if requested and we have Excel data
+                    if (wantsChart && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
+                        generateCharts(currentDocData.data, {});
+                    }
                     
                     docConversationHistory.push({
                         user: question,
