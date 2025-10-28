@@ -1605,7 +1605,10 @@
                                       analysis.toLowerCase().includes('growth') ||
                                       analysis.toLowerCase().includes('chart') ||
                                       analysis.toLowerCase().includes('visualiz') ||
-                                      analysis.toLowerCase().includes('graph');
+                                      analysis.toLowerCase().includes('graph') ||
+                                      analysis.toLowerCase().includes('pie') ||
+                                      analysis.toLowerCase().includes('distribution') ||
+                                      analysis.toLowerCase().includes('breakdown');
             
             if (needsVisualization && dataSummary && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
                 generateCharts(currentDocData.data, dataSummary);
@@ -1645,6 +1648,36 @@
                     categoryCol = {index: i, name: headers[i], values: values};
                     break;
                 }
+            }
+            
+            // Find Region column for regional distribution pie chart
+            const regionColIndex = headers.findIndex(h => h && h.toLowerCase().includes('region'));
+            const categoryColIndex = headers.findIndex(h => h && (h.toLowerCase().includes('category') || h.toLowerCase().includes('product')));
+            
+            // Generate PIE CHART for Regional Distribution
+            if (regionColIndex >= 0 && numericCols.length > 0) {
+                const regionData = {};
+                rows.forEach(row => {
+                    const region = row[regionColIndex];
+                    const value = parseFloat(row[numericCols[0].index]) || 0;
+                    regionData[region] = (regionData[region] || 0) + value;
+                });
+                
+                createPieChart('regionPieChart', 'Sales by Region', regionData, 
+                    'Distribution of total sales across different regions. Identifies best performing regions.');
+            }
+            
+            // Generate PIE CHART for Category Distribution
+            if (categoryColIndex >= 0 && numericCols.length > 0 && categoryColIndex !== regionColIndex) {
+                const categoryData = {};
+                rows.forEach(row => {
+                    const category = row[categoryColIndex];
+                    const value = parseFloat(row[numericCols[0].index]) || 0;
+                    categoryData[category] = (categoryData[category] || 0) + value;
+                });
+                
+                createPieChart('categoryPieChart', 'Sales by Category', categoryData,
+                    'Distribution of total sales across product categories. Shows the most popular categories.');
             }
             
             // Generate trend chart if we have quarters or time periods
@@ -1694,6 +1727,73 @@
                     }
                 }, 100);
             }
+        }
+        
+        function createPieChart(chartId, title, data, caption) {
+            const chartsSection = document.getElementById('aiChartsSection');
+            const labels = Object.keys(data);
+            const values = Object.values(data);
+            
+            const colors = [
+                'rgba(16, 185, 129, 0.8)',   // Emerald
+                'rgba(99, 102, 241, 0.8)',   // Indigo
+                'rgba(236, 72, 153, 0.8)',   // Pink
+                'rgba(251, 191, 36, 0.8)',   // Amber
+                'rgba(139, 92, 246, 0.8)',   // Purple
+                'rgba(239, 68, 68, 0.8)',    // Red
+                'rgba(34, 197, 94, 0.8)',    // Green
+                'rgba(59, 130, 246, 0.8)'    // Blue
+            ];
+            
+            chartsSection.innerHTML += `
+                <div class="chart-container">
+                    <div class="chart-title">🥧 ${title}</div>
+                    <canvas id="${chartId}" style="max-height: 280px;"></canvas>
+                    <div class="chart-caption">${caption}</div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const ctx = document.getElementById(chartId);
+                if (ctx) {
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: values,
+                                backgroundColor: colors.slice(0, labels.length),
+                                borderColor: 'rgba(255,255,255,0.2)',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'right',
+                                    labels: {
+                                        color: '#9ca3af',
+                                        padding: 12,
+                                        font: {size: 11}
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                            return ` ${context.label}: ${context.parsed.toFixed(2)} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 150);
         }
         
         function clearCharts() {
@@ -1750,7 +1850,9 @@
                                       question.toLowerCase().includes('graph') ||
                                       question.toLowerCase().includes('visualiz') ||
                                       question.toLowerCase().includes('trend') ||
-                                      question.toLowerCase().includes('show me');
+                                      question.toLowerCase().includes('show me') ||
+                                      question.toLowerCase().includes('pie') ||
+                                      question.toLowerCase().includes('distribution');
                     
                     // Generate chart if requested and we have Excel data
                     if (wantsChart && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
