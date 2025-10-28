@@ -27,11 +27,11 @@
             0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
             40% { transform: translateY(-6px); opacity: 1; }
         }
-        .doc-analyser-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: linear-gradient(135deg, #0a0118 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #1a0b2e 100%); background-size: 400% 400%; animation: gradientShift 15s ease infinite; overflow: hidden; }
+        .doc-analyser-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: linear-gradient(135deg, #0a0118 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #1a0b2e 100%); background-size: 400% 400%; animation: gradientShift 15s ease infinite; overflow-y: auto; overflow-x: hidden; }
         @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        .doc-analyser-fullscreen::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.35), transparent 50%), radial-gradient(circle at 40% 60%, rgba(16,185,129,0.3), transparent 50%); animation: rotate 30s linear infinite; }
+        .doc-analyser-fullscreen::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.35), transparent 50%), radial-gradient(circle at 40% 60%, rgba(16,185,129,0.3), transparent 50%); animation: rotate 30s linear infinite; pointer-events: none; }
         @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .doc-analyser-container { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; padding: 2rem; max-width: 100%; margin: 0 auto; }
+        .doc-analyser-container { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; padding: 2rem; max-width: 100%; margin: 0 auto; }
         .doc-analyser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; animation: slideDown 0.6s ease-out; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
         .doc-analyser-title { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
@@ -547,40 +547,62 @@
         }
 
         function openDocAnalyserFullscreen() {
+            console.log('Opening Doc Analyser Fullscreen...');
+            
             // Hide main content
-            document.querySelector('.aurora').classList.add('hide-when-analyser', 'hidden');
-            document.querySelector('header').classList.add('hide-when-analyser', 'hidden');
-            document.querySelector('section').classList.add('hide-when-analyser', 'hidden');
-            document.querySelector('main').classList.add('hide-when-analyser', 'hidden');
-            document.querySelector('footer').classList.add('hide-when-analyser', 'hidden');
+            const elementsToHide = ['.aurora', 'header', 'section', 'main', 'footer'];
+            elementsToHide.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.style.display = 'none';
+                }
+            });
             
             // Show fullscreen Doc Analyser
-            document.getElementById('docAnalyserFullscreen').classList.remove('hidden');
+            const fullscreenEl = document.getElementById('docAnalyserFullscreen');
+            if (fullscreenEl) {
+                fullscreenEl.classList.remove('hidden');
+                fullscreenEl.style.display = 'block';
+                console.log('Fullscreen element shown');
+            } else {
+                console.error('docAnalyserFullscreen element not found!');
+            }
             
             // Mark tab as active
             document.querySelectorAll('[id$="Tab"]').forEach(el => el.classList.remove('tab-active'));
-            document.getElementById('docAnalyserTab').classList.add('tab-active');
+            const tabEl = document.getElementById('docAnalyserTab');
+            if (tabEl) tabEl.classList.add('tab-active');
             
             // Fetch model info
             fetchModelInfo();
         }
 
         function closeDocAnalyser() {
+            console.log('Closing Doc Analyser...');
+            
             // Show main content
-            document.querySelector('.aurora').classList.remove('hide-when-analyser', 'hidden');
-            document.querySelector('header').classList.remove('hide-when-analyser', 'hidden');
-            document.querySelector('section').classList.remove('hide-when-analyser', 'hidden');
-            document.querySelector('main').classList.remove('hide-when-analyser', 'hidden');
-            document.querySelector('footer').classList.remove('hide-when-analyser', 'hidden');
+            const elementsToShow = ['.aurora', 'header', 'section', 'main', 'footer'];
+            elementsToShow.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.style.display = '';
+                }
+            });
             
             // Hide fullscreen Doc Analyser
-            document.getElementById('docAnalyserFullscreen').classList.add('hidden');
+            const fullscreenEl = document.getElementById('docAnalyserFullscreen');
+            if (fullscreenEl) {
+                fullscreenEl.classList.add('hidden');
+                fullscreenEl.style.display = 'none';
+            }
             
             // Reset tab state
             document.querySelectorAll('[id$="Tab"]').forEach(el => el.classList.remove('tab-active'));
-            document.getElementById('uploadTab').classList.add('tab-active');
+            const uploadTab = document.getElementById('uploadTab');
+            if (uploadTab) uploadTab.classList.add('tab-active');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('uploadContent').classList.remove('hidden');
+            const uploadContent = document.getElementById('uploadContent');
+            if (uploadContent) uploadContent.classList.remove('hidden');
         }
 
         // Load available indexes on page load
