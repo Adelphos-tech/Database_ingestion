@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tab Test</title>
+    <style>
+        .tab-link { padding: 10px 20px; margin: 5px; cursor: pointer; background: #6366f1; color: white; border: none; border-radius: 5px; }
+        .tab-link.tab-active { background: #10b981; }
+        .tab-content { padding: 20px; border: 2px solid #ccc; margin-top: 20px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Tab Switching Test</h1>
+    
+    <div>
+        <button onclick="switchTab('upload')" id="uploadTab" class="tab-link tab-active">Upload</button>
+        <button onclick="switchTab('browse')" id="browseTab" class="tab-link">Browse</button>
+        <button onclick="switchTab('chat')" id="chatTab" class="tab-link">Chat</button>
+    </div>
+
+    <div id="uploadContent" class="tab-content">
+        <h2>Upload Tab Content</h2>
+        <p>This is the upload tab.</p>
+    </div>
+
+    <div id="browseContent" class="tab-content hidden">
+        <h2>Browse Tab Content</h2>
+        <p>This is the browse tab.</p>
+    </div>
+
+    <div id="chatContent" class="tab-content hidden">
+        <h2>Chat Tab Content</h2>
+        <p>This is the chat tab.</p>
+    </div>
+
+    <script>
+        console.log('✅ Script loaded!');
+        
+        function switchTab(tab) {
+            console.log('switchTab called with:', tab);
+            
+            // Hide all
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                console.log('Hiding:', el.id);
+            });
+            
+            // Remove active
+            document.querySelectorAll('.tab-link').forEach(el => {
+                el.classList.remove('tab-active');
+            });
+            
+            // Show selected
+            const content = document.getElementById(tab + 'Content');
+            if (content) {
+                content.classList.remove('hidden');
+                console.log('Showing:', content.id);
+            }
+            
+            // Activate tab
+            const button = document.getElementById(tab + 'Tab');
+            if (button) {
+                button.classList.add('tab-active');
+            }
+        }
+        
+        console.log('✅ Function defined!');
+    </script>
+</body>
+</html>
