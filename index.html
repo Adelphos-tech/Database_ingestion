@@ -614,9 +614,9 @@
         function switchTab(tab) {
             console.log('switchTab called with:', tab);
             
-            // Special handling for Doc Analyser - open in new tab
+            // Special handling for Doc Analyser - open in fullscreen
             if (tab === 'docAnalyser') {
-                window.open('doc-analyser.html', '_blank');
+                openDocAnalyserFullscreen();
                 return;
             }
 
