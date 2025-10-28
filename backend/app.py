@@ -2016,14 +2016,26 @@ Sample data (first 5 rows):
             
             prompt += """
 
-Provide a comprehensive analysis including:
-1. What this data represents
-2. Key insights and patterns you observe
-3. Data quality observations (missing values, anomalies)
-4. Statistical summary if applicable
-5. Interesting findings or recommendations
+IMPORTANT: Keep your analysis CONCISE and USER-FRIENDLY.
 
-Be specific and actionable."""
+Provide ONLY:
+1. One sentence describing what this data represents
+2. Top 2-3 KEY INSIGHTS ONLY (use bullet points with numbers/percentages)
+
+DO NOT include:
+- Long paragraphs or detailed explanations
+- Statistical terminology
+- Multiple sections or comprehensive analysis
+- More than 3 insights
+
+Format:
+"I've analyzed your [type] data. Here's what I found:
+
+• [Key insight 1 with specific number/percentage]
+• [Key insight 2 with specific number/percentage]  
+• [Key insight 3 with specific number/percentage]"
+
+Keep it short - users can ask follow-up questions for more details."""
             
             # Generate analysis
             chat_model = initialize_chat_model()
@@ -2062,14 +2074,20 @@ Be specific and actionable."""
 
 {text_content[:3000]}...
 
-Provide a comprehensive analysis including:
-1. Document type and purpose
-2. Main topics and themes
-3. Key information and insights
-4. Structure and organization
-5. Important findings or takeaways
+IMPORTANT: Keep your analysis BRIEF and ACTIONABLE.
 
-Be concise but thorough."""
+Provide ONLY:
+1. One sentence: what is this document?
+2. Top 2-3 KEY POINTS ONLY (bullet points)
+
+Format:
+"This is a [type] document about [topic].
+
+• [Key point 1]
+• [Key point 2]
+• [Key point 3]"
+
+Keep it short - users can ask for details."""
                 
                 chat_model = initialize_chat_model()
                 response = chat_model.generate_content(prompt)
@@ -2091,13 +2109,20 @@ Be concise but thorough."""
 
 {text_content[:3000]}...
 
-Provide a comprehensive analysis including:
-1. Document type and purpose
-2. Main topics and themes
-3. Key information and insights
-4. Important findings or takeaways
+IMPORTANT: Keep your analysis BRIEF.
 
-Be concise but thorough."""
+Provide ONLY:
+1. One sentence: what is this?
+2. Top 2-3 KEY POINTS (bullet points)
+
+Format:
+"This document is about [topic].
+
+• [Key point 1]
+• [Key point 2]
+• [Key point 3]"
+
+Short and clear."""
             
             chat_model = initialize_chat_model()
             response = chat_model.generate_content(prompt)
@@ -2118,14 +2143,20 @@ Be concise but thorough."""
 
 {text_content[:3000]}...
 
-Provide a comprehensive analysis including:
-1. Document type and purpose
-2. Main topics and themes
-3. Key information and insights
-4. Structure and organization
-5. Important findings or takeaways
+IMPORTANT: Keep your analysis BRIEF.
 
-Be concise but thorough."""
+Provide ONLY:
+1. One sentence: what is this?
+2. Top 2-3 KEY POINTS (bullet points)
+
+Format:
+"This is a [type] document about [topic].
+
+• [Key point 1]
+• [Key point 2]
+• [Key point 3]"
+
+Short and actionable."""
                 
                 chat_model = initialize_chat_model()
                 response = chat_model.generate_content(prompt)
