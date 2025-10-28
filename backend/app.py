@@ -1140,18 +1140,33 @@ def fetch_with_playwright(url, timeout):
 
 
 def fetch_page_html(url, timeout=15):
+    logging.info(f"Attempting to fetch: {url}")
+    
     html = fetch_with_requests(url, timeout)
     if html:
+        logging.info(f"✓ fetch_with_requests succeeded for {url}")
         return html
+    else:
+        logging.warning(f"✗ fetch_with_requests failed for {url}")
 
     html = fetch_with_cloudscraper(url, timeout)
     if html:
+        logging.info(f"✓ fetch_with_cloudscraper succeeded for {url}")
         return html
+    else:
+        logging.warning(f"✗ fetch_with_cloudscraper failed for {url}")
 
-    html = fetch_with_playwright(url, timeout)
-    if html:
-        return html
+    if ENABLE_PLAYWRIGHT_CRAWL:
+        html = fetch_with_playwright(url, timeout)
+        if html:
+            logging.info(f"✓ fetch_with_playwright succeeded for {url}")
+            return html
+        else:
+            logging.warning(f"✗ fetch_with_playwright failed for {url}")
+    else:
+        logging.warning(f"✗ Playwright crawling disabled (ENABLE_PLAYWRIGHT_CRAWL=false)")
 
+    logging.error(f"✗✗✗ ALL FETCH METHODS FAILED for {url}")
     return None
 
 
