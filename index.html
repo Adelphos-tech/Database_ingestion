@@ -418,100 +418,100 @@
             <div id="chatContent" class="tab-content hidden">
                 <div class="max-w-3xl mx-auto">
                     <div class="mb-8 text-center md:text-left">
-                        <h2 class="text-2xl font-bold text-slate-900 mb-2">Investor Concierge</h2>
-                        <p class="text-slate-500">Habib synthesizes documents, decks, and live URLs into concise investor-grade answers.</p>
+                        <h2 class="text-2xl font-bold mb-2" style="color: #10b981;">Investor Concierge</h2>
+                        <p style="color: #6b7280;">Habib synthesizes documents, decks, and live URLs into concise investor-grade answers.</p>
                     </div>
 
-                    <div class="rounded-3xl border border-indigo-100/70 bg-white/95 shadow-[0_40px_80px_-50px_rgba(79,70,229,0.35)] p-6 space-y-6">
+                    <div class="rounded-3xl p-6 space-y-6" style="background: #1a1a1a; border: 1px solid rgba(16, 185, 129, 0.15); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div class="flex-1">
-                                <label class="block text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold mb-2">Repo Context</label>
-                                <select id="chatIndex" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                                <label class="block text-xs uppercase tracking-[0.3em] font-semibold mb-2" style="color: #10b981;">Repo Context</label>
+                                <select id="chatIndex" class="w-full px-4 py-3 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none" style="border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(255,255,255,0.03); color: #d4d4d4;">
                                     <option value="general">General</option>
                                     <option value="fortius">Fortius</option>
                                     <option value="mubest">Mubest</option>
                                 </select>
                             </div>
-                            <button onclick="resetChatConversation()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 text-sm font-semibold hover:bg-white hover:border-indigo-200 transition">
+                            <button onclick="resetChatConversation()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition hover:opacity-80" style="border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); color: #10b981;">
                                 <span class="text-lg">🔁</span> Reset Conversation
                             </button>
                         </div>
 
                         <!-- AI Model Indicator -->
-                        <div class="flex items-center justify-between px-4 py-2.5 rounded-2xl border border-indigo-100/50 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 shadow-sm">
+                        <div class="flex items-center justify-between px-4 py-2.5 rounded-2xl shadow-sm" style="border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">
                             <div class="flex items-center gap-2.5">
-                                <div class="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md">
+                                <div class="flex items-center justify-center w-7 h-7 rounded-lg shadow-md" style="background: linear-gradient(135deg, #10b981, #059669);">
                                     <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:16px;height:16px;"></span>
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="text-sm font-bold text-slate-800">Gemini 2.0 Flash</span>
-                                        <span class="text-xs font-medium text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">Thinking</span>
+                                        <span class="text-sm font-bold" style="color: #10b981;">Gemini 2.0 Flash</span>
+                                        <span class="text-xs font-medium px-1.5 py-0.5 rounded" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">Thinking</span>
                                     </div>
-                                    <p class="text-xs text-slate-500 mt-0.5">Advanced AI Model</p>
+                                    <p class="text-xs mt-0.5" style="color: #6b7280;">Advanced AI Model</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span class="text-xs font-medium text-emerald-600">Active</span>
+                                <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #10b981;"></div>
+                                <span class="text-xs font-medium" style="color: #10b981;">Active</span>
                             </div>
                         </div>
 
-                        <div id="chatMessages" class="relative h-96 overflow-y-auto rounded-3xl border border-indigo-50 bg-gradient-to-br from-white via-indigo-50/20 to-rose-50/10 p-6 shadow-inner">
+                        <div id="chatMessages" class="relative h-96 overflow-y-auto rounded-3xl p-6" style="border: 1px solid rgba(16, 185, 129, 0.1); background: #0f0f0f;">
                             <div id="chatPlaceholder" class="h-full flex flex-col items-center justify-center text-center px-4">
                                 <div class="mb-6">
                                     <div class="text-4xl mb-3">👋</div>
-                                    <h3 class="text-lg font-semibold text-slate-800 mb-2">Welcome to Habib AI Assistant</h3>
-                                    <p class="text-sm text-slate-500 max-w-md">I can help you find properties based on your preferences. Just ask me anything!</p>
+                                    <h3 class="text-lg font-semibold mb-2" style="color: #10b981;">Welcome to Habib AI Assistant</h3>
+                                    <p class="text-sm max-w-md" style="color: #6b7280;">I can help you find properties based on your preferences. Just ask me anything!</p>
                                 </div>
                                 <div class="w-full max-w-md space-y-2">
-                                    <p class="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-3">Try asking:</p>
-                                    <button onclick="quickQuery('Show me 3 bedroom properties under $4000')" class="w-full text-left px-4 py-3 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                    <p class="text-xs uppercase tracking-wider font-semibold mb-3" style="color: #10b981;">Try asking:</p>
+                                    <button onclick="quickQuery('Show me 3 bedroom properties under $4000')" class="w-full text-left px-4 py-3 rounded-xl transition-all group hover:opacity-80" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
                                         <div class="flex items-center gap-3">
                                             <span class="text-2xl">🏠</span>
                                             <div class="flex-1">
-                                                <div class="text-sm font-medium text-slate-800 group-hover:text-indigo-600">Show me 3 bedroom properties under $4000</div>
+                                                <div class="text-sm font-medium" style="color: #d4d4d4;">Show me 3 bedroom properties under $4000</div>
                                             </div>
-                                            <span class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                            <span style="color: #10b981;">→</span>
                                         </div>
                                     </button>
-                                    <button onclick="quickQuery('What properties are available near MRT stations?')" class="w-full text-left px-4 py-3 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                    <button onclick="quickQuery('What properties are available near MRT stations?')" class="w-full text-left px-4 py-3 rounded-xl transition-all group hover:opacity-80" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
                                         <div class="flex items-center gap-3">
                                             <span class="text-2xl">🚇</span>
                                             <div class="flex-1">
-                                                <div class="text-sm font-medium text-slate-800 group-hover:text-indigo-600">What properties are available near MRT?</div>
+                                                <div class="text-sm font-medium" style="color: #d4d4d4;">What properties are available near MRT?</div>
                                             </div>
-                                            <span class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                            <span style="color: #10b981;">→</span>
                                         </div>
                                     </button>
-                                    <button onclick="quickQuery('Show me condominiums for sale')" class="w-full text-left px-4 py-3 rounded-xl bg-white border border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                    <button onclick="quickQuery('Show me condominiums for sale')" class="w-full text-left px-4 py-3 rounded-xl transition-all group hover:opacity-80" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
                                         <div class="flex items-center gap-3">
                                             <span class="text-2xl">🏢</span>
                                             <div class="flex-1">
-                                                <div class="text-sm font-medium text-slate-800 group-hover:text-indigo-600">Show me condominiums for sale</div>
+                                                <div class="text-sm font-medium" style="color: #d4d4d4;">Show me condominiums for sale</div>
                                             </div>
-                                            <span class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                                            <span style="color: #10b981;">→</span>
                                         </div>
                                     </button>
                                 </div>
                             </div>
-                            <div id="typingIndicator" class="hidden absolute bottom-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-indigo-100 shadow-sm">
+                            <div id="typingIndicator" class="hidden absolute bottom-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full shadow-sm" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
                                 <span class="typing-dot"></span>
                                 <span class="typing-dot"></span>
                                 <span class="typing-dot"></span>
-                                <span class="text-xs text-indigo-500 font-semibold uppercase tracking-[0.3em]">Habib is drafting</span>
+                                <span class="text-xs font-semibold uppercase tracking-[0.3em]" style="color: #10b981;">Habib is drafting</span>
                             </div>
                         </div>
 
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
-                                <label for="chatInput" class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold">Your Question</label>
-                                <div id="chatStatus" class="text-xs text-indigo-500"></div>
+                                <label for="chatInput" class="text-xs uppercase tracking-[0.3em] font-semibold" style="color: #10b981;">Your Question</label>
+                                <div id="chatStatus" class="text-xs" style="color: #10b981;"></div>
                             </div>
-                            <textarea id="chatInput" rows="3" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 resize-none text-slate-800 bg-white placeholder:text-slate-400" placeholder="Ask anything about the documents in this repo..."></textarea>
+                            <textarea id="chatInput" rows="3" class="w-full px-4 py-3 rounded-2xl focus:ring-2 focus:ring-emerald-500 resize-none outline-none" style="border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(255,255,255,0.03); color: #d4d4d4;" placeholder="Ask anything. Type @ for mentions and / for shortcuts."></textarea>
                             <div class="flex items-center justify-between gap-4">
-                                <p class="text-xs text-slate-400 uppercase tracking-[0.3em]">Powered by Gemini · Pinecone · Atlas IQ</p>
-                                <button id="chatSendBtn" onclick="sendChatMessage()" class="relative inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-2xl transition">
+                                <p class="text-xs uppercase tracking-[0.3em]" style="color: #6b7280;">Powered by Gemini · Pinecone · Atlas IQ</p>
+                                <button id="chatSendBtn" onclick="sendChatMessage()" class="relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-semibold shadow-lg hover:opacity-90 transition" style="background: linear-gradient(135deg, #10b981, #059669);">
                                     <span class="send-label">Send</span>
                                     <span class="send-loader hidden h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
                                     <span class="text-lg">↗</span>
@@ -648,9 +648,9 @@
         function switchTab(tab) {
             console.log('switchTab called with:', tab);
             
-            // Special handling for Doc Analyser - open in fullscreen
+            // Special handling for Doc Analyser - open in new tab
             if (tab === 'docAnalyser') {
-                openDocAnalyserFullscreen();
+                window.open('doc-analyser.html', '_blank');
                 return;
             }
 
