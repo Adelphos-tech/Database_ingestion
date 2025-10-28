@@ -16,6 +16,7 @@
     <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
     <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spinkit/2.0.1/spinkit.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #05010e; }
@@ -80,6 +81,25 @@
         .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
         .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+        
+        /* Premium Analysis Loader */
+        .premium-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(99, 102, 241, 0.1)); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2); backdrop-filter: blur(10px); margin: 2rem 0; }
+        .premium-loader { width: 60px; height: 60px; position: relative; margin-bottom: 1.5rem; }
+        .premium-loader-ring { position: absolute; width: 100%; height: 100%; border: 4px solid transparent; border-top-color: #10b981; border-radius: 50%; animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
+        .premium-loader-ring:nth-child(2) { border-top-color: #6366f1; animation-delay: 0.15s; }
+        .premium-loader-ring:nth-child(3) { border-top-color: #ec4899; animation-delay: 0.3s; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-text { color: #10b981; font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 0.5rem; animation: pulse-text 2s ease-in-out infinite; }
+        .loader-subtext { color: #9ca3af; font-size: 13px; text-align: center; }
+        @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        /* Orbit Loader Alternative */
+        .orbit-loader { width: 60px; height: 60px; position: relative; margin-bottom: 1.5rem; }
+        .orbit-loader span { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #6366f1); top: 50%; left: 50%; margin: -6px 0 0 -6px; animation: orbit 1.5s ease-in-out infinite; }
+        .orbit-loader span:nth-child(1) { animation-delay: 0s; background: linear-gradient(135deg, #10b981, #34d399); }
+        .orbit-loader span:nth-child(2) { animation-delay: 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .orbit-loader span:nth-child(3) { animation-delay: 0.4s; background: linear-gradient(135deg, #ec4899, #f472b6); }
+        @keyframes orbit { 0% { transform: rotate(0deg) translateX(25px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(25px) rotate(-360deg); } }
         @media (max-width: 1024px) { .doc-split-container { grid-template-columns: 1fr; height: auto; } .doc-analyser-title { font-size: 1.75rem; } }
     </style>
 </head>
@@ -524,6 +544,25 @@
 
                 <!-- Right Panel: Data Preview (70%) -->
                 <div class="doc-data-preview-panel">
+                    <!-- URL Input Section -->
+                    <div id="docUrlInputZone" class="mb-4 p-4 bg-gradient-to-r from-slate-50 to-indigo-50 rounded-xl border border-slate-200">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <i data-lucide="globe" class="text-indigo-600" style="width:24px;height:24px;"></i>
+                            </div>
+                            <div class="flex-1">
+                                <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/article)" 
+                                       class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                       onkeypress="if(event.key==='Enter') analyzeUrl()">
+                            </div>
+                            <button onclick="analyzeUrl()" class="flex-shrink-0 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-500 hover:to-purple-500 transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                                <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
+                                <span>Analyze</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2 ml-10">Or upload a file below</p>
+                    </div>
+                    
                     <div id="docUploadZone" class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-indigo-400 transition cursor-pointer bg-slate-50">
                         <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
                         <div class="text-5xl mb-4">📄</div>
@@ -1432,8 +1471,18 @@
             // Show loading in preview
             docPreviewContent.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-slate-600">Loading document...</p></div>';
             
-            // Show loading in AI summary
-            document.getElementById('aiAnalysisSummary').textContent = 'Analyzing your document... Please wait.';
+            // Show premium loader in AI summary
+            document.getElementById('aiAnalysisSummary').innerHTML = `
+                <div class="premium-loader-container">
+                    <div class="orbit-loader">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="loader-text">Analyzing Document</div>
+                    <div class="loader-subtext">AI is processing your data...</div>
+                </div>
+            `;
 
             try {
                 if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
@@ -2062,6 +2111,78 @@
             }
         }
 
+        async function analyzeUrl() {
+            const urlInput = document.getElementById('docUrlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            // Basic URL validation
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL (e.g., https://example.com)');
+                return;
+            }
+            
+            // Show loading
+            docUploadZone.classList.add('hidden');
+            docPreviewHeader.classList.remove('hidden');
+            docPreviewContent.classList.remove('hidden');
+            
+            document.getElementById('docFileName').textContent = url;
+            document.getElementById('docFileInfo').textContent = 'Web Page';
+            
+            // Show premium loader
+            document.getElementById('aiAnalysisSummary').innerHTML = `
+                <div class="premium-loader-container">
+                    <div class="orbit-loader">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="loader-text">Fetching Web Content</div>
+                    <div class="loader-subtext">AI is analyzing the webpage...</div>
+                </div>
+            `;
+            
+            // Display webpage in iframe
+            docPreviewContent.innerHTML = `<iframe src="${url}" class="w-full h-full min-h-[600px] border-0 rounded-lg bg-white" style="position:absolute;top:0;left:0;right:0;bottom:0;"></iframe>`;
+            
+            try {
+                // Send URL to backend for analysis
+                const formData = new FormData();
+                formData.append('url', url);
+                formData.append('file_type', 'url');
+                
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.analysis) {
+                    currentDocData = {
+                        type: 'url',
+                        url: url,
+                        content: data.text_content || ''
+                    };
+                    
+                    displayAnalysis(data.analysis, data.summary);
+                } else {
+                    throw new Error(data.error || 'Failed to analyze URL');
+                }
+            } catch (error) {
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400 text-sm">⚠️ Error: ${errorMessage}</div>`;
+                docPreviewContent.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-red-600">Failed to load webpage. Please check the URL and try again.</p></div>`;
+            }
+        }
+        
         function clearDocAnalysis() {
             // Destroy Luckysheet if it exists
             if (window.luckysheet && luckysheet.destroy) {
@@ -2073,6 +2194,7 @@
             }
             
             docAnalyserFileInput.value = '';
+            document.getElementById('docUrlInput').value = '';
             docUploadZone.classList.remove('hidden');
             docPreviewHeader.classList.add('hidden');
             docPreviewContent.classList.add('hidden');
