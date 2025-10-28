@@ -22,6 +22,58 @@
         .insights-title { display: flex; align-items: center; gap: 8px; color: #10b981; font-size: 14px; font-weight: 600; margin-bottom: 0.75rem; }
         .insight-item { background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; color: #10b981; font-size: 12px; line-height: 1.5; }
         .hidden { display: none !important; }
+        
+        /* Dark theme for Luckysheet and preview content */
+        #docPreviewContent { background: #1a1a1a !important; }
+        #luckysheet { background: #1a1a1a !important; }
+        
+        /* Override Luckysheet white backgrounds */
+        .luckysheet-grid-container, 
+        .luckysheet-cell-main,
+        .luckysheet-cols-h-c,
+        .luckysheet-rows-h,
+        .luckysheet-cell,
+        .luckysheet-cols-h,
+        .luckysheet-rows-h-c,
+        .luckysheet-sheet-container,
+        .luckysheet-sheet-content,
+        .luckysheet-grid-window-1 { 
+            background: #1a1a1a !important; 
+            color: #10b981 !important;
+        }
+        
+        /* Luckysheet cells */
+        .luckysheet-cell-input { 
+            background: #0f0f0f !important; 
+            color: #10b981 !important; 
+            border-color: rgba(16, 185, 129, 0.3) !important;
+        }
+        
+        /* Luckysheet headers */
+        .luckysheet-cols-h-cells, 
+        .luckysheet-rows-h-cells {
+            background: #0f0f0f !important;
+            color: #10b981 !important;
+            border-color: rgba(16, 185, 129, 0.2) !important;
+        }
+        
+        /* Luckysheet grid lines */
+        .luckysheet-cell-flow {
+            border-color: rgba(16, 185, 129, 0.15) !important;
+        }
+        
+        /* PDF and iframe dark mode */
+        iframe {
+            filter: invert(0.9) hue-rotate(180deg);
+            background: #1a1a1a !important;
+        }
+        
+        /* Text preview dark mode */
+        pre {
+            background: #0f0f0f !important;
+            color: #10b981 !important;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
     </style>
 </head>
 <body>
