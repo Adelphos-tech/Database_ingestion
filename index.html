@@ -510,30 +510,15 @@
         </footer>
     </div>
 
-    <!-- Doc Analyser Fullscreen Mode -->
-    <div id="docAnalyserFullscreen" class="doc-analyser-fullscreen hidden">
-        <div class="doc-analyser-container">
-            <div class="doc-analyser-header">
-                <div>
-                    <h1 class="doc-analyser-title">📊 Document Analyser</h1>
-                    <p class="text-slate-300 mt-2 text-sm">AI-powered analysis for Excel, PDF, DOCX, and TXT files</p>
-                </div>
-                <button onclick="closeDocAnalyser()" class="doc-close-btn">
-                    ✕ Close
-                </button>
-            </div>
-
-            <div class="doc-split-container">
-                <!-- Left Panel: AI Insights (30%) -->
                 <div class="doc-ai-insights-panel">
                     <div class="ai-badge">
-                        <span>🤖</span>
+                        <span class="iconify" data-icon="fluent-emoji:robot" style="width:14px;height:14px;"></span>
                         <span>Active Analysis</span>
                     </div>
                     
                     <div id="aiInsightsSection" class="insights-section hidden">
                         <div class="insights-title">
-                            <span>💡</span>
+                            <span class="iconify" data-icon="fluent-emoji:light-bulb" style="width:14px;height:14px;"></span>
                             <span>Key Insights</span>
                         </div>
                         <div id="aiInsightsList"></div>
@@ -574,8 +559,7 @@
                         <div class="mt-3 ml-10 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                             <span class="iconify text-amber-600 flex-shrink-0" data-icon="fluent-emoji:warning" style="width:16px;height:16px;margin-top:2px;"></span>
                             <p class="text-xs text-amber-700">
-                                <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work. 
-                                <span class="font-semibold">Use file upload below instead.</span>
+                                <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work.
                             </p>
                         </div>
                         <p class="text-xs text-slate-500 mt-2 ml-10">Or upload a file below</p>
