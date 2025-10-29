@@ -385,13 +385,18 @@
         }
 
         async function handleExcelFile(file) {
+            console.log('📊 handleExcelFile started for:', file.name);
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
+                    console.log('📖 FileReader onload triggered');
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
+                    console.log('📚 Workbook loaded, sheets:', workbook.SheetNames);
+                    
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    console.log('📋 JSON data extracted, rows:', jsonData.length);
 
                     if (!jsonData || jsonData.length === 0) {
                         throw new Error('Empty spreadsheet');
@@ -404,13 +409,16 @@
                         headers: jsonData[0],
                         rows: jsonData.length - 1
                     };
+                    console.log('💾 Document data stored');
 
+                    console.log('🚀 Calling analyzeDocument...');
                     await analyzeDocument(file, 'excel', jsonData);
                 } catch (error) {
-                    console.error('Excel processing error:', error);
+                    console.error('❌ Excel processing error:', error);
                     showNotification('❌ Error reading Excel file');
                 }
             };
+            console.log('📂 Starting to read file as ArrayBuffer');
             reader.readAsArrayBuffer(file);
         }
 
@@ -439,29 +447,42 @@
         }
 
         async function analyzeDocument(file, fileType, parsedData) {
+            console.log('🤖 analyzeDocument called');
+            console.log('  File:', file.name);
+            console.log('  Type:', fileType);
+            console.log('  API URL:', `${API_BASE_URL}/api/analyse-document`);
+            
             const formData = new FormData();
             formData.append('file', file);
             formData.append('file_type', fileType);
 
             if (fileType === 'excel') {
-                formData.append('excel_data', JSON.stringify({
+                const excelMetadata = {
                     rows: parsedData.length - 1,
                     columns: parsedData[0].length,
                     headers: parsedData[0],
                     sample_data: parsedData.slice(1, 6)
-                }));
+                };
+                console.log('📊 Excel metadata:', excelMetadata);
+                formData.append('excel_data', JSON.stringify(excelMetadata));
             } else if (fileType === 'text') {
                 formData.append('text_content', parsedData.content);
             }
 
             try {
+                console.log('📡 Sending POST request to backend...');
+                showNotification('🤖 Sending to Gemini...');
+                
                 const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
                     body: formData
                 });
 
+                console.log('📥 Response received:', response.status, response.statusText);
+
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
+                    console.error('❌ Invalid content type:', contentType);
                     throw new Error('Server error - Backend may be offline');
                 }
 
@@ -470,15 +491,18 @@
                 }
 
                 const data = await response.json();
+                console.log('📊 API Response:', data);
 
                 if (data.success) {
+                    console.log('✅ Analysis successful!');
                     displayAnalysis(data.analysis);
                     showNotification('✨ Analysis complete!');
                 } else {
+                    console.error('❌ Analysis failed:', data.error);
                     throw new Error(data.error || 'Analysis failed');
                 }
             } catch (error) {
-                console.error('Analysis error:', error);
+                console.error('❌ Analysis error:', error);
                 showNotification('❌ ' + error.message);
             }
         }
