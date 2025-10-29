@@ -260,8 +260,9 @@
 
         // Toggle Model Dropdown
         function toggleModelDropdown() {
+            console.log('🔵 Toggle model dropdown clicked');
             const dropdown = document.getElementById('modelDropdown');
-            if (dropdown.style.display === 'none') {
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
                 dropdown.style.display = 'block';
                 // Animate in
                 dropdown.style.opacity = '0';
@@ -344,7 +345,12 @@
 
         // File Upload Handler
         const fileInput = document.getElementById('fileInput');
-        fileInput.addEventListener('change', handleFileUpload);
+        if (fileInput) {
+            fileInput.addEventListener('change', handleFileUpload);
+            console.log('✅ File input connected');
+        } else {
+            console.error('❌ File input not found');
+        }
 
         async function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -481,8 +487,10 @@
 
         // URL Analysis
         async function analyzeURL() {
+            console.log('🌐 Analyze URL clicked');
             const urlInput = document.querySelector('input[type="url"]');
             const url = urlInput?.value?.trim();
+            console.log('URL value:', url);
             
             if (!url) {
                 showNotification('⚠️ Please enter a URL');
