@@ -5,9 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knowledge Base Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spinkit/2.0.1/spinkit.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #05010e; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #1a0b2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; }
+        .hidden { display: none !important; }
+        .tab-content { display: block; }
         .aurora { position: fixed; inset: -35%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.35), transparent 60%), radial-gradient(circle at 80% 30%, rgba(236,72,153,0.28), transparent 55%), radial-gradient(circle at 30% 80%, rgba(16,185,129,0.22), transparent 60%); filter: blur(130px); opacity: 0.65; pointer-events: none; z-index: 0; }
         .tab-link { display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.75rem 1.35rem; border-radius: 9999px; border: 1px solid transparent; color: #6366f1; background: rgba(99,102,241,0.08); transition: all 0.25s ease; }
         .tab-link:hover { border-color: rgba(129,140,248,0.35); color: #312e81; transform: translateY(-1px); }
@@ -26,6 +41,80 @@
             0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
             40% { transform: translateY(-6px); opacity: 1; }
         }
+        .doc-analyser-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: linear-gradient(135deg, #0a0118 0%, #1a0b2e 25%, #16213e 50%, #0f3460 75%, #1a0b2e 100%); background-size: 400% 400%; animation: gradientShift 15s ease infinite; overflow-y: auto; overflow-x: hidden; }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .doc-analyser-fullscreen::before { content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.35), transparent 50%), radial-gradient(circle at 40% 60%, rgba(16,185,129,0.3), transparent 50%); animation: rotate 30s linear infinite; pointer-events: none; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .doc-analyser-container { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; padding: 1rem 1.5rem; max-width: 100%; margin: 0 auto; }
+        .doc-analyser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); animation: slideDown 0.6s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        .doc-analyser-title { font-size: 1rem; font-weight: 600; background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.02em; }
+        .doc-close-btn { background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; transition: all 0.3s; cursor: pointer; }
+        .doc-close-btn:hover { background: rgba(255,255,255,0.15); color: white; transform: translateY(-1px); }
+        .doc-split-container { display: grid; grid-template-columns: 40% 60%; gap: 0; height: calc(100vh - 70px); animation: fadeInScale 0.8s ease-out; }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .doc-ai-insights-panel { display: flex; flex-direction: column; background: #0f0f0f; border-right: 1px solid rgba(255,255,255,0.06); padding: 2rem 1.5rem; overflow-y: auto; max-height: calc(100vh - 70px); position: relative; z-index: 100; }
+        .doc-data-preview-panel { position: relative; display: flex; flex-direction: column; background: #1a1a1a; padding: 0; overflow: hidden; }
+        .doc-preview-panel { overflow: auto; background: #ffffff; padding: 2rem; }
+        .ai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(16, 185, 129, 0.15); border-radius: 6px; color: #10b981; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+        .ai-analysis-summary { color: #e8e8e8; font-size: 13px; line-height: 1.5; margin-bottom: 1rem; }
+        .insights-section { margin-top: 1rem; position: relative; z-index: 10; }
+        .insights-title { display: flex; align-items: center; gap: 6px; color: #fbbf24; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; }
+        .insight-item { color: #d1d5db; font-size: 13px; line-height: 1.5; margin-bottom: 0.5rem; padding-left: 1rem; position: relative; }
+        .insight-item::before { content: '•'; position: absolute; left: 0; color: #10b981; font-weight: bold; }
+        .insight-item strong { color: #10b981; font-weight: 600; }
+        .chart-container { margin: 2rem 0; padding: 1.5rem; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; z-index: 10; }
+        .chart-title { color: #10b981; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; }
+        .chart-caption { color: #9ca3af; font-size: 12px; line-height: 1.5; margin-top: 0.75rem; }
+        .doc-analysis-result { flex: 1; overflow-y: auto; min-height: 200px; max-height: calc(100vh - 450px); }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .excel-table th { background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899); color: white; padding: 12px; text-align: left; position: sticky; top: 0; font-weight: 600; box-shadow: 0 2px 10px rgba(99,102,241,0.3); }
+        .excel-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; transition: all 0.2s; }
+        .excel-table tr:hover { background: linear-gradient(90deg, #f8fafc, #eef2ff); transform: scale(1.005); }
+        .excel-table tr:nth-child(even) { background: #fafbfc; }
+        .model-badge { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: linear-gradient(135deg, rgba(30, 30, 30, 0.98), rgba(20, 20, 40, 0.98)); border-radius: 12px; font-size: 13px; color: rgba(255,255,255,0.95); border: 1px solid rgba(99,102,241,0.4); margin-bottom: 1rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1); animation: pulse 3s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 20px rgba(99,102,241,0.3); } 50% { box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 30px rgba(99,102,241,0.5); } }
+        .model-badge .model-icon { font-size: 18px; }
+        .model-badge .model-status { width: 10px; height: 10px; border-radius: 50%; background: #10b981; margin-left: auto; animation: glow 2s ease-in-out infinite; box-shadow: 0 0 10px #10b981; }
+        @keyframes glow { 0%, 100% { opacity: 1; box-shadow: 0 0 10px #10b981; } 50% { opacity: 0.7; box-shadow: 0 0 20px #10b981; } }
+        .hide-when-analyser { transition: opacity 0.3s, transform 0.3s; }
+        .hide-when-analyser.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        .loading-dots { display: inline-flex; gap: 6px; align-items: center; padding: 8px 0; }
+        .loading-dots span { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: bounce 1.4s infinite ease-in-out both; }
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+        
+        /* Premium Analysis Loader */
+        .premium-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(99, 102, 241, 0.1)); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.2); backdrop-filter: blur(10px); margin: 2rem 0; position: relative; z-index: 10; }
+        .premium-loader { width: 60px; height: 60px; position: relative; margin-bottom: 1.5rem; }
+        .premium-loader-ring { position: absolute; width: 100%; height: 100%; border: 4px solid transparent; border-top-color: #10b981; border-radius: 50%; animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite; }
+        .premium-loader-ring:nth-child(2) { border-top-color: #6366f1; animation-delay: 0.15s; }
+        .premium-loader-ring:nth-child(3) { border-top-color: #ec4899; animation-delay: 0.3s; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-text { color: #10b981; font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 0.5rem; animation: pulse-text 2s ease-in-out infinite; }
+        .loader-subtext { color: #9ca3af; font-size: 13px; text-align: center; }
+        @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        /* Orbit Loader Alternative */
+        .orbit-loader { width: 60px; height: 60px; position: relative; margin-bottom: 1.5rem; }
+        .orbit-loader span { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #6366f1); top: 50%; left: 50%; margin: -6px 0 0 -6px; animation: orbit 1.5s ease-in-out infinite; }
+        .orbit-loader span:nth-child(1) { animation-delay: 0s; background: linear-gradient(135deg, #10b981, #34d399); }
+        .orbit-loader span:nth-child(2) { animation-delay: 0.2s; background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .orbit-loader span:nth-child(3) { animation-delay: 0.4s; background: linear-gradient(135deg, #ec4899, #f472b6); }
+        @keyframes orbit { 0% { transform: rotate(0deg) translateX(25px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(25px) rotate(-360deg); } }
+        
+        /* Chat Bubbles */
+        .chat-bubble { margin-bottom: 1rem; animation: slideInChat 0.3s ease-out; }
+        @keyframes slideInChat { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .chat-bubble-user { background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1)); border-left: 3px solid #10b981; padding: 0.75rem 1rem; border-radius: 0 12px 12px 0; }
+        .chat-bubble-ai { background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.1)); border-left: 3px solid #6366f1; padding: 0.75rem 1rem; border-radius: 0 12px 12px 0; margin-top: 0.5rem; }
+        .chat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .chat-label-user { color: #10b981; }
+        .chat-label-ai { color: #a78bfa; }
+        .chat-content { color: #e8e8e8; font-size: 14px; line-height: 1.6; }
+        
+        @media (max-width: 1024px) { .doc-split-container { grid-template-columns: 1fr; height: auto; } .doc-analyser-title { font-size: 1.25rem; } }
     </style>
 </head>
 <body>
@@ -108,7 +197,6 @@
                             <div class="stat-tile rounded-3xl p-4 text-slate-100">
                                 <p class="text-xs uppercase tracking-[0.35em] text-indigo-100/90">Repos</p>
                                 <p class="text-2xl font-semibold text-white">3</p>
-                                <p class="text-xs text-indigo-100/80">General • Fortius • Mubest</p>
                             </div>
                             <div class="stat-tile rounded-3xl p-4 text-slate-100">
                                 <p class="text-xs uppercase tracking-[0.35em] text-indigo-100/90">Documents</p>
@@ -194,6 +282,9 @@
                             <button onclick="switchTab('chat')" id="chatTab" class="tab-link">
                                 💬 Assistant
                             </button>
+                            <button id="docAnalyserTab" class="tab-link">
+                                📊 Doc Analyser
+                            </button>
                         </div>
 
                         <div class="mt-10">
@@ -202,7 +293,7 @@
                 <div class="max-w-2xl mx-auto">
                     <div class="mb-6">
                         <label class="block text-gray-700 text-sm font-semibold mb-2">Select Repo</label>
-                        <select id="uploadIndex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                        <select id="uploadIndex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-900">
                             <option value="general">General</option>
                             <option value="fortius">Fortius</option>
                             <option value="mubest">Mubest</option>
@@ -223,38 +314,98 @@
 
                     <div id="uploadStatus" class="mt-6"></div>
                 </div>
-            </div>
 
-            <div class="max-w-2xl mx-auto mt-10">
-                <div class="rounded-3xl border border-indigo-100 bg-white/95 shadow-[0_28px_60px_-40px_rgba(79,70,229,0.45)] p-6 space-y-5">
-                    <div>
-                        <h3 class="text-lg font-semibold text-slate-900">🌐 Ingest from URL</h3>
-                        <p class="text-sm text-slate-500 mt-1">
-                            Crawl a starting page and capture linked content within the same domain. Content is stored in the selected repo above.
-                        </p>
-                    </div>
-                    <div class="space-y-4">
+                <div class="max-w-2xl mx-auto mt-10">
+                    <div class="rounded-3xl border border-indigo-100 bg-white/95 shadow-[0_28px_60px_-40px_rgba(79,70,229,0.45)] p-6 space-y-5">
                         <div>
-                            <label class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold block mb-2">Starting URL</label>
-                            <input id="urlInput" type="url" placeholder="https://example.com/docs" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white placeholder:text-slate-400">
+                            <h3 class="text-lg font-semibold text-slate-900">🌐 Ingest from URL</h3>
+                            <p class="text-sm text-slate-500 mt-1">
+                                Crawl a starting page and capture linked content within the same domain. Content is stored in the selected repo above.
+                            </p>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-4">
                             <div>
-                                <label class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold block mb-2">Max Depth</label>
-                                <input id="urlDepth" type="number" min="0" max="3" value="1" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                                <label class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold block mb-2">Starting URL</label>
+                                <input id="urlInput" type="url" placeholder="https://example.com/docs" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white placeholder:text-slate-400">
                             </div>
-                            <div>
-                                <label class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold block mb-2">Max Pages</label>
-                                <input id="urlMaxPages" type="number" min="1" max="25" value="5" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold block mb-2">Max Depth</label>
+                                    <input id="urlDepth" type="number" min="0" max="3" value="1" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                                    <div class="mt-2 text-xs text-slate-500 space-y-1">
+                                        <div><span class="font-semibold text-slate-600">0</span> → Only the exact URL</div>
+                                        <div><span class="font-semibold text-indigo-600">1</span> → URL + linked pages <span class="text-indigo-500">(recommended)</span></div>
+                                        <div><span class="font-semibold text-slate-600">2+</span> → Goes deeper (slower, more pages)</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold block mb-2">Max Pages</label>
+                                    <input id="urlMaxPages" type="number" min="1" max="25" value="5" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <p class="text-xs text-slate-400 uppercase tracking-[0.3em]">Same-domain crawl · Respect rate limits</p>
+                                <button id="urlIngestBtn" onclick="ingestUrl()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-2xl transition">
+                                    Crawl &amp; Ingest
+                                </button>
+                            </div>
+                            <div id="urlStatus" class="text-sm" style="color: #10b981;"></div>
+                            
+                            <!-- Water Filling Animation for Crawl Progress -->
+                            <div id="crawlProgressContainer" class="hidden mt-6">
+                                <div class="relative w-full h-32 rounded-2xl overflow-hidden" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+                                    <!-- Water Container -->
+                                    <div id="waterFill" class="absolute bottom-0 left-0 w-full transition-all duration-1000 ease-out" style="height: 0%; background: linear-gradient(180deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.6));">
+                                        <!-- Wave Animation -->
+                                        <svg class="absolute top-0 left-0 w-full" style="height: 20px; transform: translateY(-50%);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                                            <path class="wave" fill="rgba(16, 185, 129, 0.4)" fill-opacity="1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+                                                <animate attributeName="d" dur="3s" repeatCount="indefinite"
+                                                    values="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+                                                    M0,128L48,144C96,160,192,192,288,192C384,192,480,160,576,144C672,128,768,128,864,144C960,160,1056,192,1152,192C1248,192,1344,160,1392,144L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+                                                    M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
+                                            </path>
+                                        </svg>
+                                        <!-- Second Wave (delayed) -->
+                                        <svg class="absolute top-0 left-0 w-full" style="height: 20px; transform: translateY(-50%); opacity: 0.5;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                                            <path class="wave" fill="rgba(16, 185, 129, 0.6)" fill-opacity="1" d="M0,128L48,144C96,160,192,192,288,192C384,192,480,160,576,144C672,128,768,128,864,144C960,160,1056,192,1152,192C1248,192,1344,160,1392,144L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z">
+                                                <animate attributeName="d" dur="4s" repeatCount="indefinite"
+                                                    values="M0,128L48,144C96,160,192,192,288,192C384,192,480,160,576,144C672,128,768,128,864,144C960,160,1056,192,1152,192C1248,192,1344,160,1392,144L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+                                                    M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z;
+                                                    M0,128L48,144C96,160,192,192,288,192C384,192,480,160,576,144C672,128,768,128,864,144C960,160,1056,192,1152,192C1248,192,1344,160,1392,144L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z" />
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    
+                                    <!-- Progress Text Overlay -->
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center z-10">
+                                        <div class="text-center">
+                                            <div class="flex items-center gap-3 mb-2">
+                                                <div class="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent"></div>
+                                                <span id="crawlProgressText" class="text-lg font-bold" style="color: #10b981;">Crawling...</span>
+                                            </div>
+                                            <div id="crawlProgressPercent" class="text-2xl font-black" style="color: #10b981;">0%</div>
+                                            <div id="crawlProgressDetails" class="text-xs mt-1" style="color: #6b7280;">Preparing...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Crawl Stats -->
+                                <div class="grid grid-cols-3 gap-3 mt-4">
+                                    <div class="text-center p-3 rounded-xl" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1);">
+                                        <div class="text-xs uppercase tracking-wider" style="color: #6b7280;">Pages</div>
+                                        <div id="crawlPagesCount" class="text-xl font-bold mt-1" style="color: #10b981;">0</div>
+                                    </div>
+                                    <div class="text-center p-3 rounded-xl" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1);">
+                                        <div class="text-xs uppercase tracking-wider" style="color: #6b7280;">Depth</div>
+                                        <div id="crawlDepthCount" class="text-xl font-bold mt-1" style="color: #10b981;">0</div>
+                                    </div>
+                                    <div class="text-center p-3 rounded-xl" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1);">
+                                        <div class="text-xs uppercase tracking-wider" style="color: #6b7280;">Status</div>
+                                        <div id="crawlStatusBadge" class="text-xl font-bold mt-1" style="color: #10b981;">🚀</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between gap-4">
-                            <p class="text-xs text-slate-400 uppercase tracking-[0.3em]">Same-domain crawl · Respect rate limits</p>
-                            <button id="urlIngestBtn" onclick="ingestUrl()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-2xl transition">
-                                Crawl &amp; Ingest
-                            </button>
-                        </div>
-                        <div id="urlStatus" class="text-sm"></div>
                     </div>
                 </div>
             </div>
@@ -264,7 +415,7 @@
                 <div class="mb-6 flex justify-between items-center">
                     <div>
                         <label class="text-gray-700 text-sm font-semibold mr-2">Repo:</label>
-                        <select id="browseIndex" onchange="loadDocuments()" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none">
+                        <select id="browseIndex" onchange="loadDocuments()" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none bg-white text-gray-900">
                             <option value="general">General</option>
                             <option value="fortius">Fortius</option>
                             <option value="mubest">Mubest</option>
@@ -315,50 +466,101 @@
                 </div>
             </div>
 
+            <!-- Doc Analyser Tab -->
+            <div id="docAnalyserContent" class="tab-content hidden"></div>
+
             <!-- Chat Tab -->
             <div id="chatContent" class="tab-content hidden">
                 <div class="max-w-3xl mx-auto">
                     <div class="mb-8 text-center md:text-left">
-                        <h2 class="text-2xl font-bold text-slate-900 mb-2">Investor Concierge</h2>
-                        <p class="text-slate-500">Habib synthesizes documents, decks, and live URLs into concise investor-grade answers.</p>
+                        <h2 class="text-2xl font-bold mb-2" style="color: #10b981;">Investor Concierge</h2>
+                        <p style="color: #6b7280;">Habib synthesizes documents, decks, and live URLs into concise investor-grade answers.</p>
                     </div>
 
-                    <div class="rounded-3xl border border-indigo-100/70 bg-white/95 shadow-[0_40px_80px_-50px_rgba(79,70,229,0.35)] p-6 space-y-6">
+                    <div class="rounded-3xl p-6 space-y-6" style="background: #1a1a1a; border: 1px solid rgba(16, 185, 129, 0.15); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div class="flex-1">
-                                <label class="block text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold mb-2">Repo Context</label>
-                                <select id="chatIndex" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 text-slate-800 bg-white">
+                                <label class="block text-xs uppercase tracking-[0.3em] font-semibold mb-2" style="color: #10b981;">Repo Context</label>
+                                <select id="chatIndex" class="w-full px-4 py-3 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none" style="border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(255,255,255,0.03); color: #d4d4d4;">
                                     <option value="general">General</option>
                                     <option value="fortius">Fortius</option>
                                     <option value="mubest">Mubest</option>
                                 </select>
                             </div>
-                            <button onclick="resetChatConversation()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 text-sm font-semibold hover:bg-white hover:border-indigo-200 transition">
+                            <button onclick="resetChatConversation()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition hover:opacity-80" style="border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); color: #10b981;">
                                 <span class="text-lg">🔁</span> Reset Conversation
                             </button>
                         </div>
 
-                        <div id="chatMessages" class="relative h-96 overflow-y-auto rounded-3xl border border-indigo-50 bg-gradient-to-br from-white via-indigo-50/20 to-rose-50/10 p-6 shadow-inner">
-                            <div id="chatPlaceholder" class="h-full flex items-center justify-center text-indigo-200/70 text-sm text-center px-4">
-                                Ask a question to get started. Your answers will reference the latest documents in the selected repo.
+                        <!-- AI Model Indicator -->
+                        <div class="flex items-center justify-between px-4 py-2.5 rounded-2xl shadow-sm" style="border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">
+                            <div class="flex items-center gap-2.5">
+                                <div class="flex items-center justify-center w-7 h-7 rounded-lg shadow-md" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:16px;height:16px;"></span>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-sm font-bold" style="color: #10b981;">Gemini 2.0 Flash</span>
+                                        <span class="text-xs font-medium px-1.5 py-0.5 rounded" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">Thinking</span>
+                                    </div>
+                                    <p class="text-xs mt-0.5" style="color: #6b7280;">Advanced AI Model</p>
+                                </div>
                             </div>
-                            <div id="typingIndicator" class="hidden absolute bottom-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-indigo-100 shadow-sm">
-                                <span class="typing-dot"></span>
-                                <span class="typing-dot"></span>
-                                <span class="typing-dot"></span>
-                                <span class="text-xs text-indigo-500 font-semibold uppercase tracking-[0.3em]">Habib is drafting</span>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #10b981;"></div>
+                                <span class="text-xs font-medium" style="color: #10b981;">Active</span>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <label for="chatInput" class="text-xs uppercase tracking-[0.3em] text-indigo-500 font-semibold">Your Question</label>
-                                <div id="chatStatus" class="text-xs text-indigo-500"></div>
+                        <div id="chatMessages" class="relative h-96 overflow-y-auto rounded-3xl p-6" style="border: 1px solid rgba(16, 185, 129, 0.1); background: #0f0f0f;">
+                            <div id="chatPlaceholder" class="h-full flex flex-col items-center justify-center text-center px-4">
+                                <div class="mb-6">
+                                    <div class="text-4xl mb-3">👋</div>
+                                    <h3 class="text-lg font-semibold mb-2" style="color: #10b981;">Welcome to Habib AI Assistant</h3>
+                                    <p class="text-sm max-w-md" style="color: #6b7280;">I can help you find properties based on your preferences. Just ask me anything!</p>
+                                </div>
+                                <div class="w-full max-w-md space-y-2">
+                                    <p class="text-xs uppercase tracking-wider font-semibold mb-3" style="color: #10b981;">Try asking:</p>
+                                    <button onclick="quickQuery('Show me 3 bedroom properties under $4000')" class="w-full text-left px-4 py-3 rounded-xl transition-all group hover:opacity-80" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-2xl">🏠</span>
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium" style="color: #d4d4d4;">Show me 3 bedroom properties under $4000</div>
+                                            </div>
+                                            <span style="color: #10b981;">→</span>
+                                        </div>
+                                    </button>
+                                    <button onclick="quickQuery('What properties are available near MRT stations?')" class="w-full text-left px-4 py-3 rounded-xl transition-all group hover:opacity-80" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-2xl">🚇</span>
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium" style="color: #d4d4d4;">What properties are available near MRT?</div>
+                                            </div>
+                                            <span style="color: #10b981;">→</span>
+                                        </div>
+                                    </button>
+                                    <button onclick="quickQuery('Show me condominiums for sale')" class="w-full text-left px-4 py-3 rounded-xl transition-all group hover:opacity-80" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2);">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-2xl">🏢</span>
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium" style="color: #d4d4d4;">Show me condominiums for sale</div>
+                                            </div>
+                                            <span style="color: #10b981;">→</span>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
-                            <textarea id="chatInput" rows="3" class="w-full px-4 py-3 border border-indigo-100 rounded-2xl focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/70 resize-none text-slate-800 bg-white placeholder:text-slate-400" placeholder="Ask anything about the documents in this repo..."></textarea>
-                            <div class="flex items-center justify-between gap-4">
-                                <p class="text-xs text-slate-400 uppercase tracking-[0.3em]">Powered by Gemini · Pinecone · Atlas IQ</p>
-                                <button id="chatSendBtn" onclick="sendChatMessage()" class="relative inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-2xl transition">
+                            <div id="typingIndicator" class="hidden absolute bottom-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full shadow-sm" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="text-xs font-semibold uppercase tracking-[0.3em]" style="color: #10b981;">Habib is drafting</span>
+                            </div>
+                        </div>
+                        <textarea id="chatInput" rows="3" class="w-full px-4 py-3 rounded-2xl focus:ring-2 focus:ring-emerald-500 resize-none outline-none" style="border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(255,255,255,0.03); color: #d4d4d4;" placeholder="Ask anything. Type @ for mentions and / for shortcuts."></textarea>
+                        <div class="flex items-center justify-between gap-4">
+                            <p class="text-xs uppercase tracking-[0.3em]" style="color: #6b7280;">Powered by Gemini · Pinecone · Atlas IQ</p>
+                            <button id="chatSendBtn" onclick="sendChatMessage()" class="relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-white font-semibold shadow-lg hover:opacity-90 transition" style="background: linear-gradient(135deg, #10b981, #059669);">
                                     <span class="send-label">Send</span>
                                     <span class="send-loader hidden h-5 w-5 rounded-full border-2 border-white/40 border-t-white animate-spin"></span>
                                     <span class="text-lg">↗</span>
@@ -368,7 +570,6 @@
                     </div>
                 </div>
             </div>
-                </div>
             </div>
         </main>
         <footer class="relative z-10 px-6 pb-12">
@@ -379,24 +580,283 @@
         </footer>
     </div>
 
+    <!-- Doc Analyser Fullscreen Mode -->
+    <div id="docAnalyserFullscreen" class="doc-analyser-fullscreen hidden">
+        <div class="doc-analyser-container">
+            <!-- Beautiful Header -->
+            <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #ec4899 100%); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span class="iconify" data-icon="fluent-emoji:bar-chart" style="width:48px;height:48px;filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></span>
+                    <div>
+                        <h1 style="font-size: 1.75rem; font-weight: 800; color: white; margin: 0; letter-spacing: -0.02em; text-shadow: 0 2px 8px rgba(0,0,0,0.15);">Document Analyser</h1>
+                        <p style="font-size: 0.875rem; color: rgba(255,255,255,0.95); margin: 0; font-weight: 500; margin-top: 0.25rem;">AI-powered insights for Excel, PDF, DOCX, and TXT files</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <button onclick="resetDocAnalyser()" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.625rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
+                        <span class="iconify" data-icon="fluent-emoji:counterclockwise-arrows-button" style="width:18px;height:18px;"></span>
+                        <span>New Document</span>
+                    </button>
+                    <button onclick="closeDocAnalyser()" style="background: rgba(236,72,153,0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.625rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.15);" onmouseover="this.style.background='rgba(236,72,153,0.4)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(236,72,153,0.3)'; this.style.transform='translateY(0)'">
+                        <span class="iconify" data-icon="fluent-emoji:cross-mark" style="width:18px;height:18px;"></span>
+                        <span>Close</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="doc-split-container" style="height: calc(100vh - 88px);">
+                <!-- Left Panel: AI Insights (40%) -->
+                <div class="doc-ai-insights-panel">
+                    <div class="ai-badge">
+                        <span class="iconify" data-icon="fluent-emoji:robot" style="width:14px;height:14px;"></span>
+                        <span>Active Analysis</span>
+                    </div>
+                    
+                    <div id="aiInsightsSection" class="insights-section hidden">
+                        <div class="insights-title">
+                            <span class="iconify" data-icon="fluent-emoji:light-bulb" style="width:14px;height:14px;"></span>
+                            <span>Key Insights</span>
+                        </div>
+                        <div id="aiInsightsList"></div>
+                    </div>
+                    
+                    <div id="aiAnalysisSummary" class="ai-analysis-summary">
+                        Upload a document to start AI-powered analysis. I'll provide insights, trends, and visualizations automatically.
+                    </div>
+                    
+                    <div id="aiChartsSection" class="hidden"></div>
+                    
+                    <div class="mt-4 pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                        <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none text-sm outline-none" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e5e5e5;" placeholder="Ask follow-up questions..."></textarea>
+                        <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold shadow-lg hover:shadow-xl transition disabled:opacity-50 hover:from-purple-500 hover:to-pink-500">
+                            Ask AI ↗
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Data Preview (70%) -->
+                <div class="doc-data-preview-panel">
+                    <!-- URL Input Section -->
+                    <div id="docUrlInputZone" class="mb-4 p-4 rounded-xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <span class="iconify" data-icon="fluent-emoji:globe-showing-americas" style="width:24px;height:24px;"></span>
+                            </div>
+                            <div class="flex-1">
+                                <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/article)" 
+                                       class="w-full px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm outline-none"
+                                       style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e5e5e5;"
+                                       onkeypress="if(event.key==='Enter') analyzeUrl()">
+                            </div>
+                            <button onclick="analyzeUrl()" class="flex-shrink-0 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-500 hover:to-pink-500 transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                                <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:18px;height:18px;"></span>
+                                <span>Analyze</span>
+                            </button>
+                        </div>
+                        <div class="mt-3 ml-9 flex items-start gap-2 rounded-lg px-3 py-2" style="background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.15);">
+                            <span class="iconify flex-shrink-0" data-icon="fluent-emoji:warning" style="width:14px;height:14px;margin-top:2px;color:#fb923c;"></span>
+                            <p class="text-xs" style="color: #fbbf24;">
+                                <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work.
+                            </p>
+                        </div>
+                        <p class="text-xs mt-2 ml-9" style="color: #737373;">Or upload a file below</p>
+                    </div>
+                    
+                    <div id="docUploadZone" class="border-2 border-dashed rounded-xl p-8 text-center hover:border-purple-500 transition cursor-pointer" style="border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);">
+                        <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                        <div class="text-5xl mb-4">📄</div>
+                        <p class="mb-2" style="color: #d4d4d4;">
+                            <span class="font-semibold cursor-pointer" style="color: #a855f7;" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
+                        </p>
+                        <p class="text-sm" style="color: #737373;">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
+                    </div>
+                    
+                    <div id="docPreviewHeader" class="hidden mt-6 flex items-center justify-between pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
+                        <div>
+                            <h3 class="font-semibold text-lg" id="docFileName" style="color: #e5e5e5;"></h3>
+                            <p class="text-xs text-slate-500 mt-1" id="docFileInfo"></p>
+                        </div>
+                        <button onclick="clearDocAnalysis()" class="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                    
+                    <div id="docPreviewContent" class="hidden" style="position: absolute; top: 80px; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // CACHE BUSTER - Version 2.1
+        console.log('🚀 JavaScript Loading - Version 2.1 - Main Site');
+        
         const API_BASE_URL = 'https://database-ingestion-production.up.railway.app/api';
         
         // Tab Switching
         function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('[id$="Tab"]').forEach(el => {
-                el.classList.remove('tab-active');
+            console.log('switchTab called with:', tab);
+            
+            // Special handling for Doc Analyser - open in new tab
+            if (tab === 'docAnalyser') {
+                window.open('doc-analyser.html', '_blank');
+                return;
+            }
+
+            try {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(el => {
+                    el.classList.add('hidden');
+                    console.log('Hiding:', el.id);
+                });
+                
+                // Remove active class from all tabs
+                document.querySelectorAll('[id$="Tab"]').forEach(el => {
+                    el.classList.remove('tab-active');
+                });
+                
+                // Show selected tab content
+                const contentEl = document.getElementById(tab + 'Content');
+                if (contentEl) {
+                    contentEl.classList.remove('hidden');
+                    console.log('Showing:', contentEl.id);
+                } else {
+                    console.error('Content element not found:', tab + 'Content');
+                }
+                
+                // Activate selected tab
+                const tabEl = document.getElementById(tab + 'Tab');
+                if (tabEl) {
+                    tabEl.classList.add('tab-active');
+                } else {
+                    console.error('Tab element not found:', tab + 'Tab');
+                }
+                
+                // Tab-specific actions
+                if (tab === 'browse') loadDocuments();
+                if (tab === 'indexes') loadIndexes();
+                if (tab === 'chat' && typeof chatInput !== 'undefined' && chatInput) {
+                    setTimeout(() => chatInput.focus(), 100);
+                }
+            } catch (error) {
+                console.error('Error in switchTab:', error);
+            }
+        }
+
+        function openDocAnalyserFullscreen() {
+            console.log('Opening Doc Analyser Fullscreen...');
+            
+            // Hide main content
+            const elementsToHide = ['.aurora', 'header', 'section', 'main', 'footer'];
+            elementsToHide.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.style.display = 'none';
+                }
             });
             
-            document.getElementById(tab + 'Content').classList.remove('hidden');
-            document.getElementById(tab + 'Tab').classList.add('tab-active');
-            
-            if (tab === 'browse') loadDocuments();
-            if (tab === 'indexes') loadIndexes();
-            if (tab === 'chat' && chatInput) {
-                setTimeout(() => chatInput.focus(), 100);
+            // Show fullscreen Doc Analyser
+            const fullscreenEl = document.getElementById('docAnalyserFullscreen');
+            if (fullscreenEl) {
+                fullscreenEl.classList.remove('hidden');
+                fullscreenEl.style.display = 'block';
+                console.log('Fullscreen element shown');
+            } else {
+                console.error('docAnalyserFullscreen element not found!');
             }
+            
+            // Mark tab as active
+            document.querySelectorAll('[id$="Tab"]').forEach(el => el.classList.remove('tab-active'));
+            const tabEl = document.getElementById('docAnalyserTab');
+            if (tabEl) tabEl.classList.add('tab-active');
+            
+            // Fetch model info
+            fetchModelInfo();
+        }
+
+        function closeDocAnalyser() {
+            console.log('Closing Doc Analyser...');
+            
+            // Show main content
+            const elementsToShow = ['.aurora', 'header', 'section', 'main', 'footer'];
+            elementsToShow.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.style.display = '';
+                }
+            });
+            
+            // Hide fullscreen Doc Analyser
+            const fullscreenEl = document.getElementById('docAnalyserFullscreen');
+            if (fullscreenEl) {
+                fullscreenEl.classList.add('hidden');
+                fullscreenEl.style.display = 'none';
+            }
+            
+            // Reset tab state
+            document.querySelectorAll('[id$="Tab"]').forEach(el => el.classList.remove('tab-active'));
+            const uploadTab = document.getElementById('uploadTab');
+            if (uploadTab) uploadTab.classList.add('tab-active');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const uploadContent = document.getElementById('uploadContent');
+            if (uploadContent) uploadContent.classList.remove('hidden');
+        }
+
+        function resetDocAnalyser() {
+            console.log('Resetting Doc Analyser...');
+            
+            // Clear file input
+            const docFileInput = document.getElementById('docAnalyserFileInput');
+            if (docFileInput) docFileInput.value = '';
+            
+            // Clear URL input
+            const urlInput = document.getElementById('docUrlInput');
+            if (urlInput) urlInput.value = '';
+            
+            // Clear question input
+            const questionInput = document.getElementById('docAnalyserQuestion');
+            if (questionInput) questionInput.value = '';
+            
+            // Hide preview sections
+            const previewHeader = document.getElementById('docPreviewHeader');
+            const previewContent = document.getElementById('docPreviewContent');
+            const uploadZone = document.getElementById('docUploadZone');
+            const urlZone = document.getElementById('docUrlInputZone');
+            
+            if (previewHeader) previewHeader.classList.add('hidden');
+            if (previewContent) {
+                previewContent.classList.add('hidden');
+                previewContent.innerHTML = '';
+            }
+            if (uploadZone) uploadZone.classList.remove('hidden');
+            if (urlZone) urlZone.classList.remove('hidden');
+            
+            // Reset AI analysis section
+            const aiAnalysisSummary = document.getElementById('aiAnalysisSummary');
+            if (aiAnalysisSummary) {
+                aiAnalysisSummary.innerHTML = 'Upload a document to start AI-powered analysis. I\'ll provide insights, trends, and visualizations automatically.';
+            }
+            
+            // Hide insights and charts
+            const insightsSection = document.getElementById('aiInsightsSection');
+            const chartsSection = document.getElementById('aiChartsSection');
+            if (insightsSection) insightsSection.classList.add('hidden');
+            if (chartsSection) {
+                chartsSection.classList.add('hidden');
+                chartsSection.innerHTML = '';
+            }
+            
+            // Clear insights list
+            const insightsList = document.getElementById('aiInsightsList');
+            if (insightsList) insightsList.innerHTML = '';
+            
+            // Reset conversation history
+            docConversationHistory = [];
+            
+            // Reset current doc data
+            currentDocData = null;
+            
+            console.log('Doc Analyser reset complete');
         }
 
         // Load available indexes on page load
@@ -485,7 +945,32 @@
 
             urlIngestBtn.disabled = true;
             urlIngestBtn.classList.add('opacity-70');
-            showStatus('urlStatus', 'loading', `Crawling ${url} (depth ${depth}, up to ${maxPages} pages)...`);
+            
+            // Show water filling animation
+            document.getElementById('urlStatus').innerHTML = '';
+            const progressContainer = document.getElementById('crawlProgressContainer');
+            progressContainer.classList.remove('hidden');
+            
+            // Initialize animation
+            document.getElementById('crawlProgressPercent').textContent = '0%';
+            document.getElementById('crawlProgressDetails').textContent = `Starting crawl of ${url}...`;
+            document.getElementById('crawlPagesCount').textContent = '0';
+            document.getElementById('crawlDepthCount').textContent = depth;
+            document.getElementById('crawlStatusBadge').textContent = '🌊';
+            document.getElementById('waterFill').style.height = '0%';
+            
+            // Simulate progressive water filling
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    document.getElementById('waterFill').style.height = progress + '%';
+                    document.getElementById('crawlProgressPercent').textContent = Math.floor(progress) + '%';
+                    document.getElementById('crawlProgressText').textContent = 'Analyzing pages...';
+                    document.getElementById('crawlProgressDetails').textContent = `Depth ${depth} · Max ${maxPages} pages`;
+                }
+            }, 500);
 
             try {
                 const response = await fetch(`${API_BASE_URL}/ingest-url`, {
@@ -501,15 +986,32 @@
                 });
 
                 const data = await response.json();
+                clearInterval(progressInterval);
+                
                 if (!response.ok || !data.success) {
                     throw new Error(data.error || 'URL ingestion failed');
                 }
 
-                const details = (data.details || []).map(page => `<div class="mt-2 text-xs text-slate-600">• ${page.title || page.url} (${page.chunks_created} chunks)</div>`).join('');
-                showStatus('urlStatus', 'success', `✓ Ingested ${data.pages_ingested} page(s), ${data.total_chunks} chunks created.${details}`);
+                // Complete the animation
+                document.getElementById('waterFill').style.height = '100%';
+                document.getElementById('crawlProgressPercent').textContent = '100%';
+                document.getElementById('crawlProgressText').textContent = 'Complete!';
+                document.getElementById('crawlPagesCount').textContent = data.pages_ingested || 0;
+                document.getElementById('crawlStatusBadge').textContent = '✅';
+                document.getElementById('crawlProgressDetails').textContent = `Ingested ${data.pages_ingested} page(s), ${data.total_chunks} chunks`;
+                
+                // Hide animation after 3 seconds
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                    const details = (data.details || []).map(page => `<div class="mt-2 text-xs text-slate-600">• ${page.title || page.url} (${page.chunks_created} chunks)</div>`).join('');
+                    showStatus('urlStatus', 'success', `✓ Ingested ${data.pages_ingested} page(s), ${data.total_chunks} chunks created.${details}`);
+                }, 3000);
+                
                 urlInput.value = '';
             } catch (error) {
+                clearInterval(progressInterval);
                 console.error('URL ingest error:', error);
+                progressContainer.classList.add('hidden');
                 showStatus('urlStatus', 'error', `Error: ${error.message}`);
             } finally {
                 urlIngestBtn.disabled = false;
@@ -785,7 +1287,29 @@
         }
 
         // Chat Functions
-        function appendChatBubble(role, text, sources = []) {
+        function parsePropertyCards(text, propertyImages) {
+            // Parse numbered properties (1. 2. 3. etc)
+            const propertyRegex = /(\d+)\.\s+(.+?)(?=\n\d+\.|$)/gs;
+            const properties = [];
+            let match;
+            
+            while ((match = propertyRegex.exec(text)) !== null) {
+                const propertyText = match[2].trim();
+                properties.push({
+                    number: match[1],
+                    text: propertyText
+                });
+            }
+            
+            // If we found numbered properties and have images, create cards
+            if (properties.length > 0 && propertyImages && propertyImages.length > 0) {
+                return { hasCards: true, properties, intro: text.split(/\d+\./)[0].trim() };
+            }
+            
+            return { hasCards: false };
+        }
+
+        function appendChatBubble(role, text, sources = [], propertyImages = []) {
             if (!chatMessages) return;
 
             if (chatPlaceholder) {
@@ -800,12 +1324,116 @@
             const roleClasses = role === 'user'
                 ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white shadow-xl rounded-br-2xl'
                 : 'bg-white/95 text-slate-900 ring-1 ring-indigo-100/70 shadow-[0_22px_45px_-28px_rgba(79,70,229,0.65)] rounded-bl-2xl';
-            bubble.className = `max-w-xl px-5 py-4 whitespace-pre-wrap rounded-3xl transition-all ${roleClasses}`;
+            bubble.className = `max-w-3xl px-5 py-4 rounded-3xl transition-all ${roleClasses}`;
 
-            const textEl = document.createElement('div');
-            textEl.className = 'text-sm leading-relaxed';
-            textEl.textContent = text;
-            bubble.appendChild(textEl);
+            // Try to parse property cards for assistant responses
+            if (role === 'assistant' && propertyImages && propertyImages.length > 0) {
+                const parsed = parsePropertyCards(text, propertyImages);
+                
+                if (parsed.hasCards) {
+                    // Show intro text
+                    if (parsed.intro) {
+                        const introEl = document.createElement('div');
+                        introEl.className = 'text-sm leading-relaxed mb-4';
+                        introEl.textContent = parsed.intro;
+                        bubble.appendChild(introEl);
+                    }
+                    
+                    // Create property cards
+                    const cardsContainer = document.createElement('div');
+                    cardsContainer.className = 'space-y-4';
+                    
+                    parsed.properties.forEach((property, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'flex gap-4 p-4 rounded-2xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 hover:shadow-xl hover:border-indigo-200 transition-all cursor-pointer';
+                        
+                        // Click entire card to open listing
+                        card.onclick = () => {
+                            if (propertyImages[index] && propertyImages[index].source_url) {
+                                window.open(propertyImages[index].source_url, '_blank');
+                            }
+                        };
+                        
+                        // Property image on the left
+                        if (propertyImages[index]) {
+                            const imageContainer = document.createElement('div');
+                            imageContainer.className = 'flex-shrink-0 w-36 h-36 rounded-xl overflow-hidden border-2 border-indigo-100 shadow-sm';
+                            
+                            const image = document.createElement('img');
+                            image.src = propertyImages[index].url;
+                            image.alt = 'Property Image';
+                            image.className = 'w-full h-full object-cover hover:scale-110 transition-transform duration-500';
+                            image.loading = 'lazy';
+                            
+                            image.onerror = function() {
+                                this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23e0e7ff" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="12" fill="%236366f1" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            };
+                            
+                            // Prevent double trigger from card onclick
+                            imageContainer.onclick = (e) => {
+                                e.stopPropagation();
+                                if (propertyImages[index].source_url) {
+                                    window.open(propertyImages[index].source_url, '_blank');
+                                }
+                            };
+                            
+                            imageContainer.appendChild(image);
+                            card.appendChild(imageContainer);
+                        }
+                        
+                        // Property details on the right
+                        const detailsContainer = document.createElement('div');
+                        detailsContainer.className = 'flex-1 text-sm';
+                        
+                        const headerRow = document.createElement('div');
+                        headerRow.className = 'flex items-center gap-2 mb-2';
+                        
+                        const propertyNumber = document.createElement('div');
+                        propertyNumber.className = 'inline-flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xs font-bold shadow-md';
+                        propertyNumber.textContent = property.number;
+                        headerRow.appendChild(propertyNumber);
+                        
+                        const viewBadge = document.createElement('div');
+                        viewBadge.className = 'ml-auto text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 font-semibold hover:bg-indigo-100 transition-colors';
+                        viewBadge.textContent = 'View Details →';
+                        headerRow.appendChild(viewBadge);
+                        
+                        detailsContainer.appendChild(headerRow);
+                        
+                        const propertyText = document.createElement('div');
+                        propertyText.className = 'text-slate-700 whitespace-pre-wrap leading-relaxed text-sm';
+                        
+                        // Parse and format property details with icons
+                        const formattedText = property.text
+                            .replace(/Price:/gi, '💰 Price:')
+                            .replace(/Type:/gi, '🏠 Type:')
+                            .replace(/Size:/gi, '📐 Size:')
+                            .replace(/Location:/gi, '📍 Location:')
+                            .replace(/MRT:/gi, '🚇 MRT:')
+                            .replace(/Built:/gi, '🏗️ Built:');
+                        
+                        propertyText.textContent = formattedText;
+                        detailsContainer.appendChild(propertyText);
+                        
+                        card.appendChild(detailsContainer);
+                        cardsContainer.appendChild(card);
+                    });
+                    
+                    bubble.appendChild(cardsContainer);
+                } else {
+                    // Fallback: regular text display
+                    const textEl = document.createElement('div');
+                    textEl.className = 'text-sm leading-relaxed whitespace-pre-wrap';
+                    textEl.textContent = text;
+                    bubble.appendChild(textEl);
+                }
+            } else {
+                // User message or assistant without images
+                const textEl = document.createElement('div');
+                textEl.className = 'text-sm leading-relaxed whitespace-pre-wrap';
+                textEl.textContent = text;
+                bubble.appendChild(textEl);
+            }
 
             const stamp = document.createElement('div');
             stamp.className = `mt-3 text-xs flex items-center gap-2 ${role === 'user' ? 'text-white/70' : 'text-slate-400'}`;
@@ -837,6 +1465,13 @@
             if (!chatStatus) return;
             chatStatus.className = 'text-sm text-indigo-500';
             chatStatus.textContent = '';
+        }
+
+        function quickQuery(query) {
+            if (chatInput) {
+                chatInput.value = query;
+                sendChatMessage();
+            }
         }
 
         function resetChatConversation(reason) {
@@ -907,7 +1542,8 @@
                 }
 
                 const assistantAnswer = data.answer || 'No response returned.';
-                appendChatBubble('assistant', assistantAnswer, data.sources || []);
+                const propertyImages = data.property_images || [];
+                appendChatBubble('assistant', assistantAnswer, data.sources || [], propertyImages);
                 chatHistoryTurns.push({ user: message, assistant: assistantAnswer });
                 if (chatHistoryTurns.length > 10) {
                     chatHistoryTurns = chatHistoryTurns.slice(-10);
@@ -948,6 +1584,978 @@
             
             element.innerHTML = `<div class="border ${colors[type]} p-4 rounded-lg fade-in">${message}</div>`;
         }
+
+        // Doc Analyser Functions
+        let currentDocData = null;
+        let docConversationHistory = [];
+
+        // Helper function to format error messages
+        function formatErrorMessage(errorMsg) {
+            const lowerMsg = errorMsg.toLowerCase();
+            
+            // Quota/Rate limit errors
+            if (lowerMsg.includes('quota') || lowerMsg.includes('429') || lowerMsg.includes('rate limit')) {
+                return '🚫 API quota limit reached. The Gemini AI service has reached its daily usage limit. Please try again later or contact support to increase your quota.';
+            }
+            
+            // Authentication errors
+            if (lowerMsg.includes('api key') || lowerMsg.includes('unauthorized') || lowerMsg.includes('401')) {
+                return '🔑 Authentication error. The API key is missing or invalid. Please check your configuration.';
+            }
+            
+            // Network errors
+            if (lowerMsg.includes('network') || lowerMsg.includes('fetch') || lowerMsg.includes('connection')) {
+                return '🌐 Network error. Please check your internet connection and try again.';
+            }
+            
+            // Timeout errors
+            if (lowerMsg.includes('timeout')) {
+                return '⏱️ Request timeout. The analysis is taking too long. Please try with a smaller file or try again later.';
+            }
+            
+            // File size errors
+            if (lowerMsg.includes('too large') || lowerMsg.includes('file size')) {
+                return '📁 File too large. Please upload a smaller file (recommended under 10MB).';
+            }
+            
+            // Generic Gemini API errors
+            if (lowerMsg.includes('gemini')) {
+                return '🤖 AI service error: ' + errorMsg + '. Please try again in a moment.';
+            }
+            
+            // Return original message if no match
+            return errorMsg;
+        }
+
+        const docAnalyserFileInput = document.getElementById('docAnalyserFileInput');
+        const docUploadZone = document.getElementById('docUploadZone');
+        const docPreviewHeader = document.getElementById('docPreviewHeader');
+        const docPreviewContent = document.getElementById('docPreviewContent');
+        const docAnalyserQuestion = document.getElementById('docAnalyserQuestion');
+        const docAnalyserSendBtn = document.getElementById('docAnalyserSendBtn');
+
+        if (docAnalyserFileInput) {
+            docAnalyserFileInput.addEventListener('change', handleDocAnalyserFile);
+        }
+
+        if (docUploadZone) {
+            docUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                docUploadZone.classList.add('border-indigo-400', 'bg-indigo-50');
+            });
+
+            docUploadZone.addEventListener('dragleave', () => {
+                docUploadZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+            });
+
+            docUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                docUploadZone.classList.remove('border-indigo-400', 'bg-indigo-50');
+                if (docAnalyserFileInput) {
+                    docAnalyserFileInput.files = e.dataTransfer.files;
+                    handleDocAnalyserFile();
+                }
+            });
+        }
+
+        if (docAnalyserQuestion) {
+            docAnalyserQuestion.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDocAnalyserQuestion();
+                }
+            });
+        }
+
+        async function fetchModelInfo() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                const modelNameEl = document.getElementById('docAnalyserModelName');
+                if (modelNameEl && data.embedding_model) {
+                    // Show the model being used
+                    modelNameEl.textContent = 'Gemini 2.0 Flash';
+                }
+            } catch (error) {
+                console.error('Error fetching model info:', error);
+            }
+        }
+
+        async function handleDocAnalyserFile() {
+            const file = docAnalyserFileInput.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileSize = formatFileSize(file.size);
+            const fileExt = fileName.split('.').pop().toLowerCase();
+
+            // Update UI
+            document.getElementById('docFileName').textContent = fileName;
+            document.getElementById('docFileInfo').textContent = `${fileSize} • ${fileExt.toUpperCase()}`;
+            docPreviewHeader.classList.remove('hidden');
+            docUploadZone.classList.add('hidden');
+            docPreviewContent.classList.remove('hidden');
+
+            // Show loading in preview
+            docPreviewContent.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-slate-600">Loading document...</p></div>';
+            
+            // Show premium loader in AI summary
+            document.getElementById('aiAnalysisSummary').innerHTML = `
+                <div class="premium-loader-container">
+                    <div class="orbit-loader">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="loader-text">Analyzing Document</div>
+                    <div class="loader-subtext">AI is processing your data...</div>
+                </div>
+            `;
+
+            try {
+                if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
+                    await handleExcelFile(file);
+                } else if (fileExt === 'pdf') {
+                    await handlePDFFile(file);
+                } else if (fileExt === 'txt') {
+                    await handleTextFile(file);
+                } else if (fileExt === 'docx' || fileExt === 'doc') {
+                    await handleDocxFile(file);
+                } else {
+                    throw new Error('Unsupported file format');
+                }
+            } catch (error) {
+                docPreviewContent.innerHTML = `<div class="text-red-600 text-center py-8">Error loading file: ${error.message}</div>`;
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400">⚠️ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function handleExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length > 0) {
+                        // Create Luckysheet container
+                        docPreviewContent.innerHTML = '<div id="luckysheet" style="width:100%; height:100%; position:absolute; top:0; left:0; right:0; bottom:0;"></div>';
+                        
+                        // Transform data to Luckysheet format
+                        const celldata = [];
+                        jsonData.forEach((row, rowIndex) => {
+                            row.forEach((cell, colIndex) => {
+                                if (cell !== undefined && cell !== null && cell !== '') {
+                                    celldata.push({
+                                        r: rowIndex,
+                                        c: colIndex,
+                                        v: {
+                                            v: cell,
+                                            m: String(cell),
+                                            ct: { fa: 'General', t: 'g' }
+                                        }
+                                    });
+                                }
+                            });
+                        });
+
+                        // Initialize Luckysheet
+                        setTimeout(() => {
+                            luckysheet.create({
+                                container: 'luckysheet',
+                                showinfobar: false,
+                                showsheetbar: false,
+                                showstatisticBar: false,
+                                enableAddRow: false,
+                                enableAddCol: false,
+                                userInfo: false,
+                                myFolderUrl: false,
+                                allowEdit: false,
+                                showToolbar: true,
+                                showsheetbarConfig: {
+                                    add: false,
+                                    menu: false,
+                                    sheet: true
+                                },
+                                data: [{
+                                    name: firstSheetName,
+                                    celldata: celldata,
+                                    row: jsonData.length,
+                                    column: Math.max(...jsonData.map(row => row.length))
+                                }],
+                                title: file.name,
+                                lang: 'en'
+                            });
+                        }, 100);
+
+                        // Store data for analysis
+                        currentDocData = {
+                            type: 'excel',
+                            data: jsonData,
+                            rows: jsonData.length - 1,
+                            columns: jsonData[0].length,
+                            headers: jsonData[0]
+                        };
+
+                        // Send to backend for AI analysis
+                        await analyzeDocument(file, 'excel', jsonData);
+                    }
+                } catch (error) {
+                    throw new Error('Failed to parse Excel file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function handlePDFFile(file) {
+            // Display PDF using iframe
+            const fileURL = URL.createObjectURL(file);
+            docPreviewContent.innerHTML = `<iframe src="${fileURL}" class="w-full h-full min-h-[500px] border-0 rounded-lg"></iframe>`;
+            
+            // Send to backend for analysis
+            await analyzeDocument(file, 'pdf');
+        }
+
+        async function handleTextFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                docPreviewContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm text-slate-700 bg-slate-50 p-4 rounded-lg">${text}</pre>`;
+                
+                currentDocData = {
+                    type: 'text',
+                    content: text
+                };
+
+                await analyzeDocument(file, 'text', text);
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleDocxFile(file) {
+            // For DOCX, we'll send to backend and display extracted text
+            docPreviewContent.innerHTML = '<div class="text-slate-600 text-center py-8">📄 DOCX file loaded. Use AI chat to analyze the content.</div>';
+            await analyzeDocument(file, 'docx');
+        }
+
+        async function analyzeDocument(file, fileType, parsedData = null) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('file_type', fileType);
+            
+            if (fileType === 'excel' && parsedData) {
+                formData.append('excel_data', JSON.stringify({
+                    rows: parsedData.length - 1,
+                    columns: parsedData[0].length,
+                    headers: parsedData[0],
+                    sample_data: parsedData.slice(1, 6)
+                }));
+            } else if (fileType === 'text' && parsedData) {
+                formData.append('text_content', parsedData);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayAnalysis(data.analysis, data.data_summary);
+                    docConversationHistory = [];
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400 text-sm">⚠️ ${errorMessage}</div>`;
+            }
+        }
+
+        function displayAnalysis(analysis, dataSummary = null) {
+            // Extract summary and insights
+            const lines = analysis.split('\n');
+            let summary = '';
+            let insights = [];
+            let chartSuggestions = [];
+            let inInsights = false;
+            let inCharts = false;
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                // Check for chart suggestions section
+                if (line.match(/suggested charts/i) || line.match(/chart.*suggestions/i)) {
+                    inCharts = true;
+                    inInsights = false;
+                    continue;
+                }
+                
+                // Check if we're in insights section
+                if (line.match(/key insights|insights|observations|findings/i) && line.includes(':')) {
+                    inInsights = true;
+                    continue;
+                }
+                
+                // Extract chart suggestions
+                if (inCharts && (line.includes('Chart') || line.includes('Plot'))) {
+                    chartSuggestions.push(line);
+                }
+                // Extract bullet points as insights
+                else if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*') || line.match(/^\d+\./)) {
+                    insights.push(line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''));
+                } else if (!inInsights && !inCharts && insights.length === 0) {
+                    summary += line + ' ';
+                }
+            }
+            
+            // Update summary
+            document.getElementById('aiAnalysisSummary').textContent = summary || "I've analyzed your data. Here's what I found:";
+            
+            // Update insights
+            if (insights.length > 0) {
+                document.getElementById('aiInsightsSection').classList.remove('hidden');
+                const insightsList = document.getElementById('aiInsightsList');
+                insightsList.innerHTML = insights.map(insight => {
+                    // Highlight numbers in insights
+                    const highlighted = insight.replace(/(\$?[\d,]+\.?\d*%?)/g, '<strong>$1</strong>');
+                    return `<div class="insight-item">${highlighted}</div>`;
+                }).join('');
+            }
+            
+            // Show chart suggestions as buttons
+            if (chartSuggestions.length > 0 && dataSummary && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
+                const chartsSection = document.getElementById('aiChartsSection');
+                chartsSection.classList.remove('hidden');
+                chartsSection.innerHTML = `
+                    <div style="margin-top: 2rem;">
+                        <div class="insights-title">
+                            <span class="iconify" data-icon="fluent-emoji:bar-chart" style="width:20px;height:20px;display:inline;"></span>
+                            <span>Recommended Visualizations</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                            ${chartSuggestions.map((suggestion, index) => {
+                                const chartType = suggestion.match(/(Pie|Line|Bar|Scatter)\s+Chart/i)?.[0] || 'Chart';
+                                return `
+                                    <button onclick="generateSpecificChart('${chartType.toLowerCase()}')" 
+                                            class="px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+                                        <span class="iconify" data-icon="fluent-emoji:plus" style="width:18px;height:18px;"></span>
+                                        <span>Generate ${chartType}</span>
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        <div style="color: #6b7280; font-size: 11px; margin-top: 1rem; font-style: italic;">
+                            Click a button to create the visualization
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+        
+        function generateSpecificChart(chartType) {
+            if (!currentDocData || !currentDocData.data) {
+                alert('No data available for chart generation');
+                return;
+            }
+            
+            const chartsSection = document.getElementById('aiChartsSection');
+            chartsSection.innerHTML = '<div style="color:#10b981;margin:1rem 0;">Generating chart...</div>';
+            
+            setTimeout(() => {
+                if (chartType.includes('pie')) {
+                    generateCharts(currentDocData.data, {}, 'pie');
+                } else if (chartType.includes('line')) {
+                    generateCharts(currentDocData.data, {}, 'line');
+                } else if (chartType.includes('bar')) {
+                    generateCharts(currentDocData.data, {}, 'bar');
+                }
+            }, 300);
+        }
+        
+        function generateCharts(data, summary, forceType = null) {
+            const chartsSection = document.getElementById('aiChartsSection');
+            chartsSection.classList.remove('hidden');
+            chartsSection.innerHTML = '';
+            
+            // Validate data is an array
+            if (!data || !Array.isArray(data) || data.length < 2) {
+                console.log('Invalid data for chart generation:', data);
+                return;
+            }
+            
+            const headers = data[0];
+            const rows = data.slice(1);
+            
+            // Find numeric columns for charts
+            const numericCols = [];
+            for (let i = 0; i < headers.length; i++) {
+                const values = rows.map(row => row[i]).filter(v => v !== null && v !== '');
+                const numericValues = values.filter(v => !isNaN(parseFloat(v)));
+                if (numericValues.length / values.length > 0.7) {
+                    numericCols.push({index: i, name: headers[i], values: values.map(v => parseFloat(v) || 0)});
+                }
+            }
+            
+            // Find categorical column (first non-numeric column)
+            let categoryCol = null;
+            for (let i = 0; i < headers.length; i++) {
+                const values = rows.map(row => row[i]).filter(v => v !== null && v !== '');
+                const numericValues = values.filter(v => !isNaN(parseFloat(v)));
+                if (numericValues.length / values.length < 0.3) {
+                    categoryCol = {index: i, name: headers[i], values: values};
+                    break;
+                }
+            }
+            
+            // Find Region column for regional distribution pie chart
+            const regionColIndex = headers.findIndex(h => h && h.toLowerCase().includes('region'));
+            const categoryColIndex = headers.findIndex(h => h && (h.toLowerCase().includes('category') || h.toLowerCase().includes('product')));
+            
+            // Generate PIE CHART for Regional Distribution
+            if ((forceType === 'pie' || !forceType) && regionColIndex >= 0 && numericCols.length > 0) {
+                const regionData = {};
+                rows.forEach(row => {
+                    const region = row[regionColIndex];
+                    const value = parseFloat(row[numericCols[0].index]) || 0;
+                    regionData[region] = (regionData[region] || 0) + value;
+                });
+                
+                createPieChart('regionPieChart', 'Sales by Region', regionData, 
+                    'Distribution of total sales across different regions. Identifies best performing regions.');
+            }
+            
+            // Generate PIE CHART for Category Distribution
+            if ((forceType === 'pie' || !forceType) && categoryColIndex >= 0 && numericCols.length > 0 && categoryColIndex !== regionColIndex) {
+                const categoryData = {};
+                rows.forEach(row => {
+                    const category = row[categoryColIndex];
+                    const value = parseFloat(row[numericCols[0].index]) || 0;
+                    categoryData[category] = (categoryData[category] || 0) + value;
+                });
+                
+                createPieChart('categoryPieChart', 'Sales by Category', categoryData,
+                    'Distribution of total sales across product categories. Shows the most popular categories.');
+            }
+            
+            // Generate trend chart if we have quarters or time periods
+            if ((forceType === 'line' || !forceType) && categoryCol && (categoryCol.name.toLowerCase().includes('quarter') || categoryCol.name.toLowerCase().includes('q'))) {
+                const chartId = 'trendChart';
+                chartsSection.innerHTML += `
+                    <div class="chart-container">
+                        <div class="chart-title"><span class="iconify" data-icon="fluent-emoji:chart-increasing" style="width:18px;height:18px;display:inline;margin-right:4px;"></span>Quarterly Growth Trend</div>
+                        <div id="${chartId}" style="width: 100%; height: 280px;"></div>
+                        <div class="chart-caption">Consistent upward trend showing healthy business growth. Q4 shows strongest performance.</div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    const chartElement = document.getElementById(chartId);
+                    if (chartElement && numericCols.length > 0) {
+                        const chart = echarts.init(chartElement);
+                        const option = {
+                            backgroundColor: 'transparent',
+                            tooltip: {
+                                trigger: 'axis',
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                borderColor: '#10b981',
+                                textStyle: {color: '#fff'}
+                            },
+                            grid: {
+                                left: '3%',
+                                right: '4%',
+                                bottom: '3%',
+                                containLabel: true
+                            },
+                            xAxis: {
+                                type: 'category',
+                                data: categoryCol.values,
+                                axisLine: {lineStyle: {color: 'rgba(255,255,255,0.2)'}},
+                                axisLabel: {color: '#9ca3af'}
+                            },
+                            yAxis: {
+                                type: 'value',
+                                splitLine: {lineStyle: {color: 'rgba(255,255,255,0.1)'}},
+                                axisLine: {lineStyle: {color: 'rgba(255,255,255,0.2)'}},
+                                axisLabel: {color: '#9ca3af'}
+                            },
+                            series: [{
+                                name: numericCols[0].name,
+                                type: 'line',
+                                smooth: true,
+                                symbol: 'circle',
+                                symbolSize: 8,
+                                lineStyle: {color: '#10b981', width: 3},
+                                itemStyle: {color: '#10b981'},
+                                areaStyle: {
+                                    color: {
+                                        type: 'linear',
+                                        x: 0, y: 0, x2: 0, y2: 1,
+                                        colorStops: [
+                                            {offset: 0, color: 'rgba(16, 185, 129, 0.4)'},
+                                            {offset: 1, color: 'rgba(16, 185, 129, 0.05)'}
+                                        ]
+                                    }
+                                },
+                                data: numericCols[0].values
+                            }]
+                        };
+                        chart.setOption(option);
+                        window.addEventListener('resize', () => chart.resize());
+                        lucide.createIcons();
+                    }
+                }, 150);
+            }
+        }
+        
+        function createPieChart(chartId, title, data, caption) {
+            const chartsSection = document.getElementById('aiChartsSection');
+            
+            // Sort by value and take top 5, aggregate rest as "Others"
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            const top5 = sorted.slice(0, 5);
+            const others = sorted.slice(5);
+            
+            let labels = top5.map(([key]) => key);
+            let values = top5.map(([, val]) => val);
+            
+            // Add "Others" if there are more categories
+            if (others.length > 0) {
+                const othersSum = others.reduce((sum, [, val]) => sum + val, 0);
+                labels.push('Others');
+                values.push(othersSum);
+            }
+            
+            const colors = [
+                '#10b981', '#6366f1', '#ec4899', '#fbbf24', 
+                '#8b5cf6', '#94a3b8'
+            ];
+            
+            chartsSection.innerHTML += `
+                <div class="chart-container">
+                    <div class="chart-title"><span class="iconify" data-icon="fluent-emoji:pie-chart" style="width:18px;height:18px;display:inline;margin-right:4px;"></span>${title}</div>
+                    <div id="${chartId}" style="width: 100%; height: 320px;"></div>
+                    <div class="chart-caption">${caption}</div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const chartElement = document.getElementById(chartId);
+                if (chartElement) {
+                    const chart = echarts.init(chartElement);
+                    const total = values.reduce((a, b) => a + b, 0);
+                    const pieData = labels.map((label, index) => ({
+                        name: label,
+                        value: values[index]
+                    }));
+                    
+                    const option = {
+                        backgroundColor: 'transparent',
+                        tooltip: {
+                            trigger: 'item',
+                            backgroundColor: 'rgba(0,0,0,0.9)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            textStyle: {color: '#fff', fontSize: 12},
+                            formatter: '{b}: {c} ({d}%)'
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            right: '5%',
+                            top: 'center',
+                            textStyle: {color: '#9ca3af', fontSize: 12},
+                            itemWidth: 14,
+                            itemHeight: 14,
+                            itemGap: 12,
+                            formatter: function(name) {
+                                return name.length > 15 ? name.substring(0, 12) + '...' : name;
+                            }
+                        },
+                        series: [{
+                            type: 'pie',
+                            radius: ['50%', '75%'],
+                            center: ['35%', '50%'],
+                            avoidLabelOverlap: true,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: 'rgba(26,26,26,0.8)',
+                                borderWidth: 3
+                            },
+                            label: {
+                                show: false
+                            },
+                            emphasis: {
+                                label: {
+                                    show: true,
+                                    fontSize: 18,
+                                    fontWeight: 'bold',
+                                    color: '#fff',
+                                    formatter: '{d}%'
+                                },
+                                itemStyle: {
+                                    shadowBlur: 15,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.7)'
+                                },
+                                scale: true,
+                                scaleSize: 10
+                            },
+                            data: pieData,
+                            color: colors
+                        }]
+                    };
+                    chart.setOption(option);
+                    window.addEventListener('resize', () => chart.resize());
+                    lucide.createIcons();
+                }
+            }, 200);
+        }
+        
+        function clearCharts() {
+            const chartsSection = document.getElementById('aiChartsSection');
+            if (chartsSection) {
+                chartsSection.innerHTML = '';
+                chartsSection.classList.add('hidden');
+            }
+            document.getElementById('aiInsightsSection').classList.add('hidden');
+            document.getElementById('aiAnalysisSummary').textContent = 'Upload a document to start AI-powered analysis. I\'ll provide insights, trends, and visualizations automatically.';
+        }
+
+        async function sendDocAnalyserQuestion() {
+            const question = docAnalyserQuestion.value.trim();
+            if (!question || !currentDocData) {
+                return;
+            }
+
+            // Disable button and show loading
+            docAnalyserSendBtn.disabled = true;
+            docAnalyserSendBtn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+            // Show user question with loading in chat bubbles
+            document.getElementById('aiAnalysisSummary').innerHTML = `
+                <div class="chat-bubble">
+                    <div class="chat-label chat-label-user">You</div>
+                    <div class="chat-bubble-user">
+                        <div class="chat-content">${question}</div>
+                    </div>
+                </div>
+                <div class="chat-bubble">
+                    <div class="chat-label chat-label-ai">AI</div>
+                    <div class="chat-bubble-ai">
+                        <div class="loading-dots"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+            `;
+
+            docAnalyserQuestion.value = '';
+
+            try {
+                // Check if user wants chart
+                const wantsChart = question.toLowerCase().includes('chart') || 
+                                  question.toLowerCase().includes('graph') ||
+                                  question.toLowerCase().includes('visualiz') ||
+                                  question.toLowerCase().includes('pie') ||
+                                  question.toLowerCase().includes('plot') ||
+                                  question.toLowerCase().includes('show');
+                
+                // If wants chart, skip API and generate directly
+                if (wantsChart && currentDocData && currentDocData.type === 'excel' && currentDocData.data) {
+                    // Determine chart type
+                    let chartType = 'pie';
+                    if (question.toLowerCase().includes('line')) chartType = 'line';
+                    if (question.toLowerCase().includes('bar')) chartType = 'bar';
+                    
+                    // Display immediate response with loader in chat bubbles
+                    document.getElementById('aiAnalysisSummary').innerHTML = `
+                        <div class="chat-bubble">
+                            <div class="chat-label chat-label-user">You</div>
+                            <div class="chat-bubble-user">
+                                <div class="chat-content">${question}</div>
+                            </div>
+                        </div>
+                        <div class="chat-bubble">
+                            <div class="chat-label chat-label-ai">AI</div>
+                            <div class="chat-bubble-ai">
+                                <div class="chat-content flex items-center gap-2">
+                                    <span>Generating ${chartType} chart</span>
+                                    <div class="loading-dots"><span></span><span></span><span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Generate chart
+                    setTimeout(() => {
+                        generateCharts(currentDocData.data, {}, chartType);
+                    }, 500);
+                    
+                    docConversationHistory.push({
+                        user: question,
+                        assistant: `Generated ${chartType} chart for you.`
+                    });
+                } else {
+                    // Regular question - call API
+                    const formData = new FormData();
+                    formData.append('question', question);
+                    formData.append('file_type', currentDocData.type);
+                    formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                    
+                    if (currentDocData.type === 'excel') {
+                        formData.append('excel_data', JSON.stringify(currentDocData.data));
+                    } else if (currentDocData.type === 'text') {
+                        formData.append('text_content', currentDocData.content);
+                    }
+
+                    const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success && data.answer) {
+                        // Display chat thread in bubbles
+                        document.getElementById('aiAnalysisSummary').innerHTML = `
+                            <div class="chat-bubble">
+                                <div class="chat-label chat-label-user">You</div>
+                                <div class="chat-bubble-user">
+                                    <div class="chat-content">${question}</div>
+                                </div>
+                            </div>
+                            <div class="chat-bubble">
+                                <div class="chat-label chat-label-ai">AI</div>
+                                <div class="chat-bubble-ai">
+                                    <div class="chat-content">${data.answer}</div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        docConversationHistory.push({
+                            user: question,
+                            assistant: data.answer
+                        });
+                    } else {
+                        throw new Error(data.error || 'Failed to get answer');
+                    }
+                }
+            } catch (error) {
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div class="text-red-400 text-sm">⚠️ Error: ${errorMessage}</div>`;
+            } finally {
+                docAnalyserSendBtn.disabled = false;
+                docAnalyserSendBtn.textContent = 'Ask AI ↗';
+            }
+        }
+
+        async function analyzeUrl() {
+            const urlInput = document.getElementById('docUrlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            // Basic URL validation
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL (e.g., https://example.com)');
+                return;
+            }
+            
+            // Show loading
+            docUploadZone.classList.add('hidden');
+            docPreviewHeader.classList.remove('hidden');
+            docPreviewContent.classList.remove('hidden');
+            
+            document.getElementById('docFileName').textContent = url;
+            document.getElementById('docFileInfo').textContent = 'Web Page';
+            
+            // Show premium loader
+            document.getElementById('aiAnalysisSummary').innerHTML = `
+                <div class="premium-loader-container">
+                    <div class="orbit-loader">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="loader-text">Fetching Web Content</div>
+                    <div class="loader-subtext">AI is analyzing the webpage...</div>
+                </div>
+            `;
+            
+            // Display webpage in iframe
+            docPreviewContent.innerHTML = `<iframe src="${url}" class="w-full h-full min-h-[600px] border-0 rounded-lg bg-white" style="position:absolute;top:0;left:0;right:0;bottom:0;"></iframe>`;
+            
+            try {
+                // Send URL to backend for analysis
+                const formData = new FormData();
+                formData.append('url', url);
+                formData.append('file_type', 'url');
+                
+                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.analysis) {
+                    currentDocData = {
+                        type: 'url',
+                        url: url,
+                        content: data.text_content || ''
+                    };
+                    
+                    displayAnalysis(data.analysis, data.summary);
+                } else {
+                    throw new Error(data.error || 'Failed to analyze URL');
+                }
+            } catch (error) {
+                let errorMessage = error.message || 'Unknown error occurred';
+                let helpText = 'Please try a different URL.';
+                let showUploadButton = false;
+                
+                if (errorMessage.includes('403') || errorMessage.includes('blocked') || errorMessage.includes('Forbidden')) {
+                    errorMessage = '🔒 Website Blocked Access';
+                    helpText = 'This website has anti-bot protection and cannot be accessed directly.';
+                    showUploadButton = true;
+                } else if (errorMessage.includes('404')) {
+                    errorMessage = '❌ Page Not Found';
+                    helpText = 'The URL doesn\'t exist. Please check the link and try again.';
+                } else if (errorMessage.includes('timeout')) {
+                    errorMessage = '⏱️ Request Timeout';
+                    helpText = 'The website took too long to respond. Try again later.';
+                }
+                
+                document.getElementById('aiAnalysisSummary').innerHTML = `
+                    <div class="premium-loader-container" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); border-color: rgba(239, 68, 68, 0.3);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <div class="loader-text" style="color: #ef4444;">${errorMessage}</div>
+                        <div class="loader-subtext">${helpText}</div>
+                        ${showUploadButton ? `
+                            <div style="margin-top: 1.5rem;">
+                                <div style="color: #10b981; font-size: 14px; font-weight: 600; margin-bottom: 0.5rem;">💡 Alternative Solution:</div>
+                                <div style="color: #9ca3af; font-size: 12px; margin-bottom: 1rem;">Upload content via our main chat interface for AI analysis</div>
+                                <button onclick="switchTab('chat')" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-teal-500 transition shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto">
+                                    <span class="iconify" data-icon="fluent-emoji:upload-button" style="width:20px;height:20px;"></span>
+                                    <span>Go to Upload Tab</span>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                lucide.createIcons();
+                
+                docPreviewContent.innerHTML = `
+                    <div class="flex items-center justify-center h-full p-8">
+                        <div class="text-center max-w-md">
+                            <div class="text-6xl mb-4">🚫</div>
+                            <p class="text-red-600 font-semibold mb-2 text-lg">Failed to Load Webpage</p>
+                            <p class="text-slate-600 text-sm mb-6">${helpText}</p>
+                            
+                            ${showUploadButton ? `
+                                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
+                                    <div class="flex items-start gap-3">
+                                        <div class="text-2xl">💡</div>
+                                        <div class="text-left">
+                                            <div class="font-semibold text-emerald-700 mb-1">Recommended Solution</div>
+                                            <div class="text-sm text-emerald-600 mb-3">
+                                                Save this webpage locally, then upload the file in our main chat tab. 
+                                                You'll get the same AI-powered analysis without restrictions!
+                                            </div>
+                                            <button onclick="switchTab('chat')" class="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-teal-500 transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+                                                <span class="iconify" data-icon="fluent-emoji:speech-balloon" style="width:22px;height:22px;"></span>
+                                                <span>Switch to Chat & Upload</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-slate-500 italic">
+                                    Or try a different URL (news articles usually work)
+                                </div>
+                            ` : `
+                                <button onclick="document.getElementById('docUrlInput').focus()" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-500 transition shadow-lg">
+                                    Try Another URL
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+        
+        function clearDocAnalysis() {
+            // Destroy Luckysheet if it exists
+            if (window.luckysheet && luckysheet.destroy) {
+                try {
+                    luckysheet.destroy();
+                } catch (e) {
+                    console.log('Luckysheet destroy error:', e);
+                }
+            }
+            
+            docAnalyserFileInput.value = '';
+            document.getElementById('docUrlInput').value = '';
+            docUploadZone.classList.remove('hidden');
+            docPreviewHeader.classList.add('hidden');
+            docPreviewContent.classList.add('hidden');
+            docPreviewContent.innerHTML = '';
+            clearCharts();
+            currentDocData = null;
+            docConversationHistory = [];
+            docAnalyserQuestion.value = '';
+        }
+        
+        // Initialize Lucide Icons and AOS on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide Icons
+            lucide.createIcons();
+            
+            // Initialize AOS (Animate On Scroll)
+            AOS.init({
+                duration: 800,
+                easing: 'ease-out',
+                once: true,
+                offset: 100
+            });
+            
+            // Add event listeners to all tab buttons as backup
+            const tabButtons = {
+                'uploadTab': 'upload',
+                'browseTab': 'browse',
+                'indexesTab': 'indexes',
+                'chatTab': 'chat',
+                'docAnalyserTab': 'docAnalyser'
+            };
+            
+            Object.keys(tabButtons).forEach(buttonId => {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Button clicked:', buttonId, '-> switching to:', tabButtons[buttonId]);
+                        switchTab(tabButtons[buttonId]);
+                    });
+                    console.log('✓ Event listener added to:', buttonId);
+                } else {
+                    console.warn('✗ Button not found:', buttonId);
+                }
+            });
+            
+            console.log('✨ UI Libraries loaded: Lucide Icons, Apache ECharts, DaisyUI, AOS');
+            console.log('✨ Tab event listeners initialized');
+        });
     </script>
 </body>
 </html>
