@@ -465,6 +465,10 @@
         function formatErrorMessage(errorMsg) {
             const lowerMsg = errorMsg.toLowerCase();
             
+            // Check for backend offline/server errors first
+            if (lowerMsg.includes('server error') || lowerMsg.includes('backend may be offline')) {
+                return '🔌 Backend server is offline or restarting. Please try again in a moment.';
+            }
             if (lowerMsg.includes('quota') || lowerMsg.includes('429') || lowerMsg.includes('rate limit')) {
                 return '🚫 API quota limit reached. Please try again later.';
             }
@@ -670,6 +674,16 @@
                     body: formData
                 });
 
+                // Check content type before parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline or restarting');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
@@ -679,6 +693,7 @@
                     throw new Error(data.error || 'Analysis failed');
                 }
             } catch (error) {
+                console.error('Analysis error:', error.message);
                 const errorMessage = formatErrorMessage(error.message);
                 document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
             }
@@ -735,6 +750,16 @@
                     method: 'POST',
                     body: formData
                 });
+
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline or restarting');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
 
                 const data = await response.json();
 
@@ -795,6 +820,16 @@
                     method: 'POST',
                     body: formData
                 });
+                
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline or restarting');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 
                 const data = await response.json();
                 
