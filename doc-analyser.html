@@ -50,6 +50,111 @@
             padding: 1rem;
             border-radius: 8px;
         }
+        
+        /* Elegant Loaders */
+        .elegant-loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(16, 185, 129, 0.1);
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Pulse Loader for AI Analysis */
+        .pulse-loader {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .pulse-loader span {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse-dot 1.4s ease-in-out infinite;
+        }
+        
+        .pulse-loader span:nth-child(1) { animation-delay: 0s; }
+        .pulse-loader span:nth-child(2) { animation-delay: 0.2s; }
+        .pulse-loader span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes pulse-dot {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        /* Skeleton Loader */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 25%, rgba(16, 185, 129, 0.15) 50%, rgba(16, 185, 129, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Scanning Line Loader */
+        .scanning-loader {
+            position: relative;
+            width: 100%;
+            height: 4px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .scanning-loader::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            animation: scan 2s ease-in-out infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(300%); }
+        }
+        
+        /* Loading State Container */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2rem;
+            gap: 1.5rem;
+            background: rgba(16, 185, 129, 0.02);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+        }
+        
+        .loading-text {
+            color: #10b981;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .loading-subtext {
+            color: #6b7280;
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: -0.75rem;
+        }
     </style>
 </head>
 <body>
@@ -62,7 +167,32 @@
                 <p style="font-size: 0.875rem; color: #6b7280; margin: 0;">AI-powered analysis for Excel, PDF, DOCX, and TXT files</p>
             </div>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <!-- Model Selector -->
+            <div style="position: relative;">
+                <button id="docModelBtn" onclick="toggleDocModelDropdown()" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(16, 185, 129, 0.08); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(16, 185, 129, 0.15)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.08)'">
+                    <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:16px;height:16px;"></span>
+                    <span id="docCurrentModelName">Gemini 2.5 Flash</span>
+                    <span class="iconify" data-icon="ph:caret-down" style="width:14px;height:14px;"></span>
+                </button>
+                
+                <!-- Dropdown -->
+                <div id="docModelDropdown" class="hidden" style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; width: 280px; background: #1a1a1a; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 1000; overflow: hidden;">
+                    <div style="padding: 0.5rem; border-bottom: 1px solid rgba(16, 185, 129, 0.1);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(16, 185, 129, 0.05); border-radius: 6px;">
+                            <span class="iconify" data-icon="ph:magnifying-glass" style="width:14px;height:14px;color:#6b7280;"></span>
+                            <input type="text" id="docModelSearch" placeholder="Search models" style="background: transparent; border: none; outline: none; color: #d4d4d4; font-size: 0.875rem; width: 100%;">
+                        </div>
+                    </div>
+                    <div id="docModelList" style="max-height: 320px; overflow-y: auto;">
+                        <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                            <div class="elegant-loader" style="margin: 0 auto 0.75rem;"></div>
+                            <p style="font-size: 0.875rem;">Loading models...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <button onclick="resetDocument()" style="background: rgba(16, 185, 129, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'">
                 <span class="iconify" data-icon="fluent-emoji:counterclockwise-arrows-button" style="width:16px;height:16px;"></span>
                 New Document
@@ -147,8 +277,137 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        const API_BASE_URL = 'https://database-ingestion-production.up.railway.app/api';
+        const API_BASE_URL = 'https://database-ingestion-production.up.railway.app';
         console.log('📊 Doc Analyser loaded in new tab');
+        
+        // Model Selector Functions
+        async function fetchDocCurrentModel() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                const data = await response.json();
+                
+                if (data.current_model) {
+                    const modelInfo = data.available_models.find(m => m.id === data.current_model) || {};
+                    document.getElementById('docCurrentModelName').textContent = modelInfo.name || 'Gemini 2.5 Flash';
+                }
+            } catch (error) {
+                console.error('Error fetching model:', error);
+                document.getElementById('docCurrentModelName').textContent = 'Gemini 2.5 Flash';
+            }
+        }
+        
+        async function toggleDocModelDropdown() {
+            const dropdown = document.getElementById('docModelDropdown');
+            const isHidden = dropdown.classList.contains('hidden');
+            
+            if (isHidden) {
+                dropdown.classList.remove('hidden');
+                await loadDocModelList();
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+        
+        async function loadDocModelList() {
+            const container = document.getElementById('docModelList');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                if (!response.ok) throw new Error('Failed to load models');
+                
+                const data = await response.json();
+                container.innerHTML = '';
+                
+                // Recommended section
+                const recommended = data.available_models.filter(m => m.category === 'recommended');
+                if (recommended.length > 0) {
+                    container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Recommended</div>';
+                    recommended.forEach(model => {
+                        container.appendChild(createDocModelItem(model, data.current_model));
+                    });
+                }
+                
+                // Others section
+                const others = data.available_models.filter(m => m.category !== 'recommended');
+                if (others.length > 0) {
+                    container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-top: 1px solid rgba(16, 185, 129, 0.1); margin-top: 0.5rem;">Other Models</div>';
+                    others.forEach(model => {
+                        container.appendChild(createDocModelItem(model, data.current_model));
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+                container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #ef4444; font-size: 0.875rem;">Failed to load models</div>';
+            }
+        }
+        
+        function createDocModelItem(model, currentModel) {
+            const isActive = model.id === currentModel;
+            const item = document.createElement('div');
+            item.style.cssText = `padding: 0.75rem; cursor: pointer; transition: all 0.2s; ${isActive ? 'background: rgba(16, 185, 129, 0.1);' : ''}`;
+            item.onmouseover = () => { if (!isActive) item.style.background = 'rgba(16, 185, 129, 0.05)'; };
+            item.onmouseout = () => { if (!isActive) item.style.background = 'transparent'; };
+            item.onclick = () => switchDocModel(model.id);
+            
+            item.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.875rem; font-weight: 500; color: ${isActive ? '#10b981' : '#d4d4d4'};">${model.name}</span>
+                            ${isActive ? '<svg style="width: 16px; height: 16px; color: #10b981;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
+                        </div>
+                        <p style="font-size: 0.75rem; color: #6b7280; margin: 0;">${model.description}</p>
+                    </div>
+                </div>
+            `;
+            
+            return item;
+        }
+        
+        async function switchDocModel(modelId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelId })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    await fetchDocCurrentModel();
+                    showDocNotification('✅ Model switched successfully!');
+                    document.getElementById('docModelDropdown').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error switching model:', error);
+                showDocNotification('❌ Error switching model');
+            }
+        }
+        
+        function showDocNotification(message) {
+            const notif = document.createElement('div');
+            notif.style.cssText = 'position: fixed; top: 1rem; right: 1rem; background: #10b981; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out;';
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            setTimeout(() => {
+                notif.style.opacity = '0';
+                notif.style.transition = 'opacity 0.3s';
+                setTimeout(() => notif.remove(), 300);
+            }, 2500);
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('docModelDropdown');
+            const btn = document.getElementById('docModelBtn');
+            if (dropdown && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Fetch current model on load
+        fetchDocCurrentModel();
         
         // Doc Analyser Variables
         let currentDocData = null;
