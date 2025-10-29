@@ -669,7 +669,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
                     body: formData
                 });
@@ -746,7 +746,7 @@
                     formData.append('text_content', currentDocData.content);
                 }
 
-                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
                     body: formData
                 });
@@ -816,7 +816,7 @@
                 formData.append('url', url);
                 formData.append('file_type', 'url');
                 
-                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
                     body: formData
                 });

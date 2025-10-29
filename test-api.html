@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #10b981; }
+        .test { margin: 10px 0; padding: 10px; background: #0f0f0f; border: 1px solid #10b981; border-radius: 5px; }
+        .error { color: #ef4444; }
+        .success { color: #10b981; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API Connection Test</h1>
+    <button onclick="runTests()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Run Tests</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = 'https://database-ingestion-production.up.railway.app';
+        
+        async function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Running tests...</p>';
+            
+            // Test 1: Health Check
+            await testEndpoint('Health Check', `${API_BASE_URL}/health`, 'GET');
+            
+            // Test 2: Model API
+            await testEndpoint('Model API', `${API_BASE_URL}/api/model`, 'GET');
+            
+            // Test 3: CORS Check
+            await testCORS();
+            
+            // Test 4: Content-Type Check
+            await testContentType();
+        }
+        
+        async function testEndpoint(name, url, method) {
+            const results = document.getElementById('results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test';
+            
+            try {
+                console.log(`Testing ${name}: ${url}`);
+                const response = await fetch(url, { method });
+                
+                const contentType = response.headers.get('content-type');
+                const text = await response.text();
+                
+                testDiv.innerHTML = `
+                    <strong>${name}</strong><br>
+                    Status: <span class="success">${response.status} ${response.statusText}</span><br>
+                    Content-Type: <span class="success">${contentType}</span><br>
+                    Response Length: ${text.length} bytes<br>
+                    First 200 chars: <pre>${text.substring(0, 200)}</pre>
+                `;
+                testDiv.className = 'test success';
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <strong>${name}</strong><br>
+                    <span class="error">❌ Error: ${error.message}</span><br>
+                    <pre>${error.stack}</pre>
+                `;
+                testDiv.className = 'test error';
+                console.error(`${name} failed:`, error);
+            }
+            
+            results.appendChild(testDiv);
+        }
+        
+        async function testCORS() {
+            const results = document.getElementById('results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                testDiv.innerHTML = `
+                    <strong>CORS Test</strong><br>
+                    <span class="success">✅ CORS is working!</span><br>
+                    Access-Control-Allow-Origin: ${response.headers.get('access-control-allow-origin')}
+                `;
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <strong>CORS Test</strong><br>
+                    <span class="error">❌ CORS Error: ${error.message}</span>
+                `;
+                testDiv.className = 'test error';
+            }
+            
+            results.appendChild(testDiv);
+        }
+        
+        async function testContentType() {
+            const results = document.getElementById('results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    testDiv.innerHTML = `
+                        <strong>Content-Type Validation</strong><br>
+                        <span class="success">✅ Correct JSON content-type</span><br>
+                        Current Model: ${data.current_model}<br>
+                        Available Models: ${data.available_models.length}
+                    `;
+                } else {
+                    testDiv.innerHTML = `
+                        <strong>Content-Type Validation</strong><br>
+                        <span class="error">❌ Wrong content-type: ${contentType}</span>
+                    `;
+                    testDiv.className = 'test error';
+                }
+            } catch (error) {
+                testDiv.innerHTML = `
+                    <strong>Content-Type Validation</strong><br>
+                    <span class="error">❌ Error: ${error.message}</span>
+                `;
+                testDiv.className = 'test error';
+            }
+            
+            results.appendChild(testDiv);
+        }
+        
+        // Auto-run on load
+        window.onload = () => {
+            setTimeout(runTests, 500);
+        };
+    </script>
+</body>
+</html>

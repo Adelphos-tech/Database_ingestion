@@ -1163,7 +1163,7 @@
             }, 500);
 
             try {
-                const response = await fetch(`${API_BASE_URL}/ingest-url`, {
+                const response = await fetch(`${API_BASE_URL}/api/ingest-url`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1234,7 +1234,7 @@
                 formData.append('index_name', indexName);
 
                 try {
-                    const response = await fetch(`${API_BASE_URL}/upload`, {
+                    const response = await fetch(`${API_BASE_URL}/api/upload`, {
                         method: 'POST',
                         body: formData
                     });
@@ -1270,7 +1270,7 @@
             documentsList.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading documents...</p></div>';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/documents?project=default&index_name=${indexName}`);
+                const response = await fetch(`${API_BASE_URL}/api/documents?project=default&index_name=${indexName}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1321,7 +1321,7 @@
             const indexName = document.getElementById('browseIndex').value;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/documents/${documentId}?project=default&index_name=${indexName}`, {
+                const response = await fetch(`${API_BASE_URL}/api/documents/${documentId}?project=default&index_name=${indexName}`, {
                     method: 'DELETE'
                 });
 
@@ -1339,7 +1339,7 @@
         // Index Management Functions
         async function updateIndexSelectors() {
             try {
-                const response = await fetch(`${API_BASE_URL}/indexes`);
+                const response = await fetch(`${API_BASE_URL}/api/indexes`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1370,7 +1370,7 @@
             indexesList.innerHTML = '<div class="text-center py-8"><div class="spinner mx-auto"></div><p class="mt-4 text-gray-600">Loading indexes...</p></div>';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/indexes`);
+                const response = await fetch(`${API_BASE_URL}/api/indexes`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -1424,7 +1424,7 @@
             statusElement.innerHTML = '<div class="border border-blue-200 bg-blue-50 text-blue-700 p-4 rounded-lg fade-in"><div class="spinner inline-block mr-2"></div> Creating index...</div>';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/indexes`, {
+                const response = await fetch(`${API_BASE_URL}/api/indexes`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ index_name: indexName })
@@ -1456,7 +1456,7 @@
             statusElement.innerHTML = '<div class="border border-blue-200 bg-blue-50 text-blue-700 p-4 rounded-lg fade-in"><div class="spinner inline-block mr-2"></div> Deleting index...</div>';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/indexes/${indexName}`, {
+                const response = await fetch(`${API_BASE_URL}/api/indexes/${indexName}`, {
                     method: 'DELETE'
                 });
 
@@ -1719,7 +1719,7 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/chat`, {
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -2048,7 +2048,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
                     body: formData
                 });
@@ -2503,7 +2503,7 @@
                         formData.append('text_content', currentDocData.content);
                     }
 
-                    const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                    const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                         method: 'POST',
                         body: formData
                     });
@@ -2591,7 +2591,7 @@
                 formData.append('url', url);
                 formData.append('file_type', 'url');
                 
-                const response = await fetch(`${API_BASE_URL}/analyse-document`, {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
                     body: formData
                 });
