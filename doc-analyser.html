@@ -434,19 +434,72 @@
         async function handleExcelFile(file) {
             console.log('📊 handleExcelFile started for:', file.name);
             const reader = new FileReader();
+            
+            reader.onerror = (error) => {
+                console.error('❌ FileReader error:', error);
+                showNotification('❌ Failed to read file');
+                clearLoadingState();
+            };
+            
             reader.onload = async (e) => {
                 try {
                     console.log('📖 FileReader onload triggered');
+                    
+                    if (!e.target || !e.target.result) {
+                        throw new Error('Failed to read file data');
+                    }
+                    
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    console.log('📦 File data size:', data.length, 'bytes');
+                    
+                    if (data.length === 0) {
+                        throw new Error('File is empty');
+                    }
+                    
+                    // Try to parse the workbook
+                    let workbook;
+                    try {
+                        workbook = XLSX.read(data, { type: 'array' });
+                    } catch (xlsxError) {
+                        console.error('❌ XLSX parse error:', xlsxError);
+                        throw new Error('Invalid or corrupted Excel file');
+                    }
+                    
                     console.log('📚 Workbook loaded, sheets:', workbook.SheetNames);
                     
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-                    console.log('📋 JSON data extracted, rows:', jsonData.length);
+                    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                        throw new Error('No sheets found in Excel file');
+                    }
+                    
+                    const firstSheetName = workbook.SheetNames[0];
+                    const firstSheet = workbook.Sheets[firstSheetName];
+                    
+                    if (!firstSheet) {
+                        throw new Error('Cannot read first sheet');
+                    }
+                    
+                    // Convert to JSON with error handling
+                    let jsonData;
+                    try {
+                        jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                    } catch (conversionError) {
+                        console.error('❌ Sheet conversion error:', conversionError);
+                        throw new Error('Cannot convert sheet to data');
+                    }
+                    
+                    console.log('📋 JSON data extracted, rows:', jsonData?.length || 0);
 
                     if (!jsonData || jsonData.length === 0) {
-                        throw new Error('Empty spreadsheet');
+                        throw new Error('Spreadsheet is empty');
+                    }
+
+                    if (jsonData.length === 1) {
+                        throw new Error('Spreadsheet has headers but no data rows');
+                    }
+
+                    // Validate headers
+                    if (!jsonData[0] || jsonData[0].length === 0) {
+                        throw new Error('No column headers found');
                     }
 
                     currentDocData = {
@@ -456,17 +509,25 @@
                         headers: jsonData[0],
                         rows: jsonData.length - 1
                     };
-                    console.log('💾 Document data stored');
+                    console.log('💾 Document data stored:', currentDocData.rows, 'rows', currentDocData.headers.length, 'columns');
 
                     console.log('🚀 Calling analyzeDocument...');
                     await analyzeDocument(file, 'excel', jsonData);
                 } catch (error) {
                     console.error('❌ Excel processing error:', error);
-                    showNotification('❌ Error reading Excel file');
+                    showNotification('❌ ' + error.message);
+                    clearLoadingState();
                 }
             };
+            
             console.log('📂 Starting to read file as ArrayBuffer');
-            reader.readAsArrayBuffer(file);
+            try {
+                reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('❌ Failed to start reading:', error);
+                showNotification('❌ Cannot read file');
+                clearLoadingState();
+            }
         }
 
         async function handlePDFFile(file) {
