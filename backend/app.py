@@ -2022,6 +2022,16 @@ Short and actionable."""
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/')
+def health_check():
+    """Health check endpoint for Railway/deployment platforms"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Knowledge Base API',
+        'version': '1.0.0',
+        'playwright_enabled': ENABLE_PLAYWRIGHT_CRAWL
+    }), 200
+
 if __name__ == '__main__':
     # Get port from environment variable (required for Render)
     port = int(os.environ.get('PORT', 5001))
