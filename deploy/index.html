@@ -2765,28 +2765,6 @@
                 const data = await response.json();
                 mainPageModelsCache = data;
                 renderMainModelList(data, container);
-                
-                // Add Recommended section
-                if (recommended.length > 0) {
-                    const section = document.createElement('div');
-                    section.innerHTML = '<div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Recommended</div>';
-                    container.appendChild(section);
-                    
-                    recommended.forEach(model => {
-                        container.appendChild(createModelItem(model, data.current_model));
-                    });
-                }
-                
-                // Add Other Models section
-                if (others.length > 0) {
-                    const section = document.createElement('div');
-                    section.innerHTML = '<div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-700 mt-1">Other Models</div>';
-                    container.appendChild(section);
-                    
-                    others.forEach(model => {
-                        container.appendChild(createModelItem(model, data.current_model));
-                    });
-                }
             } catch (error) {
                 console.error('Error loading models:', error);
                 
