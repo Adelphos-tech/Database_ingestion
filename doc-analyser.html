@@ -404,6 +404,12 @@
                 return;
             }
 
+            // Check if file is actually readable
+            if (file.size === 0) {
+                showNotification('❌ File is empty');
+                return;
+            }
+
             // Show loading state immediately
             showLoadingState();
             showNotification('📁 Processing file...');
@@ -411,13 +417,23 @@
             const fileName = file.name;
             const fileExt = fileName.split('.').pop().toLowerCase();
 
+            // Validate file extension
+            const validExtensions = ['xlsx', 'xls', 'csv', 'pdf', 'docx', 'doc', 'txt'];
+            if (!validExtensions.includes(fileExt)) {
+                showNotification('❌ Unsupported file type. Use: Excel, CSV, PDF, DOCX, or TXT');
+                clearLoadingState();
+                return;
+            }
+
             try {
                 if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
                     await handleExcelFile(file);
                 } else if (fileExt === 'pdf') {
                     await handlePDFFile(file);
+                    clearLoadingState();
                 } else if (fileExt === 'docx' || fileExt === 'doc') {
                     await handleDocxFile(file);
+                    clearLoadingState();
                 } else if (fileExt === 'txt') {
                     await handleTextFile(file);
                 } else {
@@ -425,8 +441,7 @@
                 }
             } catch (error) {
                 console.error('Error processing file:', error);
-                showNotification('❌ Error processing file');
-                // Clear loading state on error
+                showNotification('❌ ' + (error.message || 'Error processing file'));
                 clearLoadingState();
             }
         }
@@ -459,10 +474,27 @@
                     // Try to parse the workbook
                     let workbook;
                     try {
-                        workbook = XLSX.read(data, { type: 'array' });
+                        workbook = XLSX.read(data, { 
+                            type: 'array',
+                            cellDates: true,
+                            cellNF: false,
+                            cellText: false
+                        });
                     } catch (xlsxError) {
                         console.error('❌ XLSX parse error:', xlsxError);
-                        throw new Error('Invalid or corrupted Excel file');
+                        
+                        // If it's a CSV, try parsing as text
+                        if (file.name.toLowerCase().endsWith('.csv')) {
+                            console.log('🔄 Attempting CSV text parsing as fallback...');
+                            try {
+                                await handleCSVAsText(file);
+                                return; // Exit if CSV parsing succeeded
+                            } catch (csvError) {
+                                console.error('❌ CSV fallback also failed:', csvError);
+                            }
+                        }
+                        
+                        throw new Error('Invalid or corrupted file. Please ensure it\'s a valid Excel/CSV file.');
                     }
                     
                     console.log('📚 Workbook loaded, sheets:', workbook.SheetNames);
@@ -528,6 +560,49 @@
                 showNotification('❌ Cannot read file');
                 clearLoadingState();
             }
+        }
+
+        async function handleCSVAsText(file) {
+            console.log('📄 Parsing CSV as text...');
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const text = e.target.result;
+                        const lines = text.split('\n').filter(line => line.trim());
+                        
+                        if (lines.length === 0) {
+                            throw new Error('CSV file is empty');
+                        }
+                        
+                        // Parse CSV manually
+                        const jsonData = lines.map(line => {
+                            // Simple CSV parsing (handles basic cases)
+                            return line.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
+                        });
+                        
+                        if (jsonData.length === 1) {
+                            throw new Error('CSV has headers but no data');
+                        }
+                        
+                        currentDocData = {
+                            type: 'excel',
+                            name: file.name,
+                            data: jsonData,
+                            headers: jsonData[0],
+                            rows: jsonData.length - 1
+                        };
+                        
+                        console.log('✅ CSV parsed successfully:', jsonData.length, 'rows');
+                        await analyzeDocument(file, 'excel', jsonData);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
         }
 
         async function handlePDFFile(file) {
