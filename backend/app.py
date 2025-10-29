@@ -902,8 +902,67 @@ def health_check():
         'embedding_model': 'Google Gemini text-embedding-004',
         'embedding_type': 'API - Matches n8n workflow',
         'embedding_dimension': EMBEDDING_DIMENSION,
-        'quota_limits': 'Google Gemini API limits apply'
+        'quota_limits': 'Google Gemini API limits apply',
+        'chat_model': CONFIGURED_CHAT_MODEL
     })
+
+@app.route('/api/model', methods=['GET'])
+def get_current_model():
+    """Get current AI model being used"""
+    return jsonify({
+        'current_model': CONFIGURED_CHAT_MODEL,
+        'default_model': DEFAULT_CHAT_MODEL,
+        'available_models': [
+            {
+                'id': 'models/gemini-2.5-flash',
+                'name': 'Gemini 2.5 Flash',
+                'description': 'Latest stable - Best for chat + docs',
+                'recommended': True
+            },
+            {
+                'id': 'models/gemini-2.5-pro',
+                'name': 'Gemini 2.5 Pro',
+                'description': 'Most capable - Slower but highest quality'
+            },
+            {
+                'id': 'models/gemini-2.0-flash-exp',
+                'name': 'Gemini 2.0 Flash Experimental',
+                'description': 'Fast experimental features'
+            },
+            {
+                'id': 'models/gemini-2.0-flash',
+                'name': 'Gemini 2.0 Flash',
+                'description': 'Stable 2.0 version'
+            }
+        ]
+    }), 200
+
+@app.route('/api/model', methods=['POST'])
+def update_model():
+    """Update AI model (session-based, resets on restart)"""
+    global CONFIGURED_CHAT_MODEL
+    
+    data = request.json
+    new_model = data.get('model')
+    
+    if not new_model:
+        return jsonify({'error': 'Model not specified'}), 400
+    
+    # Validate model format
+    if not new_model.startswith('models/'):
+        return jsonify({'error': 'Invalid model format. Must start with "models/"'}), 400
+    
+    # Update the model (in-memory, resets on restart)
+    CONFIGURED_CHAT_MODEL = new_model
+    
+    logging.info(f"AI model changed to: {new_model}")
+    
+    return jsonify({
+        'success': True,
+        'current_model': CONFIGURED_CHAT_MODEL,
+        'message': f'Model updated to {new_model}. This is temporary and will reset on server restart.',
+        'note': 'To make permanent, set GEMINI_CHAT_MODEL environment variable'
+    }), 200
 
 
 @app.route('/api/upload', methods=['POST'])

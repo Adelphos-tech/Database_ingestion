@@ -500,15 +500,46 @@
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="text-sm font-bold" style="color: #10b981;">Gemini 2.0 Flash</span>
-                                        <span class="text-xs font-medium px-1.5 py-0.5 rounded" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">Thinking</span>
+                                        <span id="currentModelName" class="text-sm font-bold" style="color: #10b981;">Loading...</span>
+                                        <span class="text-xs font-medium px-1.5 py-0.5 rounded" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">Live</span>
                                     </div>
-                                    <p class="text-xs mt-0.5" style="color: #6b7280;">Advanced AI Model</p>
+                                    <p id="currentModelDesc" class="text-xs mt-0.5" style="color: #6b7280;">Fetching model info...</p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #10b981;"></div>
-                                <span class="text-xs font-medium" style="color: #10b981;">Active</span>
+                            <div class="flex items-center gap-2">
+                                <!-- Model Selector Button -->
+                                <button onclick="openModelSelector()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:scale-105" style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3);" title="Change AI Model">
+                                    <span class="iconify" data-icon="carbon:settings-adjust" style="width:14px;height:14px;"></span>
+                                </button>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #10b981;"></div>
+                                    <span class="text-xs font-medium" style="color: #10b981;">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Model Selector Modal -->
+                        <div id="modelSelectorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeModelSelector(event)">
+                            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onclick="event.stopPropagation()">
+                                <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-4">
+                                    <h3 class="text-lg font-bold text-white">Choose AI Model</h3>
+                                    <p class="text-xs text-white text-opacity-90 mt-1">Select the model for chat and analysis</p>
+                                </div>
+                                <div class="p-4 max-h-96 overflow-y-auto">
+                                    <div id="modelOptionsContainer" class="space-y-2">
+                                        <!-- Model options will be populated here -->
+                                        <div class="text-center py-8 text-gray-400">
+                                            <div class="spinner mx-auto mb-2"></div>
+                                            <p class="text-sm">Loading models...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-gray-50 border-t flex justify-between items-center">
+                                    <p class="text-xs text-gray-500">Changes apply immediately</p>
+                                    <button onclick="closeModelSelector()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition-colors">
+                                        Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -2516,8 +2547,115 @@
             docAnalyserQuestion.value = '';
         }
         
-        // Initialize Lucide Icons and AOS on page load
+        // Fetch and display current AI model
+        async function fetchCurrentModel() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                const data = await response.json();
+                
+                if (data.current_model) {
+                    const modelInfo = data.available_models.find(m => m.id === data.current_model) || {};
+                    document.getElementById('currentModelName').textContent = modelInfo.name || data.current_model.replace('models/', '');
+                    document.getElementById('currentModelDesc').textContent = modelInfo.description || 'AI Model';
+                }
+            } catch (error) {
+                console.error('Error fetching model:', error);
+                document.getElementById('currentModelName').textContent = 'Gemini 2.5 Flash';
+                document.getElementById('currentModelDesc').textContent = 'Advanced AI Model';
+            }
+        }
+        
+        // Open model selector modal
+        async function openModelSelector() {
+            document.getElementById('modelSelectorModal').classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                const data = await response.json();
+                
+                const container = document.getElementById('modelOptionsContainer');
+                container.innerHTML = '';
+                
+                data.available_models.forEach(model => {
+                    const isActive = model.id === data.current_model;
+                    const modelCard = document.createElement('div');
+                    modelCard.className = `p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                        isActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 bg-white'
+                    }`;
+                    modelCard.onclick = () => switchModel(model.id);
+                    
+                    modelCard.innerHTML = `
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-semibold text-sm ${isActive ? 'text-indigo-700' : 'text-gray-800'}">${model.name}</h4>
+                                    ${model.recommended ? '<span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">Recommended</span>' : ''}
+                                    ${isActive ? '<span class="text-xs px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded font-medium">Active</span>' : ''}
+                                </div>
+                                <p class="text-xs text-gray-600 mt-1">${model.description}</p>
+                            </div>
+                            ${isActive ? '<svg class="w-5 h-5 text-indigo-500 flex-shrink-0 ml-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>' : ''}
+                        </div>
+                    `;
+                    
+                    container.appendChild(modelCard);
+                });
+            } catch (error) {
+                console.error('Error loading models:', error);
+                document.getElementById('modelOptionsContainer').innerHTML = '<p class="text-center text-red-500 py-4">Error loading models</p>';
+            }
+        }
+        
+        // Close model selector
+        function closeModelSelector(event) {
+            if (!event || event.target.id === 'modelSelectorModal') {
+                document.getElementById('modelSelectorModal').classList.add('hidden');
+            }
+        }
+        
+        // Switch AI model
+        async function switchModel(modelId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await fetchCurrentModel();
+                    showNotification('✅ Model switched successfully!', 'success');
+                    closeModelSelector();
+                } else {
+                    showNotification('❌ Failed to switch model', 'error');
+                }
+            } catch (error) {
+                console.error('Error switching model:', error);
+                showNotification('❌ Error switching model', 'error');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 transition-all ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white font-medium`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Fetch current model on load
+            fetchCurrentModel();
             // Initialize Lucide Icons
             lucide.createIcons();
             
