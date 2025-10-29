@@ -1647,22 +1647,27 @@ CRITICAL: Maximum 50 words.
         question = request.form.get('question')
         if question:
             if file_type == 'excel':
-                excel_data_json = request.form.get('excel_data', '[]')
+                excel_data_json = request.form.get('excel_data', '{}')
                 try:
-                    excel_data = json.loads(excel_data_json)
+                    excel_metadata = json.loads(excel_data_json)
                 except:
                     return jsonify({'error': 'Invalid Excel data format'}), 400
                 
-                headers = excel_data[0] if len(excel_data) > 0 else []
-                sample_rows = excel_data[1:6] if len(excel_data) > 1 else []
+                # Frontend sends structured metadata, not raw array
+                headers = excel_metadata.get('headers', [])
+                sample_rows = excel_metadata.get('sample_data', [])
+                total_rows = excel_metadata.get('rows', 0) or excel_metadata.get('total_rows', 0)
                 
                 context = f"""You are a data analyst. Excel data:
 Columns: {', '.join(str(h) for h in headers)}
-Rows: {len(excel_data) - 1}
+Total Rows: {total_rows}
 
-Sample:"""
-                for i, row in enumerate(sample_rows, 1):
-                    context += f"\nRow {i}: {dict(zip(headers, row))}"
+Sample data:"""
+                for i, row in enumerate(sample_rows[:5], 1):
+                    if len(row) == len(headers):
+                        context += f"\nRow {i}: {dict(zip(headers, row))}"
+                    else:
+                        context += f"\nRow {i}: {row}"
                 
                 if conversation_history:
                     context += "\n\nConversation:\n"
