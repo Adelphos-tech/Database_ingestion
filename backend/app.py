@@ -1701,7 +1701,8 @@ Sample data:"""
             response = chat_model.generate_content(context)
             answer = response.text if hasattr(response, 'text') else str(response)
             
-            return jsonify({'success': True, 'answer': answer})
+            # Return as 'analysis' for consistency with initial analysis
+            return jsonify({'success': True, 'analysis': answer})
         
         # Initial analysis (no question provided)
         file = request.files.get('file')
