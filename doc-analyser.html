@@ -22,26 +22,23 @@
             margin: 0; 
             padding: 0; 
             min-height: 100vh;
-            background: #0a0a0f;
+            background: #0A0A0F;
             position: relative;
             overflow-x: hidden;
         }
         
-        /* Animated Gradient Background */
+        /* Figma-Style Gradient Background */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background: linear-gradient(135deg, 
-                #667eea 0%, 
-                #764ba2 25%, 
-                #f093fb 50%, 
-                #4facfe 75%, 
-                #00f2fe 100%
+            background: linear-gradient(to bottom right, 
+                rgb(99 102 241 / 0.05) 0%, 
+                rgb(168 85 247 / 0.05) 35%, 
+                rgb(236 72 153 / 0.05) 100%
             );
-            opacity: 0.08;
             z-index: 0;
-            animation: gradientShift 15s ease infinite;
+            pointer-events: none;
         }
         
         @keyframes gradientShift {
@@ -49,17 +46,14 @@
             50% { transform: scale(1.1) rotate(5deg); }
         }
         
-        /* Animated Mesh Background */
+        /* Radial Gradient Overlay - Figma Style */
         body::after {
             content: '';
             position: fixed;
             inset: 0;
-            background-image: 
-                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(255, 107, 237, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(99, 179, 237, 0.1) 0%, transparent 50%);
+            background: radial-gradient(ellipse at top, rgb(79 70 229 / 0.1) 0%, transparent 50%);
             z-index: 0;
-            animation: meshMove 20s ease-in-out infinite;
+            pointer-events: none;
         }
         
         @keyframes meshMove {
@@ -81,16 +75,13 @@
         .doc-ai-insights-panel { 
             display: flex; 
             flex-direction: column;
-            background: rgba(17, 25, 40, 0.75);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.125);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 24px;
-            padding: 2.5rem 2rem;
+            padding: 2rem;
             overflow-y: auto;
-            box-shadow: 
-                0 8px 32px 0 rgba(120, 119, 198, 0.2),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
             position: relative;
         }
         
@@ -98,74 +89,56 @@
             position: relative; 
             display: flex; 
             flex-direction: column;
-            background: rgba(17, 25, 40, 0.75);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.125);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 24px;
-            padding: 2.5rem;
+            padding: 3rem;
             overflow: hidden;
-            box-shadow: 
-                0 8px 32px 0 rgba(120, 119, 198, 0.2),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
         }
         .ai-badge { 
             display: inline-flex; 
             align-items: center; 
             gap: 8px; 
-            padding: 10px 16px; 
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.25), rgba(118, 75, 162, 0.25));
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px; 
-            color: #fff; 
-            font-size: 11px; 
-            font-weight: 700; 
+            padding: 4px 8px; 
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 9999px; 
+            color: rgba(255, 255, 255, 0.3); 
+            font-size: 10px; 
+            font-weight: 500; 
             text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+            letter-spacing: 0.1em; 
+            margin-bottom: 1.5rem;
         }
         .insights-title { 
             display: flex; 
             align-items: center; 
             gap: 10px; 
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: 18px; 
-            font-weight: 800; 
-            margin-bottom: 1.5rem;
-            letter-spacing: -0.5px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px; 
+            font-weight: 500; 
+            margin-bottom: 1rem;
+            letter-spacing: normal;
         }
         .insight-item { 
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 16px; 
-            padding: 16px 18px; 
+            padding: 16px; 
             margin-bottom: 12px; 
-            color: #e0e7ff; 
+            color: rgba(255, 255, 255, 0.6); 
             font-size: 13px; 
-            line-height: 1.7;
+            line-height: 1.6;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            overflow: hidden;
-        }
-        .insight-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, #667eea, #764ba2);
         }
         .insight-item:hover {
-            transform: translateX(8px);
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(102, 126, 234, 0.4);
-            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
         }
         .hidden { display: none !important; }
         
@@ -304,35 +277,36 @@
     </style>
 </head>
 <body>
-    <!-- Header - Premium Glass -->
-    <div style="
-        background: rgba(17, 25, 40, 0.85);
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        padding: 1.25rem 2.5rem;
+    <!-- Header - Figma Style -->
+    <header style="
+        background: rgba(10, 10, 15, 0.8);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        padding: 1.25rem 2rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         position: sticky;
         top: 0;
-        z-index: 100;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        z-index: 50;
     ">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <span class="iconify" data-icon="fluent-emoji:clipboard" style="width:40px;height:40px;"></span>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="position: relative;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(to top right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border-radius: 0.5rem; filter: blur(12px); opacity: 0.75;"></div>
+                <div style="position: relative; background: linear-gradient(to top right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); padding: 0.625rem; border-radius: 0.5rem;">
+                    <span class="iconify" data-icon="fluent:document-text-24-filled" style="width:20px;height:20px;color:white;"></span>
+                </div>
+            </div>
             <div>
                 <h1 style="
-                    font-size: 1.75rem; 
-                    font-weight: 900; 
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
+                    font-size: 1.125rem; 
+                    font-weight: 400; 
+                    color: rgba(255, 255, 255, 0.95);
                     margin: 0; 
-                    letter-spacing: -1px;
-                ">Document Analyser</h1>
-                <p style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.6); margin: 0; font-weight: 500;">AI-powered analysis for Excel, PDF, DOCX, and TXT files</p>
+                    letter-spacing: -0.025em;
+                ">Document Analyzer</h1>
+                <p style="font-size: 11px; color: rgba(255, 255, 255, 0.4); margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; margin-top: 2px;">AI-Powered Intelligence</p>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -361,9 +335,25 @@
                 </div>
             </div>
             
-            <button onclick="resetDocument()" style="background: rgba(16, 185, 129, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'">
-                <span class="iconify" data-icon="fluent-emoji:counterclockwise-arrows-button" style="width:16px;height:16px;"></span>
-                New Document
+            <button onclick="resetDocument()" style="
+                background: white; 
+                color: #0A0A0F; 
+                border: none;
+                padding: 0.625rem 1.25rem; 
+                border-radius: 0.5rem; 
+                font-size: 0.875rem; 
+                font-weight: 600; 
+                cursor: pointer; 
+                transition: all 0.3s; 
+                display: flex; 
+                align-items: center; 
+                gap: 0.5rem;
+                box-shadow: 0 8px 16px rgba(255, 255, 255, 0.1);
+                position: relative;
+                overflow: hidden;
+            " onmouseover="this.style.boxShadow='0 12px 24px rgba(255, 255, 255, 0.2)'" onmouseout="this.style.boxShadow='0 8px 16px rgba(255, 255, 255, 0.1)'">
+                <span class="iconify" data-icon="ph:plus" style="width:16px;height:16px;stroke-width:2.5px;"></span>
+                <span>New Document</span>
             </button>
             <button onclick="window.close()" style="background: rgba(239, 68, 68, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
                 <span class="iconify" data-icon="fluent-emoji:cross-mark" style="width:16px;height:16px;"></span>
