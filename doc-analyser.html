@@ -37,6 +37,40 @@
             z-index: 0;
             pointer-events: none;
         }
+
+        /* Loading Animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(99, 102, 241, 0.1);
+            border-top-color: rgb(99 102 241);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            margin: 0 4px;
+            background: rgb(99 102 241);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: 0s; }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
@@ -472,6 +506,7 @@
             try {
                 console.log('📡 Sending POST request to backend...');
                 showNotification('🤖 Sending to Gemini...');
+                showLoadingState(); // Show loading animation
                 
                 const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
@@ -507,68 +542,94 @@
             }
         }
 
+        function showLoadingState() {
+            console.log('⏳ Showing loading state');
+            const mainContent = document.querySelector('main > div');
+            if (mainContent) {
+                mainContent.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; padding: 3rem;">
+                        <div class="loading-spinner" style="margin-bottom: 2rem;"></div>
+                        <h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Processing Document...</h3>
+                        <p style="color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; margin-bottom: 1.5rem;">Gemini AI is analyzing your data</p>
+                        <div class="loading-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         function displayAnalysis(analysis) {
             console.log('📊 Displaying analysis:', analysis);
             
-            // Find the info card in sidebar (the one that says "Upload a document...")
-            const infoCard = document.querySelector('.doc-ai-insights-panel') || 
-                           document.querySelector('aside > div:first-child');
-            
-            if (!infoCard) {
-                console.error('❌ Could not find sidebar to display results');
+            // Display in MAIN panel (right side)
+            const mainContent = document.querySelector('main > div');
+            if (!mainContent) {
+                console.error('❌ Could not find main content area');
                 return;
             }
 
-            // Create analysis display HTML
-            let analysisHTML = '<div style="padding: 2rem;">';
+            // Create analysis display HTML for main panel
+            let analysisHTML = '<div style="max-width: 1200px; margin: 0 auto; padding: 3rem;">';
             
             // Title
-            analysisHTML += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">';
+            analysisHTML += '<div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">';
+            analysisHTML += '<div style="position: relative;">';
+            analysisHTML += '<div style="position: absolute; inset: 0; background: linear-gradient(to bottom right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border-radius: 0.75rem; filter: blur(12px); opacity: 0.5;"></div>';
+            analysisHTML += '<div style="position: relative; background: linear-gradient(to bottom right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); padding: 0.75rem; border-radius: 0.75rem;">';
             analysisHTML += '<span style="font-size: 1.5rem;">✨</span>';
-            analysisHTML += '<h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.125rem; font-weight: 600; margin: 0;">AI Analysis Complete</h3>';
+            analysisHTML += '</div></div>';
+            analysisHTML += '<div><h2 style="color: rgba(255, 255, 255, 0.95); font-size: 1.75rem; font-weight: 700; margin: 0;">AI Analysis Results</h2>';
+            analysisHTML += '<p style="color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; margin: 0.25rem 0 0 0;">Generated by Gemini AI</p></div>';
             analysisHTML += '</div>';
 
-            // Analysis content
+            // Analysis content in large cards
             if (typeof analysis === 'string') {
                 // Simple string analysis
-                analysisHTML += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1rem;">`;
-                analysisHTML += `<p style="color: rgba(255, 255, 255, 0.8); line-height: 1.6; margin: 0; white-space: pre-wrap;">${analysis}</p>`;
+                analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 2.5rem; margin-bottom: 1.5rem;">`;
+                analysisHTML += `<p style="color: rgba(255, 255, 255, 0.9); font-size: 1rem; line-height: 1.8; margin: 0; white-space: pre-wrap;">${analysis}</p>`;
                 analysisHTML += `</div>`;
             } else if (analysis && typeof analysis === 'object') {
-                // Object analysis - display key insights
+                // Object analysis
                 if (analysis.summary) {
-                    analysisHTML += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1rem;">`;
-                    analysisHTML += `<h4 style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; font-weight: 600; margin: 0 0 0.75rem 0;">Summary</h4>`;
-                    analysisHTML += `<p style="color: rgba(255, 255, 255, 0.7); line-height: 1.6; margin: 0;">${analysis.summary}</p>`;
+                    analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 2.5rem; margin-bottom: 1.5rem;">`;
+                    analysisHTML += `<h3 style="color: rgba(255, 255, 255, 0.95); font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 1.25rem;">📊</span> Summary</h3>`;
+                    analysisHTML += `<p style="color: rgba(255, 255, 255, 0.8); font-size: 1rem; line-height: 1.8; margin: 0;">${analysis.summary}</p>`;
                     analysisHTML += `</div>`;
                 }
                 
                 if (analysis.insights && Array.isArray(analysis.insights)) {
-                    analysisHTML += `<h4 style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; font-weight: 600; margin: 0 0 0.75rem 0;">Key Insights</h4>`;
-                    analysis.insights.forEach(insight => {
-                        analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem;">`;
-                        analysisHTML += `<p style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem; line-height: 1.5; margin: 0;">${insight}</p>`;
+                    analysisHTML += `<h3 style="color: rgba(255, 255, 255, 0.95); font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem 0; display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 1.25rem;">💡</span> Key Insights</h3>`;
+                    analysisHTML += `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">`;
+                    analysis.insights.forEach((insight, index) => {
+                        analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; transition: all 0.3s;">`;
+                        analysisHTML += `<div style="color: rgba(99, 102, 241, 0.8); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Insight ${index + 1}</div>`;
+                        analysisHTML += `<p style="color: rgba(255, 255, 255, 0.9); font-size: 0.95rem; line-height: 1.6; margin: 0;">${insight}</p>`;
                         analysisHTML += `</div>`;
                     });
+                    analysisHTML += `</div>`;
                 }
 
-                // Display raw object if no specific fields
+                // Display formatted JSON if no specific fields
                 if (!analysis.summary && !analysis.insights) {
-                    analysisHTML += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem;">`;
-                    analysisHTML += `<pre style="color: rgba(255, 255, 255, 0.7); font-size: 0.8rem; line-height: 1.5; margin: 0; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(analysis, null, 2)}</pre>`;
+                    analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 2.5rem;">`;
+                    analysisHTML += `<pre style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem; line-height: 1.6; margin: 0; overflow-x: auto; white-space: pre-wrap; font-family: 'SF Mono', Monaco, monospace;">${JSON.stringify(analysis, null, 2)}</pre>`;
                     analysisHTML += `</div>`;
                 }
             }
 
+            // Add "Ask a Question" section at bottom
+            analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 2rem; margin-top: 2rem;">`;
+            analysisHTML += `<h3 style="color: rgba(255, 255, 255, 0.95); font-size: 1.125rem; font-weight: 600; margin: 0 0 1rem 0;">💬 Ask a Follow-up Question</h3>`;
+            analysisHTML += `<p style="color: rgba(255, 255, 255, 0.6); font-size: 0.875rem; margin-bottom: 1rem;">Use the chat input in the sidebar to ask questions about this analysis</p>`;
+            analysisHTML += `</div>`;
+
             analysisHTML += '</div>';
 
-            // Update the sidebar - replace the scrollable content
-            const scrollArea = infoCard.querySelector('.flex-1') || infoCard;
-            if (scrollArea) {
-                scrollArea.innerHTML = analysisHTML;
-            }
-
-            showNotification('📊 Analysis displayed in sidebar');
+            mainContent.innerHTML = analysisHTML;
+            showNotification('📊 Analysis displayed!');
         }
 
         // URL Analysis
