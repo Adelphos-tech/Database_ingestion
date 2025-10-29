@@ -378,16 +378,21 @@
                 <div id="aiInsightsList"></div>
             </div>
             
-            <div id="aiAnalysisSummary" style="color: #10b981; font-size: 13px; line-height: 1.5; margin-bottom: 1rem;">
+            <div id="aiAnalysisSummary" style="color: rgba(255, 255, 255, 0.6); font-size: 13px; line-height: 1.6; margin-bottom: 1rem;">
                 Upload a document to start AI-powered analysis. I'll provide insights, trends, and visualizations automatically.
             </div>
             
             <div id="aiChartsSection" class="hidden"></div>
             
-            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(16, 185, 129, 0.15);">
-                <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-emerald-500 resize-none text-sm outline-none" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981;" placeholder="Ask follow-up questions..."></textarea>
-                <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2 rounded-lg text-black font-semibold shadow-lg hover:shadow-xl transition hover:opacity-90" style="background: linear-gradient(135deg, #10b981, #059669);">
-                    Ask AI ↗
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                <div class="relative">
+                    <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2.5 rounded-xl focus:ring-0 resize-none text-sm outline-none" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.9);" placeholder="Type your question..."></textarea>
+                </div>
+                <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2.5 rounded-xl text-white font-semibold shadow-lg hover:shadow-xl transition" style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153));">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <span>Ask AI</span>
+                        <span class="iconify" data-icon="ph:arrow-right" style="width:16px;height:16px;"></span>
+                    </div>
                 </button>
             </div>
         </div>
@@ -395,19 +400,19 @@
         <!-- Right Panel: Data Preview (60%) -->
         <div class="doc-data-preview-panel">
             <!-- URL Input Section -->
-            <div id="docUrlInputZone" class="mb-4 p-4 rounded-xl" style="background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.15);">
+            <div id="docUrlInputZone" class="mb-6">
                 <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0">
-                        <span class="iconify" data-icon="fluent-emoji:globe-showing-americas" style="width:28px;height:28px;"></span>
+                    <div class="flex-shrink-0 flex items-center justify-center" style="width: 48px; height: 48px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <span class="iconify" data-icon="ph:link" style="width:20px;height:20px;color:rgb(99 102 241);"></span>
                     </div>
-                    <div class="flex-1">
-                        <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/article)" 
-                               class="w-full px-4 py-2.5 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm outline-none"
-                               style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981;"
+                    <div class="flex-1 relative">
+                        <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/document)" 
+                               class="w-full px-4 py-3 rounded-xl focus:ring-0 text-sm outline-none"
+                               style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.9);"
                                onkeypress="if(event.key==='Enter') analyzeUrl()">
                     </div>
-                    <button onclick="analyzeUrl()" class="flex-shrink-0 px-5 py-2.5 text-black rounded-lg font-semibold transition shadow-lg hover:shadow-xl flex items-center gap-2 hover:opacity-90" style="background: linear-gradient(135deg, #10b981, #059669);">
-                        <span class="iconify" data-icon="fluent-emoji:sparkles" style="width:20px;height:20px;"></span>
+                    <button onclick="analyzeUrl()" class="flex-shrink-0 px-6 py-3 text-white rounded-xl font-semibold transition shadow-lg hover:shadow-xl flex items-center gap-2" style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153));">
+                        <span class="iconify" data-icon="ph:sparkles" style="width:18px;height:18px;"></span>
                         <span>Analyze</span>
                     </button>
                 </div>
@@ -417,16 +422,25 @@
                         <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work.
                     </p>
                 </div>
-                <p class="text-xs mt-2 ml-10" style="color: #6b7280;">Or upload a file below</p>
             </div>
             
-            <div id="docUploadZone" class="border-2 border-dashed rounded-xl p-8 text-center transition cursor-pointer" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.02);" onmouseover="this.style.borderColor='rgba(16, 185, 129, 0.5)'" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.3)'">
+            <div class="relative mt-8">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t" style="border-color: rgba(255, 255, 255, 0.05);"></div></div>
+                <div class="relative flex justify-center text-xs"><span class="px-6" style="background: #0A0A0F; color: rgba(255, 255, 255, 0.3); text-transform: uppercase; letter-spacing: 0.1em;">Or upload a file</span></div>
+            </div>
+            <div id="docUploadZone" class="border-2 border-dashed rounded-3xl p-20 text-center transition cursor-pointer mt-6" style="border-color: rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.01);" onmouseover="this.style.borderColor='rgba(255, 255, 255, 0.2)'; this.style.background='rgba(255, 255, 255, 0.02)';" onmouseout="this.style.borderColor='rgba(255, 255, 255, 0.1)'; this.style.background='rgba(255, 255, 255, 0.01)';">
                 <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
-                <div class="text-5xl mb-4"><span class="iconify" data-icon="fluent-emoji:page-facing-up" style="width:64px;height:64px;"></span></div>
-                <p class="mb-2" style="color: #d4d4d4;">
-                    <span class="font-semibold cursor-pointer" style="color: #10b981;" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select a file</span> or drag and drop
+                <div class="relative inline-block mb-6">
+                    <div style="position: absolute; inset: 0; background: linear-gradient(to bottom right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border-radius: 1rem; filter: blur(24px); opacity: 0.4;"></div>
+                    <div class="relative" style="background: rgba(255, 255, 255, 0.05); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <span class="iconify" data-icon="ph:file-text" style="width:64px;height:64px;color:rgba(255,255,255,0.9);"></span>
+                    </div>
+                </div>
+                <p class="mb-4" style="font-size: 1.125rem; color: rgba(255, 255, 255, 0.9);">
+                    <span class="cursor-pointer" style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select</span>
+                    <span style="color: rgba(255, 255, 255, 0.4);"> or drag and drop</span>
                 </p>
-                <p class="text-xs" style="color: #6b7280;">Supported: PDF, Excel (XLSX, XLS, CSV), DOCX, TXT</p>
+                <p class="text-xs" style="color: rgba(255, 255, 255, 0.3);">Supported formats: PDF, Excel (XLSX, XLS), CSV, DOCX, TXT</p>
             </div>
             
             <div id="docPreviewContent" class="hidden" style="position: absolute; top: 80px; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
@@ -593,7 +607,7 @@
         
         function showDocNotification(message) {
             const notif = document.createElement('div');
-            notif.style.cssText = 'position: fixed; top: 1rem; right: 1rem; background: #10b981; color: white; padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out;';
+            notif.style.cssText = 'position: fixed; top: 1rem; right: 1rem; background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247)); color: white; padding: 0.75rem 1.25rem; border-radius: 12px; font-size: 0.875rem; font-weight: 500; z-index: 9999; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3); animation: slideIn 0.3s ease-out;';
             notif.textContent = message;
             document.body.appendChild(notif);
             setTimeout(() => {
