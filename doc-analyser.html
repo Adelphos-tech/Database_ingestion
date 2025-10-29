@@ -278,6 +278,7 @@
                     </p>
                     
                     <p style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); margin: 0;">Supported formats: PDF, Excel (XLSX, XLS), CSV, DOCX, TXT</p>
+                    <p style="font-size: 0.75rem; color: rgba(255, 165, 0, 0.7); margin-top: 0.5rem;">⚠️ Maximum file size: 10MB • Large files analyzed in batches</p>
                 </div>
 
             </div>
@@ -395,6 +396,14 @@
                 return;
             }
 
+            // Check file size (limit to 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                showNotification('❌ File too large! Maximum size is 10MB');
+                console.error('File too large:', file.size, 'bytes');
+                return;
+            }
+
             // Show loading state immediately
             showLoadingState();
             showNotification('📁 Processing file...');
@@ -495,26 +504,49 @@
             formData.append('file_type', fileType);
 
             if (fileType === 'excel') {
+                // Limit to first 100 rows for analysis to avoid timeout
+                const maxRows = 100;
+                const limitedData = parsedData.length > maxRows ? parsedData.slice(0, maxRows + 1) : parsedData;
+                
                 const excelMetadata = {
                     rows: parsedData.length - 1,
                     columns: parsedData[0].length,
                     headers: parsedData[0],
-                    sample_data: parsedData.slice(1, 6)
+                    sample_data: limitedData.slice(1, Math.min(21, limitedData.length)), // Send first 20 rows
+                    total_rows: parsedData.length - 1,
+                    analyzed_rows: Math.min(maxRows, parsedData.length - 1)
                 };
                 console.log('📊 Excel metadata:', excelMetadata);
+                
+                if (parsedData.length > maxRows) {
+                    showNotification(`📊 Analyzing first ${maxRows} rows of ${parsedData.length - 1} total rows`);
+                }
+                
                 formData.append('excel_data', JSON.stringify(excelMetadata));
             } else if (fileType === 'text') {
-                formData.append('text_content', parsedData.content);
+                // Limit text content to 50KB
+                const maxTextSize = 50000;
+                const textContent = parsedData.content.length > maxTextSize 
+                    ? parsedData.content.substring(0, maxTextSize) + '\n... (truncated)'
+                    : parsedData.content;
+                formData.append('text_content', textContent);
             }
 
             try {
                 console.log('📡 Sending POST request to backend...');
                 showNotification('🤖 Sending to Gemini...');
                 
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+                
                 const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
 
                 console.log('📥 Response received:', response.status, response.statusText);
 
@@ -541,7 +573,17 @@
                 }
             } catch (error) {
                 console.error('❌ Analysis error:', error);
-                showNotification('❌ ' + error.message);
+                
+                if (error.name === 'AbortError') {
+                    showNotification('⏱️ Request timeout - File too large or server slow');
+                    clearLoadingState();
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('Network')) {
+                    showNotification('🌐 Network error - Check connection');
+                    clearLoadingState();
+                } else {
+                    showNotification('❌ ' + error.message);
+                    clearLoadingState();
+                }
             }
         }
 
