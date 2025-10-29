@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Analyzer - Atlas IQ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.7/dist/iconify-icon.min.js"></script>
+    <script src="https://code.iconify.design/1/1.0.7/iconify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ECharts for beautiful data visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -812,6 +813,8 @@
             
             scrollArea.innerHTML = chatHTML;
             
+            console.log('✅ Analysis displayed in sidebar, now showing document preview');
+            
             // Show document preview in main panel
             showDocumentPreview();
             showNotification('📊 Analysis ready!');
@@ -819,8 +822,19 @@
 
         function showDocumentPreview() {
             console.log('📄 Showing document preview');
+            console.log('📄 Current doc data:', currentDocData);
+            
             const mainContent = document.querySelector('main > div');
-            if (!mainContent || !currentDocData) return;
+            if (!mainContent) {
+                console.error('❌ Main content not found');
+                return;
+            }
+            
+            if (!currentDocData) {
+                console.error('❌ No document data available');
+                mainContent.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; min-height: 50vh; color: rgba(255, 255, 255, 0.5);">No document loaded</div>';
+                return;
+            }
 
             let previewHTML = '<div style="padding: 3rem;">';
             previewHTML += `<div style="margin-bottom: 2rem;"><h2 style="color: rgba(255, 255, 255, 0.95); font-size: 1.5rem; font-weight: 600; margin: 0 0 0.5rem 0;">📄 ${currentDocData.name}</h2>`;
@@ -1023,6 +1037,10 @@
 
                     // Show AI message
                     appendChatMessage('ai', aiResponse);
+                    
+                    // Try to render chart if AI suggests one
+                    tryRenderChartFromAI(aiResponse);
+                    
                     showNotification('✅ Response received');
                 } else {
                     throw new Error(data.error || 'No response from AI');
@@ -1101,6 +1119,227 @@
         function removeTypingIndicator() {
             const typingDiv = document.getElementById('typing-indicator');
             if (typingDiv) typingDiv.remove();
+        }
+
+        // Chart rendering with ECharts
+        function tryRenderChartFromAI(aiMessage) {
+            console.log('🎨 Checking for chart suggestions in AI message');
+            
+            const chartData = parseChartFromMessage(aiMessage);
+            if (chartData) {
+                console.log('📊 Chart data parsed:', chartData);
+                renderEChart(chartData);
+            }
+        }
+
+        function parseChartFromMessage(message) {
+            const lowerMsg = message.toLowerCase();
+            
+            // Detect chart type
+            let chartType = null;
+            if (lowerMsg.includes('pie chart')) chartType = 'pie';
+            else if (lowerMsg.includes('bar chart')) chartType = 'bar';
+            else if (lowerMsg.includes('line chart')) chartType = 'line';
+            else return null;
+            
+            console.log('📈 Detected chart type:', chartType);
+            
+            // Try to extract data from message
+            // Example: "Pie chart shows: Credit Card (60%), PayPal (20%), Bank Transfer (20%)"
+            const percentageRegex = /([\w\s]+)\s*\((\d+)%\)/g;
+            const matches = [...message.matchAll(percentageRegex)];
+            
+            if (matches.length > 0) {
+                const labels = matches.map(m => m[1].trim());
+                const values = matches.map(m => parseInt(m[2]));
+                
+                return {
+                    type: chartType,
+                    labels: labels,
+                    values: values,
+                    title: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart Visualization`
+                };
+            }
+            
+            // Try to extract from current document data
+            if (currentDocData && currentDocData.type === 'excel') {
+                return extractChartFromExcelData(chartType);
+            }
+            
+            return null;
+        }
+
+        function extractChartFromExcelData(chartType) {
+            if (!currentDocData || !currentDocData.data) return null;
+            
+            const headers = currentDocData.headers;
+            const data = currentDocData.data.slice(1, 11); // First 10 rows
+            
+            // Find first text column and first numeric column
+            let labelCol = 0;
+            let valueCol = 1;
+            
+            for (let i = 0; i < headers.length; i++) {
+                const sampleValues = data.map(row => row[i]).filter(v => v != null && v !== '');
+                const isNumeric = sampleValues.every(v => !isNaN(parseFloat(v)));
+                
+                if (!isNumeric && labelCol === 0) {
+                    labelCol = i;
+                } else if (isNumeric && valueCol === 1) {
+                    valueCol = i;
+                }
+            }
+            
+            const labels = data.map(row => row[labelCol] || 'Unknown').slice(0, 8);
+            const values = data.map(row => parseFloat(row[valueCol]) || 0).slice(0, 8);
+            
+            return {
+                type: chartType,
+                labels: labels,
+                values: values,
+                title: `${headers[labelCol]} vs ${headers[valueCol]}`
+            };
+        }
+
+        function renderEChart(chartData) {
+            const mainContent = document.querySelector('main > div');
+            if (!mainContent) return;
+            
+            const chartId = 'echart-' + Date.now();
+            
+            // Create chart container
+            mainContent.innerHTML = `
+                <div style="padding: 3rem;">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="color: rgba(255, 255, 255, 0.95); font-size: 1.5rem; font-weight: 600; margin: 0 0 0.5rem 0;">📊 ${chartData.title}</h2>
+                        <p style="color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; margin: 0;">Interactive ${chartData.type} chart visualization</p>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 2rem;">
+                        <div id="${chartId}" style="width: 100%; height: 500px;"></div>
+                    </div>
+                </div>
+            `;
+            
+            // Initialize ECharts
+            setTimeout(() => {
+                const chartDom = document.getElementById(chartId);
+                if (!chartDom) return;
+                
+                const myChart = echarts.init(chartDom, 'dark');
+                
+                let option;
+                
+                if (chartData.type === 'pie') {
+                    const pieData = chartData.labels.map((label, i) => ({
+                        name: label,
+                        value: chartData.values[i]
+                    }));
+                    
+                    option = {
+                        backgroundColor: 'transparent',
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: '{b}: {c} ({d}%)'
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            right: '10%',
+                            top: 'center',
+                            textStyle: { color: 'rgba(255, 255, 255, 0.8)' }
+                        },
+                        series: [{
+                            name: chartData.title,
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: '#0A0A0F',
+                                borderWidth: 2
+                            },
+                            label: {
+                                show: true,
+                                formatter: '{b}\n{d}%',
+                                color: 'rgba(255, 255, 255, 0.9)'
+                            },
+                            emphasis: {
+                                label: { show: true, fontSize: 16, fontWeight: 'bold' },
+                                itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' }
+                            },
+                            data: pieData,
+                            color: ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#f97316']
+                        }]
+                    };
+                } else if (chartData.type === 'bar') {
+                    option = {
+                        backgroundColor: 'transparent',
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                        xAxis: {
+                            type: 'category',
+                            data: chartData.labels,
+                            axisLabel: { color: 'rgba(255, 255, 255, 0.7)', rotate: 45 },
+                            axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.1)' } }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: { color: 'rgba(255, 255, 255, 0.7)' },
+                            axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.1)' } },
+                            splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)' } }
+                        },
+                        series: [{
+                            data: chartData.values,
+                            type: 'bar',
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#6366f1' },
+                                    { offset: 1, color: '#a855f7' }
+                                ]),
+                                borderRadius: [8, 8, 0, 0]
+                            },
+                            emphasis: { itemStyle: { color: '#ec4899' } }
+                        }]
+                    };
+                } else if (chartData.type === 'line') {
+                    option = {
+                        backgroundColor: 'transparent',
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                        xAxis: {
+                            type: 'category',
+                            data: chartData.labels,
+                            axisLabel: { color: 'rgba(255, 255, 255, 0.7)', rotate: 45 },
+                            axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.1)' } }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: { color: 'rgba(255, 255, 255, 0.7)' },
+                            axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.1)' } },
+                            splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.05)' } }
+                        },
+                        series: [{
+                            data: chartData.values,
+                            type: 'line',
+                            smooth: true,
+                            lineStyle: { width: 3, color: '#6366f1' },
+                            itemStyle: { color: '#6366f1' },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: 'rgba(99, 102, 241, 0.3)' },
+                                    { offset: 1, color: 'rgba(99, 102, 241, 0.05)' }
+                                ])
+                            }
+                        }]
+                    };
+                }
+                
+                myChart.setOption(option);
+                
+                // Resize on window resize
+                window.addEventListener('resize', () => myChart.resize());
+                
+                showNotification('📊 Chart rendered!');
+            }, 100);
         }
 
         console.log('✅ All backend functionality loaded');
