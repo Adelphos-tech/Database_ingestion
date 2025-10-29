@@ -55,10 +55,8 @@ DEFAULT_CHAT_MODEL = 'models/gemini-2.0-flash-exp'
 CONFIGURED_CHAT_MODEL = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
 ENABLE_PLAYWRIGHT_CRAWL = os.getenv('ENABLE_PLAYWRIGHT_CRAWL', 'false').lower() == 'true'
 
-# Captcha solving service configurations
-TWOCAPTCHA_API_KEY = os.getenv('TWOCAPTCHA_API_KEY', '')
-ANTICAPTCHA_API_KEY = os.getenv('ANTICAPTCHA_API_KEY', '')
-CAPSOLVER_API_KEY = os.getenv('CAPSOLVER_API_KEY', '')
+# Custom captcha bypass (no 3rd party APIs)
+from captcha_bypass import CustomCaptchaBypass
 
 # Proxy configuration (supports http, https, socks5)
 PROXY_URL = os.getenv('PROXY_URL', '')  # Format: http://user:pass@host:port or socks5://host:port
@@ -1035,93 +1033,53 @@ def fetch_with_playwright(url, timeout):
                     captcha_type = 'hcaptcha'
                     logging.info(f"hCaptcha detected on {url}")
                 
-                # Attempt to solve captcha if detected
-                if captcha_detected and any([TWOCAPTCHA_API_KEY, ANTICAPTCHA_API_KEY, CAPSOLVER_API_KEY]):
+                # Attempt to bypass captcha using custom implementation
+                if captcha_detected:
                     try:
-                        site_key = None
+                        captcha_info = {
+                            'detected': True,
+                            'type': captcha_type,
+                            'site_key': None
+                        }
                         
-                        if captcha_type == 'recaptcha_v2':
-                            # Extract site key
-                            site_key = page.evaluate("""
-                                () => {
-                                    const iframe = document.querySelector('iframe[src*="recaptcha"]');
-                                    if (iframe) {
-                                        const src = iframe.src;
-                                        const match = src.match(/k=([^&]+)/);
-                                        return match ? match[1] : null;
-                                    }
-                                    return null;
-                                }
-                            """)
-                            
-                            if site_key:
-                                logging.info(f"Attempting to solve reCAPTCHA v2 with site key: {site_key}")
-                                solution = CaptchaSolver.solve_recaptcha_v2(site_key, url)
-                                
-                                if solution:
-                                    # Inject solution
-                                    page.evaluate(f"""
-                                        () => {{
-                                            document.getElementById('g-recaptcha-response').innerHTML = '{solution}';
-                                            if (typeof ___grecaptcha_cfg !== 'undefined') {{
-                                                Object.keys(___grecaptcha_cfg.clients).forEach(key => {{
-                                                    ___grecaptcha_cfg.clients[key].callback('{solution}');
-                                                }});
-                                            }}
-                                        }}
-                                    """)
-                                    logging.info("reCAPTCHA v2 solved successfully")
-                                    import time
-                                    time.sleep(2)
+                        logging.info(f"Attempting to bypass {captcha_type} using custom solver...")
+                        bypass_success = CustomCaptchaBypass.auto_solve_captcha(page, captcha_info, timeout=60000)
                         
-                        elif captcha_type == 'hcaptcha':
-                            # Extract site key
-                            site_key = page.evaluate("""
-                                () => {
-                                    const iframe = document.querySelector('iframe[src*="hcaptcha"]');
-                                    if (iframe) {
-                                        const src = iframe.src;
-                                        const match = src.match(/sitekey=([^&]+)/);
-                                        return match ? match[1] : null;
-                                    }
-                                    return null;
-                                }
-                            """)
-                            
-                            if site_key:
-                                logging.info(f"Attempting to solve hCaptcha with site key: {site_key}")
-                                solution = CaptchaSolver.solve_hcaptcha(site_key, url)
-                                
-                                if solution:
-                                    # Inject solution
-                                    page.evaluate(f"""
-                                        () => {{
-                                            const textarea = document.querySelector('textarea[name="h-captcha-response"]');
-                                            if (textarea) {{
-                                                textarea.innerHTML = '{solution}';
-                                            }}
-                                        }}
-                                    """)
-                                    logging.info("hCaptcha solved successfully")
-                                    import time
-                                    time.sleep(2)
+                        if bypass_success:
+                            logging.info(f"{captcha_type} bypassed successfully")
+                        else:
+                            logging.warning(f"{captcha_type} bypass failed - continuing anyway")
                     
                     except Exception as captcha_error:
-                        logging.error(f"Captcha solving failed: {captcha_error}")
+                        logging.error(f"Captcha bypass error: {captcha_error}")
                 
                 # Scroll to load lazy-loaded images (for property listings, products, etc.)
                 try:
                     # Scroll down in increments to trigger lazy loading
                     for scroll_step in range(3):
                         page.evaluate(f"window.scrollTo(0, document.body.scrollHeight * {(scroll_step + 1) / 3})")
-                        page.wait_for_timeout(1000)  # Wait 1 second between scrolls
+                    # Apply stealth mode before navigation
+                    CustomCaptchaBypass.apply_stealth_mode(page)
                     
-                    # Scroll back to top
-                    page.evaluate("window.scrollTo(0, 0)")
-                    page.wait_for_timeout(500)
+                    # Navigate to the page with extended timeout
+                    response = page.goto(url, wait_until='domcontentloaded', timeout=30000)
                     
-                    # Wait for images to load
-                    page.wait_for_load_state('networkidle', timeout=5000)
+                    if not response or not response.ok:
+                        logging.warning(f"Failed to load {url}: HTTP {response.status if response else 'No response'}")
+                        return None
+                    
+                    # Check for Cloudflare challenge
+                    if CustomCaptchaBypass.detect_cloudflare(page):
+                        logging.info("Cloudflare challenge detected - attempting bypass...")
+                        cloudflare_bypassed = CustomCaptchaBypass.bypass_cloudflare(page, timeout=30000)
+                        
+                        if cloudflare_bypassed:
+                            logging.info("Cloudflare bypass successful")
+                        else:
+                            logging.warning("Cloudflare bypass timeout - continuing anyway")
+                    
+                    # Wait for page to be fully loaded
+                    page.wait_for_load_state('networkidle', timeout=15000)
                 except Exception as scroll_error:
                     logging.debug(f"Scrolling warning (non-critical): {scroll_error}")
                 
