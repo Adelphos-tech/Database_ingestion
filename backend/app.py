@@ -432,41 +432,8 @@ HEADLESS_HEADERS = [
 ]
 
 
-class CaptchaSolver:
-    """Unified captcha solving interface supporting multiple services"""
-    
-    @staticmethod
-    def solve_recaptcha_v2(site_key, page_url, api_key=None, service='2captcha'):
-        """Solve reCAPTCHA v2"""
-        if service == '2captcha' and (api_key or TWOCAPTCHA_API_KEY):
-            return CaptchaSolver._solve_2captcha_v2(site_key, page_url, api_key or TWOCAPTCHA_API_KEY)
-        elif service == 'anticaptcha' and (api_key or ANTICAPTCHA_API_KEY):
-            return CaptchaSolver._solve_anticaptcha_v2(site_key, page_url, api_key or ANTICAPTCHA_API_KEY)
-        elif service == 'capsolver' and (api_key or CAPSOLVER_API_KEY):
-            return CaptchaSolver._solve_capsolver_v2(site_key, page_url, api_key or CAPSOLVER_API_KEY)
-        return None
-    
-    @staticmethod
-    def solve_recaptcha_v3(site_key, page_url, action='verify', api_key=None, service='2captcha'):
-        """Solve reCAPTCHA v3"""
-        if service == '2captcha' and (api_key or TWOCAPTCHA_API_KEY):
-            return CaptchaSolver._solve_2captcha_v3(site_key, page_url, action, api_key or TWOCAPTCHA_API_KEY)
-        elif service == 'anticaptcha' and (api_key or ANTICAPTCHA_API_KEY):
-            return CaptchaSolver._solve_anticaptcha_v3(site_key, page_url, action, api_key or ANTICAPTCHA_API_KEY)
-        elif service == 'capsolver' and (api_key or CAPSOLVER_API_KEY):
-            return CaptchaSolver._solve_capsolver_v3(site_key, page_url, action, api_key or CAPSOLVER_API_KEY)
-        return None
-    
-    @staticmethod
-    def solve_hcaptcha(site_key, page_url, api_key=None, service='2captcha'):
-        """Solve hCaptcha"""
-        if service == '2captcha' and (api_key or TWOCAPTCHA_API_KEY):
-            return CaptchaSolver._solve_2captcha_hcaptcha(site_key, page_url, api_key or TWOCAPTCHA_API_KEY)
-        elif service == 'anticaptcha' and (api_key or ANTICAPTCHA_API_KEY):
-            return CaptchaSolver._solve_anticaptcha_hcaptcha(site_key, page_url, api_key or ANTICAPTCHA_API_KEY)
-        elif service == 'capsolver' and (api_key or CAPSOLVER_API_KEY):
-            return CaptchaSolver._solve_capsolver_hcaptcha(site_key, page_url, api_key or CAPSOLVER_API_KEY)
-        return None
+# Old CaptchaSolver class removed - now using CustomCaptchaBypass
+# No 3rd party APIs needed!
     
     @staticmethod
     def _solve_2captcha_v2(site_key, page_url, api_key):
