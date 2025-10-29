@@ -9,6 +9,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- ECharts for beautiful data visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- PDF.js for PDF preview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -610,17 +617,37 @@
             console.log('📄 handlePDFFile started for:', file.name);
             showNotification('📄 Processing PDF...');
             
-            // For now, treat as text file and send to backend
-            // Backend has PyPDF2 to extract text
-            currentDocData = {
-                type: 'pdf',
-                name: file.name,
-                content: 'PDF file - text will be extracted by backend',
-                size: file.size
-            };
-            
-            console.log('🚀 Calling analyzeDocument for PDF...');
-            await analyzeDocument(file, 'pdf', { content: 'PDF file' });
+            try {
+                // Extract text from PDF using PDF.js
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                let fullText = '';
+                const numPages = Math.min(pdf.numPages, 10); // First 10 pages
+                
+                for (let i = 1; i <= numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += `\n--- Page ${i} ---\n${pageText}\n`;
+                }
+                
+                currentDocData = {
+                    type: 'pdf',
+                    name: file.name,
+                    content: fullText,
+                    size: file.size,
+                    pages: pdf.numPages
+                };
+                
+                console.log('✅ PDF text extracted:', fullText.length, 'characters');
+                console.log('🚀 Calling analyzeDocument for PDF...');
+                await analyzeDocument(file, 'pdf', { content: fullText });
+            } catch (error) {
+                console.error('❌ PDF extraction error:', error);
+                showNotification('❌ Failed to read PDF');
+                clearLoadingState();
+            }
         }
 
         async function handleDocxFile(file) {
@@ -896,14 +923,30 @@
                 previewHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem;">`;
                 previewHTML += `<pre style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; line-height: 1.6; margin: 0; white-space: pre-wrap; font-family: 'SF Mono', Monaco, monospace;">${currentDocData.content}</pre>`;
                 previewHTML += `</div>`;
-            } else if (currentDocData.type === 'pdf' || currentDocData.type === 'docx') {
-                // Show file info for PDF/DOCX
-                previewHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 3rem; text-align: center;">`;
-                previewHTML += `<div style="font-size: 4rem; margin-bottom: 1rem;">${currentDocData.type === 'pdf' ? '📄' : '📝'}</div>`;
-                previewHTML += `<h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">${currentDocData.name}</h3>`;
-                previewHTML += `<p style="color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; margin-bottom: 1.5rem;">File size: ${(currentDocData.size / 1024).toFixed(2)} KB</p>`;
-                previewHTML += `<p style="color: rgba(255, 255, 255, 0.7); font-size: 0.875rem; line-height: 1.6;">Text content is being analyzed by AI. Check the sidebar for analysis results.</p>`;
-                previewHTML += `</div>`;
+            } else if (currentDocData.type === 'pdf') {
+                // Show PDF text preview
+                previewHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem;">`;
+                previewHTML += `<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">`;
+                previewHTML += `<span style="font-size: 2rem;">📄</span>`;
+                previewHTML += `<div>`;
+                previewHTML += `<h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.125rem; font-weight: 600; margin: 0;">${currentDocData.name}</h3>`;
+                previewHTML += `<p style="color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; margin: 0.25rem 0 0 0;">${currentDocData.pages || 0} pages • ${(currentDocData.size / 1024).toFixed(2)} KB</p>`;
+                previewHTML += `</div></div>`;
+                previewHTML += `<div style="max-height: 600px; overflow-y: auto;">`;
+                previewHTML += `<pre style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; line-height: 1.6; margin: 0; white-space: pre-wrap; font-family: 'SF Mono', Monaco, monospace;">${currentDocData.content}</pre>`;
+                previewHTML += `</div></div>`;
+            } else if (currentDocData.type === 'docx') {
+                // Show DOCX text preview
+                previewHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem;">`;
+                previewHTML += `<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">`;
+                previewHTML += `<span style="font-size: 2rem;">📝</span>`;
+                previewHTML += `<div>`;
+                previewHTML += `<h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.125rem; font-weight: 600; margin: 0;">${currentDocData.name}</h3>`;
+                previewHTML += `<p style="color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; margin: 0.25rem 0 0 0;">${(currentDocData.size / 1024).toFixed(2)} KB</p>`;
+                previewHTML += `</div></div>`;
+                previewHTML += `<div style="max-height: 600px; overflow-y: auto;">`;
+                previewHTML += `<pre style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; line-height: 1.6; margin: 0; white-space: pre-wrap; font-family: 'SF Mono', Monaco, monospace;">${currentDocData.content}</pre>`;
+                previewHTML += `</div></div>`;
             }
 
             previewHTML += '</div>';
