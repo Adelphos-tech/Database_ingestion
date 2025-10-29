@@ -227,7 +227,7 @@
                 </div>
 
                 <!-- File Upload Zone -->
-                <div style="border: 2px dashed rgba(255, 255, 255, 0.1); border-radius: 1.5rem; padding: 5rem 3rem; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(255, 255, 255, 0.01);" onmouseover="this.style.borderColor='rgba(255, 255, 255, 0.2)'; this.style.background='rgba(255, 255, 255, 0.02)';" onmouseout="this.style.borderColor='rgba(255, 255, 255, 0.1)'; this.style.background='rgba(255, 255, 255, 0.01)';">
+                <div onclick="console.log('🎯 Upload zone clicked'); document.getElementById('fileInput').click();" style="border: 2px dashed rgba(255, 255, 255, 0.1); border-radius: 1.5rem; padding: 5rem 3rem; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(255, 255, 255, 0.01);" onmouseover="this.style.borderColor='rgba(255, 255, 255, 0.2)'; this.style.background='rgba(255, 255, 255, 0.02)';" onmouseout="this.style.borderColor='rgba(255, 255, 255, 0.1)'; this.style.background='rgba(255, 255, 255, 0.01)';">
                     <input type="file" accept=".pdf,.xlsx,.xls,.csv,.docx,.txt" style="display: none;" id="fileInput">
                     
                     <!-- Icon with Gradient Glow -->
@@ -239,7 +239,7 @@
                     </div>
 
                     <p style="font-size: 1.125rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 1rem;">
-                        <span style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; cursor: pointer;" onclick="document.getElementById('fileInput').click()">Click to select</span>
+                        <span style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; cursor: pointer;" onclick="console.log('📁 Click to select clicked'); document.getElementById('fileInput').click();">Click to select</span>
                         <span style="color: rgba(255, 255, 255, 0.4);"> or drag and drop</span>
                     </p>
                     
@@ -353,8 +353,13 @@
         }
 
         async function handleFileUpload(event) {
+            console.log('📂 handleFileUpload called', event);
             const file = event.target.files[0];
-            if (!file) return;
+            console.log('📄 File:', file);
+            if (!file) {
+                console.log('⚠️ No file selected');
+                return;
+            }
 
             showNotification('📁 Processing file...');
 
