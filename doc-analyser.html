@@ -16,6 +16,8 @@
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
     </script>
+    <!-- Mammoth.js for DOCX text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -654,17 +656,27 @@
             console.log('📝 handleDocxFile started for:', file.name);
             showNotification('📝 Processing DOCX...');
             
-            // For now, treat as text file and send to backend
-            // Backend has python-docx to extract text
-            currentDocData = {
-                type: 'docx',
-                name: file.name,
-                content: 'DOCX file - text will be extracted by backend',
-                size: file.size
-            };
-            
-            console.log('🚀 Calling analyzeDocument for DOCX...');
-            await analyzeDocument(file, 'docx', { content: 'DOCX file' });
+            try {
+                // Extract text from DOCX using Mammoth.js
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                const text = result.value;
+                
+                currentDocData = {
+                    type: 'docx',
+                    name: file.name,
+                    content: text,
+                    size: file.size
+                };
+                
+                console.log('✅ DOCX text extracted:', text.length, 'characters');
+                console.log('🚀 Calling analyzeDocument for DOCX...');
+                await analyzeDocument(file, 'docx', { content: text });
+            } catch (error) {
+                console.error('❌ DOCX extraction error:', error);
+                showNotification('❌ Failed to read DOCX');
+                clearLoadingState();
+            }
         }
 
         async function handleTextFile(file) {
