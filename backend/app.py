@@ -52,8 +52,13 @@ PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 DEFAULT_CHAT_MODEL = 'models/gemini-2.5-flash'  # Latest stable - best for chat + document analysis
-CONFIGURED_CHAT_MODEL = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
 ENABLE_PLAYWRIGHT_CRAWL = os.getenv('ENABLE_PLAYWRIGHT_CRAWL', 'false').lower() == 'true'
+
+# Model configuration - mutable at runtime
+class ModelConfig:
+    current_model = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
+
+CONFIGURED_CHAT_MODEL = ModelConfig.current_model
 
 # Custom captcha bypass (no 3rd party APIs)
 from captcha_bypass import CustomCaptchaBypass
@@ -88,7 +93,7 @@ def initialize_chat_model(force_fallback=False):
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is required for chat functionality.")
 
-    requested_model = CONFIGURED_CHAT_MODEL
+    requested_model = ModelConfig.current_model
     candidate_models = [requested_model]
     if force_fallback or requested_model != DEFAULT_CHAT_MODEL:
         candidate_models.append(DEFAULT_CHAT_MODEL)
@@ -910,29 +915,33 @@ def health_check():
 def get_current_model():
     """Get current AI model being used"""
     return jsonify({
-        'current_model': CONFIGURED_CHAT_MODEL,
+        'current_model': ModelConfig.current_model,
         'default_model': DEFAULT_CHAT_MODEL,
         'available_models': [
             {
                 'id': 'models/gemini-2.5-flash',
                 'name': 'Gemini 2.5 Flash',
-                'description': 'Latest stable - Best for chat + docs',
+                'description': 'Balanced speed and quality',
+                'category': 'recommended',
                 'recommended': True
             },
             {
                 'id': 'models/gemini-2.5-pro',
                 'name': 'Gemini 2.5 Pro',
-                'description': 'Most capable - Slower but highest quality'
+                'description': 'Highest quality and reasoning',
+                'category': 'recommended'
             },
             {
                 'id': 'models/gemini-2.0-flash-exp',
-                'name': 'Gemini 2.0 Flash Experimental',
-                'description': 'Fast experimental features'
+                'name': 'Gemini 2.0 Flash Exp',
+                'description': 'Experimental features',
+                'category': 'experimental'
             },
             {
                 'id': 'models/gemini-2.0-flash',
                 'name': 'Gemini 2.0 Flash',
-                'description': 'Stable 2.0 version'
+                'description': 'Fast and reliable',
+                'category': 'stable'
             }
         ]
     }), 200
@@ -940,8 +949,6 @@ def get_current_model():
 @app.route('/api/model', methods=['POST'])
 def update_model():
     """Update AI model (session-based, resets on restart)"""
-    global CONFIGURED_CHAT_MODEL
-    
     data = request.json
     new_model = data.get('model')
     
@@ -952,16 +959,15 @@ def update_model():
     if not new_model.startswith('models/'):
         return jsonify({'error': 'Invalid model format. Must start with "models/"'}), 400
     
-    # Update the model (in-memory, resets on restart)
-    CONFIGURED_CHAT_MODEL = new_model
+    # Update the model in ModelConfig
+    ModelConfig.current_model = new_model
     
     logging.info(f"AI model changed to: {new_model}")
     
     return jsonify({
         'success': True,
-        'current_model': CONFIGURED_CHAT_MODEL,
-        'message': f'Model updated to {new_model}. This is temporary and will reset on server restart.',
-        'note': 'To make permanent, set GEMINI_CHAT_MODEL environment variable'
+        'current_model': ModelConfig.current_model,
+        'message': f'Model updated successfully'
     }), 200
 
 

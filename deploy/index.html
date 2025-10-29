@@ -500,15 +500,43 @@
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="text-sm font-bold" style="color: #10b981;">Gemini 2.0 Flash</span>
-                                        <span class="text-xs font-medium px-1.5 py-0.5 rounded" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">Thinking</span>
+                                        <span id="currentModelName" class="text-sm font-bold" style="color: #10b981;">Loading...</span>
+                                        <span class="text-xs font-medium px-1.5 py-0.5 rounded" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">Live</span>
                                     </div>
-                                    <p class="text-xs mt-0.5" style="color: #6b7280;">Advanced AI Model</p>
+                                    <p id="currentModelDesc" class="text-xs mt-0.5" style="color: #6b7280;">Fetching model info...</p>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #10b981;"></div>
-                                <span class="text-xs font-medium" style="color: #10b981;">Active</span>
+                            <div class="flex items-center gap-2">
+                                <!-- Model Selector Dropdown -->
+                                <div class="relative">
+                                    <button onclick="toggleModelDropdown()" id="modelDropdownBtn" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-opacity-20" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2);" title="Change AI Model">
+                                        <span class="iconify" data-icon="ph:stack-duotone" style="width:14px;height:14px;"></span>
+                                        <span class="iconify" data-icon="ph:caret-down" style="width:12px;height:12px;"></span>
+                                    </button>
+                                    
+                                    <!-- Dropdown Menu -->
+                                    <div id="modelDropdown" class="hidden absolute right-0 mt-2 w-72 rounded-lg shadow-2xl z-50" style="background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1);">
+                                        <!-- Search -->
+                                        <div class="p-2 border-b border-gray-700">
+                                            <div class="flex items-center gap-2 px-3 py-2 rounded-md" style="background: #2a2a2a;">
+                                                <span class="iconify text-gray-400" data-icon="ph:magnifying-glass" style="width:14px;height:14px;"></span>
+                                                <input type="text" id="modelSearch" placeholder="Search all models" class="bg-transparent text-sm text-gray-300 outline-none flex-1" style="border: none;">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Model List -->
+                                        <div id="modelDropdownList" class="max-h-80 overflow-y-auto">
+                                            <div class="text-center py-8 text-gray-400">
+                                                <div class="spinner mx-auto mb-2"></div>
+                                                <p class="text-sm">Loading...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-1.5 h-1.5 rounded-full animate-pulse" style="background: #10b981;"></div>
+                                    <span class="text-xs font-medium" style="color: #10b981;">Active</span>
+                                </div>
                             </div>
                         </div>
 
@@ -2516,8 +2544,154 @@
             docAnalyserQuestion.value = '';
         }
         
-        // Initialize Lucide Icons and AOS on page load
+        // Fetch and display current AI model
+        async function fetchCurrentModel() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                const data = await response.json();
+                
+                if (data.current_model) {
+                    const modelInfo = data.available_models.find(m => m.id === data.current_model) || {};
+                    document.getElementById('currentModelName').textContent = modelInfo.name || data.current_model.replace('models/', '');
+                    document.getElementById('currentModelDesc').textContent = modelInfo.description || 'AI Model';
+                }
+            } catch (error) {
+                console.error('Error fetching model:', error);
+                document.getElementById('currentModelName').textContent = 'Gemini 2.5 Flash';
+                document.getElementById('currentModelDesc').textContent = 'Advanced AI Model';
+            }
+        }
+        
+        // Toggle model dropdown
+        async function toggleModelDropdown() {
+            const dropdown = document.getElementById('modelDropdown');
+            const isHidden = dropdown.classList.contains('hidden');
+            
+            if (isHidden) {
+                dropdown.classList.remove('hidden');
+                await loadModelDropdown();
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+        
+        // Load model dropdown content
+        async function loadModelDropdown() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                const data = await response.json();
+                
+                const container = document.getElementById('modelDropdownList');
+                container.innerHTML = '';
+                
+                // Group models by category
+                const recommended = data.available_models.filter(m => m.category === 'recommended');
+                const others = data.available_models.filter(m => m.category !== 'recommended');
+                
+                // Add Recommended section
+                if (recommended.length > 0) {
+                    const section = document.createElement('div');
+                    section.innerHTML = '<div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Recommended</div>';
+                    container.appendChild(section);
+                    
+                    recommended.forEach(model => {
+                        container.appendChild(createModelItem(model, data.current_model));
+                    });
+                }
+                
+                // Add Other Models section
+                if (others.length > 0) {
+                    const section = document.createElement('div');
+                    section.innerHTML = '<div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-700 mt-1">Other Models</div>';
+                    container.appendChild(section);
+                    
+                    others.forEach(model => {
+                        container.appendChild(createModelItem(model, data.current_model));
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading models:', error);
+                document.getElementById('modelDropdownList').innerHTML = '<p class="text-center text-red-500 py-4 text-sm">Error loading models</p>';
+            }
+        }
+        
+        // Create model item
+        function createModelItem(model, currentModel) {
+            const isActive = model.id === currentModel;
+            const item = document.createElement('div');
+            item.className = 'px-3 py-2.5 cursor-pointer transition-all';
+            item.style.background = isActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent';
+            item.onmouseover = () => { if (!isActive) item.style.background = 'rgba(255,255,255,0.05)'; };
+            item.onmouseout = () => { if (!isActive) item.style.background = 'transparent'; };
+            item.onclick = () => switchModel(model.id);
+            
+            item.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium ${isActive ? 'text-emerald-400' : 'text-gray-200'}">${model.name}</span>
+                            ${isActive ? '<svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-0.5">${model.description}</p>
+                    </div>
+                </div>
+            `;
+            
+            return item;
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('modelDropdown');
+            const btn = document.getElementById('modelDropdownBtn');
+            if (dropdown && !dropdown.contains(event.target) && !btn.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Switch AI model
+        async function switchModel(modelId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await fetchCurrentModel();
+                    showNotification('✅ Model switched successfully!', 'success');
+                    document.getElementById('modelDropdown').classList.add('hidden');
+                } else {
+                    showNotification('❌ Failed to switch model', 'error');
+                }
+            } catch (error) {
+                console.error('Error switching model:', error);
+                showNotification('❌ Error switching model', 'error');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 transition-all ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white font-medium`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Fetch current model on load
+            fetchCurrentModel();
             // Initialize Lucide Icons
             lucide.createIcons();
             
