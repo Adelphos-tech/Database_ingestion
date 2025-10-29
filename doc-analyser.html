@@ -184,14 +184,14 @@
                 <p style="font-size: 10px; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.3); text-transform: uppercase; margin-bottom: 1rem;">Ask Questions</p>
                 
                 <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; padding: 0.5rem;">
-                    <input type="text" placeholder="Type your question..." style="flex: 1; background: transparent; border: none; outline: none; padding: 0.5rem; color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
+                    <input type="text" id="chatInput" placeholder="Type your question..." style="flex: 1; background: transparent; border: none; outline: none; padding: 0.5rem; color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;" onkeypress="if(event.key==='Enter') sendChatMessage()">
                     
                     <!-- Model Selector Button -->
                     <button id="modelSelectorBtn" onclick="toggleModelDropdown()" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.5rem; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.05)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.02)'">
                         <div style="width: 6px; height: 6px; border-radius: 50%; background: rgb(99 102 241);"></div>
                     </button>
 
-                    <button style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border: none; border-radius: 0.5rem; cursor: pointer; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);">
+                    <button onclick="sendChatMessage()" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border: none; border-radius: 0.5rem; cursor: pointer; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);">
                         <span class="iconify" data-icon="ph:paper-plane-tilt" style="width:16px;height:16px;color:white;"></span>
                     </button>
                 </div>
@@ -395,6 +395,8 @@
                 return;
             }
 
+            // Show loading state immediately
+            showLoadingState();
             showNotification('📁 Processing file...');
 
             const fileName = file.name;
@@ -415,6 +417,8 @@
             } catch (error) {
                 console.error('Error processing file:', error);
                 showNotification('❌ Error processing file');
+                // Clear loading state on error
+                clearLoadingState();
             }
         }
 
@@ -506,7 +510,6 @@
             try {
                 console.log('📡 Sending POST request to backend...');
                 showNotification('🤖 Sending to Gemini...');
-                showLoadingState(); // Show loading animation
                 
                 const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
                     method: 'POST',
@@ -544,13 +547,18 @@
 
         function showLoadingState() {
             console.log('⏳ Showing loading state');
+            
+            // Show loading in main panel
             const mainContent = document.querySelector('main > div');
             if (mainContent) {
                 mainContent.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; padding: 3rem;">
-                        <div class="loading-spinner" style="margin-bottom: 2rem;"></div>
-                        <h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Processing Document...</h3>
-                        <p style="color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; margin-bottom: 1.5rem;">Gemini AI is analyzing your data</p>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh; padding: 3rem;">
+                        <div style="position: relative; margin-bottom: 2rem;">
+                            <div style="position: absolute; inset: 0; background: linear-gradient(to bottom right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border-radius: 50%; filter: blur(20px); opacity: 0.3;"></div>
+                            <div class="loading-spinner" style="position: relative;"></div>
+                        </div>
+                        <h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.5rem; font-weight: 600; margin-bottom: 0.75rem;">Processing Document...</h3>
+                        <p style="color: rgba(255, 255, 255, 0.5); font-size: 1rem; margin-bottom: 2rem;">Gemini AI is analyzing your data</p>
                         <div class="loading-dots">
                             <span></span>
                             <span></span>
@@ -558,6 +566,30 @@
                         </div>
                     </div>
                 `;
+            }
+
+            // Show "Analyzing..." message in sidebar
+            const sidebar = document.querySelector('aside');
+            const scrollArea = sidebar?.querySelector('div:first-child') || sidebar;
+            if (scrollArea) {
+                scrollArea.innerHTML = `
+                    <div style="padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                        <div class="loading-dots" style="margin-bottom: 1rem;">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <p style="color: rgba(255, 255, 255, 0.6); font-size: 0.875rem;">Waiting for analysis...</p>
+                    </div>
+                `;
+            }
+        }
+
+        function clearLoadingState() {
+            console.log('🗑️ Clearing loading state');
+            const mainContent = document.querySelector('main > div');
+            if (mainContent) {
+                mainContent.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; min-height: 50vh; color: rgba(255, 255, 255, 0.5);">Ready</div>';
             }
         }
 
@@ -699,6 +731,158 @@
                 console.error('URL analysis error:', error);
                 showNotification('❌ ' + error.message);
             }
+        }
+
+        // Chat functionality
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const question = input?.value?.trim();
+            
+            if (!question) {
+                showNotification('⚠️ Please enter a question');
+                return;
+            }
+
+            if (!currentDocData) {
+                showNotification('⚠️ Please upload a document first');
+                return;
+            }
+
+            console.log('💬 Sending chat message:', question);
+
+            // Add user message to conversation history
+            docConversationHistory.push({
+                role: 'user',
+                content: question
+            });
+
+            // Show user message in sidebar
+            appendChatMessage('user', question);
+
+            // Clear input
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                const formData = new FormData();
+                formData.append('question', question);
+                formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                
+                if (currentDocData.type === 'excel') {
+                    formData.append('file_type', 'excel');
+                    formData.append('excel_data', JSON.stringify({
+                        rows: currentDocData.rows,
+                        columns: currentDocData.headers.length,
+                        headers: currentDocData.headers,
+                        sample_data: currentDocData.data.slice(1, 6)
+                    }));
+                } else if (currentDocData.type === 'text') {
+                    formData.append('file_type', 'text');
+                    formData.append('text_content', currentDocData.content);
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                removeTypingIndicator();
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('💬 Chat response:', data);
+
+                if (data.success && data.analysis) {
+                    // Add AI response to conversation history
+                    const aiResponse = typeof data.analysis === 'string' ? data.analysis : JSON.stringify(data.analysis);
+                    docConversationHistory.push({
+                        role: 'assistant',
+                        content: aiResponse
+                    });
+
+                    // Show AI message
+                    appendChatMessage('ai', aiResponse);
+                    showNotification('✅ Response received');
+                } else {
+                    throw new Error(data.error || 'No response');
+                }
+            } catch (error) {
+                console.error('❌ Chat error:', error);
+                removeTypingIndicator();
+                showNotification('❌ ' + error.message);
+            }
+        }
+
+        function appendChatMessage(role, message) {
+            const sidebar = document.querySelector('aside');
+            const scrollArea = sidebar?.querySelector('div:first-child') || sidebar;
+            if (!scrollArea) return;
+
+            // Find or create chat container
+            let chatContainer = scrollArea.querySelector('.chat-container');
+            if (!chatContainer) {
+                chatContainer = document.createElement('div');
+                chatContainer.className = 'chat-container';
+                chatContainer.style.cssText = 'padding: 2rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1rem;';
+                scrollArea.innerHTML = '';
+                scrollArea.appendChild(chatContainer);
+            }
+
+            // Create message bubble
+            const messageDiv = document.createElement('div');
+            
+            if (role === 'user') {
+                messageDiv.style.cssText = 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; padding: 1rem; align-self: flex-end; max-width: 80%;';
+                messageDiv.innerHTML = `
+                    <div style="color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">You</div>
+                    <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; line-height: 1.5; margin: 0;">${message}</p>
+                `;
+            } else {
+                messageDiv.style.cssText = 'background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 1rem; padding: 1rem; align-self: flex-start; max-width: 90%;';
+                messageDiv.innerHTML = `
+                    <div style="color: rgba(99, 102, 241, 0.9); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Gemini AI</div>
+                    <p style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">${message}</p>
+                `;
+            }
+
+            chatContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const sidebar = document.querySelector('aside');
+            const chatContainer = sidebar?.querySelector('.chat-container');
+            if (!chatContainer) return;
+
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.style.cssText = 'background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 1rem; padding: 1rem; align-self: flex-start; max-width: 90%;';
+            typingDiv.innerHTML = `
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingDiv = document.getElementById('typing-indicator');
+            if (typingDiv) typingDiv.remove();
         }
 
         console.log('✅ All backend functionality loaded');
