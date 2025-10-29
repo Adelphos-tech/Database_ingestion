@@ -607,13 +607,37 @@
         }
 
         async function handlePDFFile(file) {
-            showNotification('📄 PDF support coming soon...');
-            // PDF.js integration would go here
+            console.log('📄 handlePDFFile started for:', file.name);
+            showNotification('📄 Processing PDF...');
+            
+            // For now, treat as text file and send to backend
+            // Backend has PyPDF2 to extract text
+            currentDocData = {
+                type: 'pdf',
+                name: file.name,
+                content: 'PDF file - text will be extracted by backend',
+                size: file.size
+            };
+            
+            console.log('🚀 Calling analyzeDocument for PDF...');
+            await analyzeDocument(file, 'pdf', { content: 'PDF file' });
         }
 
         async function handleDocxFile(file) {
-            showNotification('📝 DOCX support coming soon...');
-            // Mammoth.js integration would go here
+            console.log('📝 handleDocxFile started for:', file.name);
+            showNotification('📝 Processing DOCX...');
+            
+            // For now, treat as text file and send to backend
+            // Backend has python-docx to extract text
+            currentDocData = {
+                type: 'docx',
+                name: file.name,
+                content: 'DOCX file - text will be extracted by backend',
+                size: file.size
+            };
+            
+            console.log('🚀 Calling analyzeDocument for DOCX...');
+            await analyzeDocument(file, 'docx', { content: 'DOCX file' });
         }
 
         async function handleTextFile(file) {
@@ -872,10 +896,19 @@
                 previewHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 2rem;">`;
                 previewHTML += `<pre style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; line-height: 1.6; margin: 0; white-space: pre-wrap; font-family: 'SF Mono', Monaco, monospace;">${currentDocData.content}</pre>`;
                 previewHTML += `</div>`;
+            } else if (currentDocData.type === 'pdf' || currentDocData.type === 'docx') {
+                // Show file info for PDF/DOCX
+                previewHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 3rem; text-align: center;">`;
+                previewHTML += `<div style="font-size: 4rem; margin-bottom: 1rem;">${currentDocData.type === 'pdf' ? '📄' : '📝'}</div>`;
+                previewHTML += `<h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">${currentDocData.name}</h3>`;
+                previewHTML += `<p style="color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; margin-bottom: 1.5rem;">File size: ${(currentDocData.size / 1024).toFixed(2)} KB</p>`;
+                previewHTML += `<p style="color: rgba(255, 255, 255, 0.7); font-size: 0.875rem; line-height: 1.6;">Text content is being analyzed by AI. Check the sidebar for analysis results.</p>`;
+                previewHTML += `</div>`;
             }
 
             previewHTML += '</div>';
             mainContent.innerHTML = previewHTML;
+            console.log('✅ Document preview rendered');
         }
 
         // URL Analysis
