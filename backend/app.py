@@ -1825,13 +1825,14 @@ Short and actionable."""
 
 
 @app.route('/')
-def health_check():
-    """Health check endpoint for Railway/deployment platforms"""
+def root_endpoint():
+    """Root endpoint - redirects to health check"""
     return jsonify({
         'status': 'healthy',
         'service': 'Knowledge Base API',
         'version': '1.0.0',
-        'playwright_enabled': ENABLE_PLAYWRIGHT_CRAWL
+        'playwright_enabled': ENABLE_PLAYWRIGHT_CRAWL,
+        'health_check': '/health'
     }), 200
 
 if __name__ == '__main__':
