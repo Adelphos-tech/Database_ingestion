@@ -508,10 +508,67 @@
         }
 
         function displayAnalysis(analysis) {
-            console.log('Analysis result:', analysis);
+            console.log('📊 Displaying analysis:', analysis);
+            
+            // Find the info card in sidebar (the one that says "Upload a document...")
+            const infoCard = document.querySelector('.doc-ai-insights-panel') || 
+                           document.querySelector('aside > div:first-child');
+            
+            if (!infoCard) {
+                console.error('❌ Could not find sidebar to display results');
+                return;
+            }
+
+            // Create analysis display HTML
+            let analysisHTML = '<div style="padding: 2rem;">';
+            
+            // Title
+            analysisHTML += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">';
+            analysisHTML += '<span style="font-size: 1.5rem;">✨</span>';
+            analysisHTML += '<h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.125rem; font-weight: 600; margin: 0;">AI Analysis Complete</h3>';
+            analysisHTML += '</div>';
+
+            // Analysis content
+            if (typeof analysis === 'string') {
+                // Simple string analysis
+                analysisHTML += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1rem;">`;
+                analysisHTML += `<p style="color: rgba(255, 255, 255, 0.8); line-height: 1.6; margin: 0; white-space: pre-wrap;">${analysis}</p>`;
+                analysisHTML += `</div>`;
+            } else if (analysis && typeof analysis === 'object') {
+                // Object analysis - display key insights
+                if (analysis.summary) {
+                    analysisHTML += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1rem;">`;
+                    analysisHTML += `<h4 style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; font-weight: 600; margin: 0 0 0.75rem 0;">Summary</h4>`;
+                    analysisHTML += `<p style="color: rgba(255, 255, 255, 0.7); line-height: 1.6; margin: 0;">${analysis.summary}</p>`;
+                    analysisHTML += `</div>`;
+                }
+                
+                if (analysis.insights && Array.isArray(analysis.insights)) {
+                    analysisHTML += `<h4 style="color: rgba(255, 255, 255, 0.9); font-size: 0.875rem; font-weight: 600; margin: 0 0 0.75rem 0;">Key Insights</h4>`;
+                    analysis.insights.forEach(insight => {
+                        analysisHTML += `<div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem;">`;
+                        analysisHTML += `<p style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem; line-height: 1.5; margin: 0;">${insight}</p>`;
+                        analysisHTML += `</div>`;
+                    });
+                }
+
+                // Display raw object if no specific fields
+                if (!analysis.summary && !analysis.insights) {
+                    analysisHTML += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem;">`;
+                    analysisHTML += `<pre style="color: rgba(255, 255, 255, 0.7); font-size: 0.8rem; line-height: 1.5; margin: 0; overflow-x: auto; white-space: pre-wrap;">${JSON.stringify(analysis, null, 2)}</pre>`;
+                    analysisHTML += `</div>`;
+                }
+            }
+
+            analysisHTML += '</div>';
+
+            // Update the sidebar - replace the scrollable content
+            const scrollArea = infoCard.querySelector('.flex-1') || infoCard;
+            if (scrollArea) {
+                scrollArea.innerHTML = analysisHTML;
+            }
+
             showNotification('📊 Analysis displayed in sidebar');
-            // Update sidebar with results
-            // This would populate the capabilities section with actual insights
         }
 
         // URL Analysis
