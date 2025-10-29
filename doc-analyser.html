@@ -204,7 +204,7 @@
                     <div style="flex: 1;">
                         <input type="url" placeholder="Paste a URL to analyze (e.g., https://example.com/document)" style="width: 100%; padding: 0.875rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; outline: none; color: rgba(255, 255, 255, 0.9); font-size: 0.875rem;">
                     </div>
-                    <button style="padding: 0.875rem 1.5rem; background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); color: white; border: none; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);">
+                    <button onclick="analyzeURL()" style="padding: 0.875rem 1.5rem; background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); color: white; border: none; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);">
                         <span class="iconify" data-icon="ph:sparkles" style="width:18px;height:18px;"></span>
                         <span>Analyze</span>
                     </button>
@@ -341,6 +341,190 @@
                 toggleModelDropdown();
             }
         });
+
+        // File Upload Handler
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', handleFileUpload);
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showNotification('📁 Processing file...');
+
+            const fileName = file.name;
+            const fileExt = fileName.split('.').pop().toLowerCase();
+
+            try {
+                if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
+                    await handleExcelFile(file);
+                } else if (fileExt === 'pdf') {
+                    await handlePDFFile(file);
+                } else if (fileExt === 'docx' || fileExt === 'doc') {
+                    await handleDocxFile(file);
+                } else if (fileExt === 'txt') {
+                    await handleTextFile(file);
+                } else {
+                    throw new Error('Unsupported file type');
+                }
+            } catch (error) {
+                console.error('Error processing file:', error);
+                showNotification('❌ Error processing file');
+            }
+        }
+
+        async function handleExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                    if (!jsonData || jsonData.length === 0) {
+                        throw new Error('Empty spreadsheet');
+                    }
+
+                    currentDocData = {
+                        type: 'excel',
+                        name: file.name,
+                        data: jsonData,
+                        headers: jsonData[0],
+                        rows: jsonData.length - 1
+                    };
+
+                    await analyzeDocument(file, 'excel', jsonData);
+                } catch (error) {
+                    console.error('Excel processing error:', error);
+                    showNotification('❌ Error reading Excel file');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function handlePDFFile(file) {
+            showNotification('📄 PDF support coming soon...');
+            // PDF.js integration would go here
+        }
+
+        async function handleDocxFile(file) {
+            showNotification('📝 DOCX support coming soon...');
+            // Mammoth.js integration would go here
+        }
+
+        async function handleTextFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const textContent = e.target.result;
+                currentDocData = {
+                    type: 'text',
+                    name: file.name,
+                    content: textContent
+                };
+                await analyzeDocument(file, 'text', { content: textContent });
+            };
+            reader.readAsText(file);
+        }
+
+        async function analyzeDocument(file, fileType, parsedData) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('file_type', fileType);
+
+            if (fileType === 'excel') {
+                formData.append('excel_data', JSON.stringify({
+                    rows: parsedData.length - 1,
+                    columns: parsedData[0].length,
+                    headers: parsedData[0],
+                    sample_data: parsedData.slice(1, 6)
+                }));
+            } else if (fileType === 'text') {
+                formData.append('text_content', parsedData.content);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayAnalysis(data.analysis);
+                    showNotification('✨ Analysis complete!');
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error);
+                showNotification('❌ ' + error.message);
+            }
+        }
+
+        function displayAnalysis(analysis) {
+            console.log('Analysis result:', analysis);
+            showNotification('📊 Analysis displayed in sidebar');
+            // Update sidebar with results
+            // This would populate the capabilities section with actual insights
+        }
+
+        // URL Analysis
+        async function analyzeURL() {
+            const urlInput = document.querySelector('input[type="url"]');
+            const url = urlInput?.value?.trim();
+            
+            if (!url) {
+                showNotification('⚠️ Please enter a URL');
+                return;
+            }
+
+            showNotification('🌐 Analyzing URL...');
+
+            try {
+                const formData = new FormData();
+                formData.append('url', url);
+                formData.append('file_type', 'url');
+
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.analysis) {
+                    displayAnalysis(data.analysis);
+                    showNotification('✨ URL analyzed successfully!');
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('URL analysis error:', error);
+                showNotification('❌ ' + error.message);
+            }
+        }
+
+        console.log('✅ All backend functionality loaded');
     </script>
 </body>
 </html>
