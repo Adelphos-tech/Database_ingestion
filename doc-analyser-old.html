@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Analyser - Atlas IQ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* PREMIUM REDESIGN - Luxury UI */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            min-height: 100vh;
+            background: #0A0A0F;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Figma-Style Gradient Background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(to bottom right, 
+                rgb(99 102 241 / 0.05) 0%, 
+                rgb(168 85 247 / 0.05) 35%, 
+                rgb(236 72 153 / 0.05) 100%
+            );
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+        
+        /* Radial Gradient Overlay - Figma Style */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at top, rgb(79 70 229 / 0.1) 0%, transparent 50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        @keyframes meshMove {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -30px); }
+            66% { transform: translate(-20px, 20px); }
+        }
+        /* Premium Glass Panels */
+        .doc-split-container { 
+            display: grid; 
+            grid-template-columns: 40% 60%; 
+            gap: 1.5rem; 
+            height: 100vh; 
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .doc-ai-insights-panel { 
+            display: flex; 
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .doc-data-preview-panel { 
+            position: relative; 
+            display: flex; 
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+            overflow: hidden;
+        }
+        .ai-badge { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 4px 8px; 
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 9999px; 
+            color: rgba(255, 255, 255, 0.3); 
+            font-size: 10px; 
+            font-weight: 500; 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            margin-bottom: 1.5rem;
+        }
+        .insights-title { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px; 
+            font-weight: 500; 
+            margin-bottom: 1rem;
+            letter-spacing: normal;
+        }
+        .insight-item { 
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px; 
+            padding: 16px; 
+            margin-bottom: 12px; 
+            color: rgba(255, 255, 255, 0.6); 
+            font-size: 13px; 
+            line-height: 1.6;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .insight-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .hidden { display: none !important; }
+        
+        /* Preview content - keep container dark but let content display normally */
+        #docPreviewContent { 
+            background: #1a1a1a;
+            padding: 1rem;
+        }
+        
+        /* Let Luckysheet display with its default light theme for readability */
+        #luckysheet { 
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        /* PDF and iframe - display normally */
+        iframe {
+            background: white;
+            border-radius: 8px;
+        }
+        
+        /* Text preview dark mode */
+        pre {
+            background: #0f0f0f;
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        
+        /* Elegant Loaders */
+        .elegant-loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(16, 185, 129, 0.1);
+            border-top-color: #10b981;
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Pulse Loader for AI Analysis */
+        .pulse-loader {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .pulse-loader span {
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse-dot 1.4s ease-in-out infinite;
+        }
+        
+        .pulse-loader span:nth-child(1) { animation-delay: 0s; }
+        .pulse-loader span:nth-child(2) { animation-delay: 0.2s; }
+        .pulse-loader span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes pulse-dot {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        /* Skeleton Loader */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 25%, rgba(16, 185, 129, 0.15) 50%, rgba(16, 185, 129, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Scanning Line Loader */
+        .scanning-loader {
+            position: relative;
+            width: 100%;
+            height: 4px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .scanning-loader::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            animation: scan 2s ease-in-out infinite;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(300%); }
+        }
+        
+        /* Loading State Container */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2rem;
+            gap: 1.5rem;
+            background: rgba(16, 185, 129, 0.02);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+        }
+        
+        .loading-text {
+            color: #10b981;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .loading-subtext {
+            color: #6b7280;
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: -0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header - Figma Style -->
+    <header style="
+        background: rgba(10, 10, 15, 0.8);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        padding: 1.25rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+    ">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="position: relative;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(to top right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border-radius: 0.5rem; filter: blur(12px); opacity: 0.75;"></div>
+                <div style="position: relative; background: linear-gradient(to top right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); padding: 0.625rem; border-radius: 0.5rem;">
+                    <span class="iconify" data-icon="fluent:document-text-24-filled" style="width:20px;height:20px;color:white;"></span>
+                </div>
+            </div>
+            <div>
+                <h1 style="
+                    font-size: 1.125rem; 
+                    font-weight: 400; 
+                    color: rgba(255, 255, 255, 0.95);
+                    margin: 0; 
+                    letter-spacing: -0.025em;
+                ">Document Analyzer</h1>
+                <p style="font-size: 11px; color: rgba(255, 255, 255, 0.4); margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; margin-top: 2px;">AI-Powered Intelligence</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <!-- Model Selector -->
+            <div style="position: relative;">
+                <button id="docModelBtn" onclick="toggleDocModelDropdown()" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(40px); border: 1px solid rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.7); padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.1)';" onmouseout="this.style.background='rgba(255, 255, 255, 0.02)'; this.style.borderColor='rgba(255, 255, 255, 0.05)';">
+                    <div style="width: 6px; height: 6px; border-radius: 50%; background: rgb(99 102 241);"></div>
+                    <span id="docCurrentModelName">Gemini 2.5 Flash</span>
+                    <span class="iconify" data-icon="ph:caret-down" style="width:14px;height:14px;"></span>
+                </button>
+                
+                <!-- Dropdown -->
+                <div id="docModelDropdown" class="hidden" style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; width: 280px; background: rgba(22, 22, 31, 0.95); backdrop-filter: blur(40px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden;">
+                    <div style="padding: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px;">
+                            <span class="iconify" data-icon="ph:magnifying-glass" style="width:14px;height:14px;color:#6b7280;"></span>
+                            <input type="text" id="docModelSearch" placeholder="Search models" style="background: transparent; border: none; outline: none; color: #d4d4d4; font-size: 0.875rem; width: 100%;">
+                        </div>
+                    </div>
+                    <div id="docModelList" style="max-height: 320px; overflow-y: auto;">
+                        <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                            <div class="elegant-loader" style="margin: 0 auto 0.75rem;"></div>
+                            <p style="font-size: 0.875rem;">Loading models...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="resetDocument()" style="
+                background: white; 
+                color: #0A0A0F; 
+                border: none;
+                padding: 0.625rem 1.25rem; 
+                border-radius: 0.5rem; 
+                font-size: 0.875rem; 
+                font-weight: 600; 
+                cursor: pointer; 
+                transition: all 0.3s; 
+                display: flex; 
+                align-items: center; 
+                gap: 0.5rem;
+                box-shadow: 0 8px 16px rgba(255, 255, 255, 0.1);
+                position: relative;
+                overflow: hidden;
+            " onmouseover="this.style.boxShadow='0 12px 24px rgba(255, 255, 255, 0.2)'" onmouseout="this.style.boxShadow='0 8px 16px rgba(255, 255, 255, 0.1)'">
+                <span class="iconify" data-icon="ph:plus" style="width:16px;height:16px;stroke-width:2.5px;"></span>
+                <span>New Document</span>
+            </button>
+            <button onclick="window.close()" style="background: rgba(239, 68, 68, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+                <span class="iconify" data-icon="fluent-emoji:cross-mark" style="width:16px;height:16px;"></span>
+                Close
+            </button>
+        </div>
+    </div>
+    
+    <!-- Figma Layout: Sidebar + Main -->
+    <div style="display: flex; height: calc(100vh - 80px); position: relative; z-index: 1;">
+        
+        <!-- Left Sidebar (Figma Style) -->
+        <aside style="width: 384px; border-right: 1px solid rgba(255, 255, 255, 0.05); background: rgba(10, 10, 15, 0.4); backdrop-filter: blur(40px); display: flex; flex-direction: column; overflow-y: auto;">
+            <div class="ai-badge">
+                <span class="iconify" data-icon="fluent-emoji:robot" style="width:14px;height:14px;"></span>
+                <span>Active Analysis</span>
+            </div>
+            
+            <div id="aiInsightsSection" class="hidden">
+                <div class="insights-title">
+                    <span class="iconify" data-icon="fluent-emoji:light-bulb" style="width:14px;height:14px;"></span>
+                    <span>Key Insights</span>
+                </div>
+                <div id="aiInsightsList"></div>
+            </div>
+            
+            <div id="aiAnalysisSummary" style="color: rgba(255, 255, 255, 0.6); font-size: 13px; line-height: 1.6; margin-bottom: 1rem;">
+                Upload a document to start AI-powered analysis. I'll provide insights, trends, and visualizations automatically.
+            </div>
+            
+            <div id="aiChartsSection" class="hidden"></div>
+            
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                <div class="relative">
+                    <textarea id="docAnalyserQuestion" rows="2" class="w-full px-3 py-2.5 rounded-xl focus:ring-0 resize-none text-sm outline-none" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.9);" placeholder="Type your question..."></textarea>
+                </div>
+                <button id="docAnalyserSendBtn" onclick="sendDocAnalyserQuestion()" class="w-full mt-2 px-4 py-2.5 rounded-xl text-white font-semibold shadow-lg hover:shadow-xl transition" style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153));">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <span>Ask AI</span>
+                        <span class="iconify" data-icon="ph:arrow-right" style="width:16px;height:16px;"></span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Data Preview (60%) -->
+        <div class="doc-data-preview-panel">
+            <!-- URL Input Section -->
+            <div id="docUrlInputZone" class="mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0 flex items-center justify-center" style="width: 48px; height: 48px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <span class="iconify" data-icon="ph:link" style="width:20px;height:20px;color:rgb(99 102 241);"></span>
+                    </div>
+                    <div class="flex-1 relative">
+                        <input type="url" id="docUrlInput" placeholder="Paste a URL to analyze (e.g., https://example.com/document)" 
+                               class="w-full px-4 py-3 rounded-xl focus:ring-0 text-sm outline-none"
+                               style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.9);"
+                               onkeypress="if(event.key==='Enter') analyzeUrl()">
+                    </div>
+                    <button onclick="analyzeUrl()" class="flex-shrink-0 px-6 py-3 text-white rounded-xl font-semibold transition shadow-lg hover:shadow-xl flex items-center gap-2" style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153));">
+                        <span class="iconify" data-icon="ph:sparkles" style="width:18px;height:18px;"></span>
+                        <span>Analyze</span>
+                    </button>
+                </div>
+                <div class="mt-3 ml-10 flex items-start gap-2 rounded-lg px-3 py-2" style="background: rgba(251, 146, 60, 0.08); border: 1px solid rgba(251, 146, 60, 0.2);">
+                    <span class="iconify flex-shrink-0" data-icon="fluent-emoji:warning" style="width:16px;height:16px;margin-top:2px;color:#fb923c;"></span>
+                    <p class="text-xs" style="color: #fbbf24;">
+                        <span class="font-semibold">Note:</span> Sites with heavy security (banking, e-commerce, protected portals) may not work.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="relative mt-8">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t" style="border-color: rgba(255, 255, 255, 0.05);"></div></div>
+                <div class="relative flex justify-center text-xs"><span class="px-6" style="background: #0A0A0F; color: rgba(255, 255, 255, 0.3); text-transform: uppercase; letter-spacing: 0.1em;">Or upload a file</span></div>
+            </div>
+            <div id="docUploadZone" class="border-2 border-dashed rounded-3xl p-20 text-center transition cursor-pointer mt-6" style="border-color: rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.01);" onmouseover="this.style.borderColor='rgba(255, 255, 255, 0.2)'; this.style.background='rgba(255, 255, 255, 0.02)';" onmouseout="this.style.borderColor='rgba(255, 255, 255, 0.1)'; this.style.background='rgba(255, 255, 255, 0.01)';">
+                <input type="file" id="docAnalyserFileInput" accept=".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv" class="hidden">
+                <div class="relative inline-block mb-6">
+                    <div style="position: absolute; inset: 0; background: linear-gradient(to bottom right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); border-radius: 1rem; filter: blur(24px); opacity: 0.4;"></div>
+                    <div class="relative" style="background: rgba(255, 255, 255, 0.05); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <span class="iconify" data-icon="ph:file-text" style="width:64px;height:64px;color:rgba(255,255,255,0.9);"></span>
+                    </div>
+                </div>
+                <p class="mb-4" style="font-size: 1.125rem; color: rgba(255, 255, 255, 0.9);">
+                    <span class="cursor-pointer" style="background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247), rgb(236 72 153)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;" onclick="document.getElementById('docAnalyserFileInput').click()">Click to select</span>
+                    <span style="color: rgba(255, 255, 255, 0.4);"> or drag and drop</span>
+                </p>
+                <p class="text-xs" style="color: rgba(255, 255, 255, 0.3);">Supported formats: PDF, Excel (XLSX, XLS), CSV, DOCX, TXT</p>
+            </div>
+            
+            <div id="docPreviewContent" class="hidden" style="position: absolute; top: 80px; left: 0; right: 0; bottom: 0; overflow: hidden;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        const API_BASE_URL = 'https://database-ingestion-production.up.railway.app';
+        console.log('📊 Doc Analyser loaded in new tab');
+        
+        // Model Selector Functions
+        async function fetchDocCurrentModel() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                if (data.current_model) {
+                    const modelInfo = data.available_models.find(m => m.id === data.current_model) || {};
+                    document.getElementById('docCurrentModelName').textContent = modelInfo.name || 'Gemini 2.5 Flash';
+                }
+            } catch (error) {
+                console.error('Error fetching model:', error.message);
+                document.getElementById('docCurrentModelName').textContent = 'Gemini 2.5 Flash';
+            }
+        }
+        
+        let modelsCache = null; // Cache models to avoid repeated fetches
+        
+        async function toggleDocModelDropdown() {
+            const dropdown = document.getElementById('docModelDropdown');
+            const isHidden = dropdown.classList.contains('hidden');
+            
+            if (isHidden) {
+                dropdown.classList.remove('hidden');
+                // Load models without waiting
+                loadDocModelList();
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+        
+        async function loadDocModelList() {
+            const container = document.getElementById('docModelList');
+            
+            // Use cache if available
+            if (modelsCache) {
+                renderModelList(modelsCache);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`);
+                
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                // Cache the data
+                modelsCache = data;
+                renderModelList(data);
+            } catch (error) {
+                console.error('Error loading models:', error.message);
+                container.innerHTML = `<div style="padding: 1rem; text-align: center; color: #ef4444; font-size: 0.875rem;">⚠️ Cannot connect to backend<br><span style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.5rem; display: block;">Using default model</span></div>`;
+            }
+        }
+        
+        function renderModelList(data) {
+            const container = document.getElementById('docModelList');
+            container.innerHTML = '';
+            
+            // Recommended section
+            const recommended = data.available_models.filter(m => m.category === 'recommended');
+            if (recommended.length > 0) {
+                container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Recommended</div>';
+                recommended.forEach(model => {
+                    container.appendChild(createDocModelItem(model, data.current_model));
+                });
+            }
+            
+            // Others section
+            const others = data.available_models.filter(m => m.category !== 'recommended');
+            if (others.length > 0) {
+                container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-top: 1px solid rgba(16, 185, 129, 0.1); margin-top: 0.5rem;">Other Models</div>';
+                others.forEach(model => {
+                    container.appendChild(createDocModelItem(model, data.current_model));
+                });
+            }
+        }
+        
+        function createDocModelItem(model, currentModel) {
+            const isActive = model.id === currentModel;
+            const item = document.createElement('div');
+            item.style.cssText = `padding: 0.75rem; cursor: pointer; transition: all 0.2s; ${isActive ? 'background: rgba(16, 185, 129, 0.1);' : ''}`;
+            item.onmouseover = () => { if (!isActive) item.style.background = 'rgba(16, 185, 129, 0.05)'; };
+            item.onmouseout = () => { if (!isActive) item.style.background = 'transparent'; };
+            item.onclick = () => switchDocModel(model.id);
+            
+            item.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.875rem; font-weight: 500; color: ${isActive ? '#10b981' : '#d4d4d4'};">${model.name}</span>
+                            ${isActive ? '<svg style="width: 16px; height: 16px; color: #10b981;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>' : ''}
+                        </div>
+                        <p style="font-size: 0.75rem; color: #6b7280; margin: 0;">${model.description}</p>
+                    </div>
+                </div>
+            `;
+            
+            return item;
+        }
+        
+        async function switchDocModel(modelId) {
+            // Optimistic UI update - update immediately
+            const modelName = modelsCache?.available_models.find(m => m.id === modelId)?.name || 'Gemini';
+            document.getElementById('docCurrentModelName').textContent = modelName;
+            document.getElementById('docModelDropdown').classList.add('hidden');
+            showDocNotification('✅ Switching model...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/model`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: modelId })
+                });
+                
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error');
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Update cache
+                    if (modelsCache) {
+                        modelsCache.current_model = modelId;
+                    }
+                    showDocNotification('✅ Model switched successfully!');
+                } else {
+                    throw new Error('Switch failed');
+                }
+            } catch (error) {
+                console.error('Error switching model:', error.message);
+                showDocNotification('⚠️ Backend offline - using default');
+                // Revert to default on error
+                document.getElementById('docCurrentModelName').textContent = 'Gemini 2.5 Flash';
+            }
+        }
+        
+        function showDocNotification(message) {
+            const notif = document.createElement('div');
+            notif.style.cssText = 'position: fixed; top: 1rem; right: 1rem; background: linear-gradient(to right, rgb(99 102 241), rgb(168 85 247)); color: white; padding: 0.75rem 1.25rem; border-radius: 12px; font-size: 0.875rem; font-weight: 500; z-index: 9999; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3); animation: slideIn 0.3s ease-out;';
+            notif.textContent = message;
+            document.body.appendChild(notif);
+            setTimeout(() => {
+                notif.style.opacity = '0';
+                notif.style.transition = 'opacity 0.3s';
+                setTimeout(() => notif.remove(), 300);
+            }, 2500);
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('docModelDropdown');
+            const btn = document.getElementById('docModelBtn');
+            if (dropdown && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Fetch current model on load
+        fetchDocCurrentModel();
+        
+        // Doc Analyser Variables
+        let currentDocData = null;
+        let docConversationHistory = [];
+
+        // Helper function to format error messages
+        function formatErrorMessage(errorMsg) {
+            const lowerMsg = errorMsg.toLowerCase();
+            
+            // Check for backend offline/server errors first
+            if (lowerMsg.includes('server error') || lowerMsg.includes('backend may be offline')) {
+                return '🔌 Backend server is offline or restarting. Please try again in a moment.';
+            }
+            if (lowerMsg.includes('quota') || lowerMsg.includes('429') || lowerMsg.includes('rate limit')) {
+                return '🚫 API quota limit reached. Please try again later.';
+            }
+            if (lowerMsg.includes('api key') || lowerMsg.includes('unauthorized') || lowerMsg.includes('401')) {
+                return '🔑 Authentication error. Please check API configuration.';
+            }
+            if (lowerMsg.includes('network') || lowerMsg.includes('fetch') || lowerMsg.includes('connection')) {
+                return '🌐 Network error. Please check your connection.';
+            }
+            if (lowerMsg.includes('timeout')) {
+                return '⏱️ Request timeout. Please try again.';
+            }
+            return errorMsg;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        // Initialize event listeners
+        const docAnalyserFileInput = document.getElementById('docAnalyserFileInput');
+        const docUploadZone = document.getElementById('docUploadZone');
+        const docPreviewContent = document.getElementById('docPreviewContent');
+        const docAnalyserQuestion = document.getElementById('docAnalyserQuestion');
+        const docAnalyserSendBtn = document.getElementById('docAnalyserSendBtn');
+
+        if (docAnalyserFileInput) {
+            docAnalyserFileInput.addEventListener('change', handleDocAnalyserFile);
+        }
+
+        if (docUploadZone) {
+            docUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                docUploadZone.style.borderColor = 'rgba(124, 58, 237, 0.5)';
+            });
+
+            docUploadZone.addEventListener('dragleave', () => {
+                docUploadZone.style.borderColor = 'rgba(148, 163, 184, 0.5)';
+            });
+
+            docUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                docUploadZone.style.borderColor = 'rgba(148, 163, 184, 0.5)';
+                if (docAnalyserFileInput) {
+                    docAnalyserFileInput.files = e.dataTransfer.files;
+                    handleDocAnalyserFile();
+                }
+            });
+        }
+
+        if (docAnalyserQuestion) {
+            docAnalyserQuestion.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendDocAnalyserQuestion();
+                }
+            });
+        }
+
+        async function handleDocAnalyserFile() {
+            const file = docAnalyserFileInput.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileSize = formatFileSize(file.size);
+            const fileExt = fileName.split('.').pop().toLowerCase();
+
+            docUploadZone.classList.add('hidden');
+            docPreviewContent.classList.remove('hidden');
+            docPreviewContent.innerHTML = '<div style="text-align:center;padding:2rem;color:#d4d4d4;"><div style="font-size:3rem;">⏳</div><p>Loading document...</p></div>';
+            
+            document.getElementById('aiAnalysisSummary').innerHTML = '<div style="color:#10b981;"><div style="font-size:2rem;margin-bottom:1rem;">✨</div><div>Analyzing Document...</div><div style="font-size:0.85rem;color:#6b7280;margin-top:0.5rem;">AI is processing your data...</div></div>';
+
+            try {
+                if (fileExt === 'xlsx' || fileExt === 'xls' || fileExt === 'csv') {
+                    await handleExcelFile(file);
+                } else if (fileExt === 'pdf') {
+                    await handlePDFFile(file);
+                } else if (fileExt === 'txt') {
+                    await handleTextFile(file);
+                } else if (fileExt === 'docx' || fileExt === 'doc') {
+                    await handleDocxFile(file);
+                } else {
+                    throw new Error('Unsupported file format');
+                }
+            } catch (error) {
+                docPreviewContent.innerHTML = `<div style="color:#ef4444;text-center;padding:2rem;">Error: ${error.message}</div>`;
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;">⚠️ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function handleExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length > 0) {
+                        docPreviewContent.innerHTML = '<div id="luckysheet" style="width:100%; height:100%; position:absolute; top:0; left:0;"></div>';
+                        
+                        const celldata = [];
+                        jsonData.forEach((row, rowIndex) => {
+                            row.forEach((cell, colIndex) => {
+                                if (cell !== undefined && cell !== null && cell !== '') {
+                                    celldata.push({
+                                        r: rowIndex,
+                                        c: colIndex,
+                                        v: { v: cell, m: String(cell), ct: { fa: 'General', t: 'g' } }
+                                    });
+                                }
+                            });
+                        });
+
+                        setTimeout(() => {
+                            luckysheet.create({
+                                container: 'luckysheet',
+                                showinfobar: false,
+                                showsheetbar: false,
+                                showstatisticBar: false,
+                                enableAddRow: false,
+                                enableAddCol: false,
+                                userInfo: false,
+                                myFolderUrl: false,
+                                allowEdit: false,
+                                showToolbar: true,
+                                showsheetbarConfig: { add: false, menu: false, sheet: true },
+                                data: [{
+                                    name: firstSheetName,
+                                    celldata: celldata,
+                                    row: jsonData.length,
+                                    column: Math.max(...jsonData.map(row => row.length))
+                                }],
+                                title: file.name,
+                                lang: 'en'
+                            });
+                        }, 100);
+
+                        currentDocData = {
+                            type: 'excel',
+                            data: jsonData,
+                            rows: jsonData.length - 1,
+                            columns: jsonData[0].length,
+                            headers: jsonData[0]
+                        };
+
+                        await analyzeDocument(file, 'excel', jsonData);
+                    }
+                } catch (error) {
+                    throw new Error('Failed to parse Excel file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function handlePDFFile(file) {
+            const fileURL = URL.createObjectURL(file);
+            docPreviewContent.innerHTML = `<iframe src="${fileURL}" style="width:100%;height:100%;border:0;"></iframe>`;
+            await analyzeDocument(file, 'pdf');
+        }
+
+        async function handleTextFile(file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                docPreviewContent.innerHTML = `<pre style="white-space:pre-wrap;font-size:13px;color:#d4d4d4;background:#0f0f0f;padding:1rem;border-radius:8px;height:100%;overflow:auto;">${text}</pre>`;
+                
+                currentDocData = { type: 'text', content: text };
+                await analyzeDocument(file, 'text', text);
+            };
+            reader.readAsText(file);
+        }
+
+        async function handleDocxFile(file) {
+            docPreviewContent.innerHTML = '<div style="color:#d4d4d4;text-center;padding:2rem;">📄 DOCX file loaded. Use AI chat to analyze.</div>';
+            await analyzeDocument(file, 'docx');
+        }
+
+        async function analyzeDocument(file, fileType, parsedData = null) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('file_type', fileType);
+            
+            if (fileType === 'excel' && parsedData) {
+                formData.append('excel_data', JSON.stringify({
+                    rows: parsedData.length - 1,
+                    columns: parsedData[0].length,
+                    headers: parsedData[0],
+                    sample_data: parsedData.slice(1, 6)
+                }));
+            } else if (fileType === 'text' && parsedData) {
+                formData.append('text_content', parsedData);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Check content type before parsing
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline or restarting');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayAnalysis(data.analysis, data.data_summary);
+                    docConversationHistory = [];
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Analysis error:', error.message);
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
+            }
+        }
+
+        function displayAnalysis(analysis, dataSummary = null) {
+            const lines = analysis.split('\n');
+            let summary = '';
+            let insights = [];
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+                
+                if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*') || line.match(/^\d+\./)) {
+                    insights.push(line.replace(/^[-•*]\s*/, '').replace(/^\d+\.\s*/, ''));
+                } else if (insights.length === 0) {
+                    summary += line + ' ';
+                }
+            }
+            
+            document.getElementById('aiAnalysisSummary').textContent = summary || "I've analyzed your data.";
+            
+            if (insights.length > 0) {
+                document.getElementById('aiInsightsSection').classList.remove('hidden');
+                const insightsList = document.getElementById('aiInsightsList');
+                insightsList.innerHTML = insights.map(insight => {
+                    const highlighted = insight.replace(/(\$?[\d,]+\.?\d*%?)/g, '<strong>$1</strong>');
+                    return `<div class="insight-item">${highlighted}</div>`;
+                }).join('');
+            }
+        }
+
+        async function sendDocAnalyserQuestion() {
+            const question = docAnalyserQuestion.value.trim();
+            if (!question || !currentDocData) return;
+
+            docAnalyserSendBtn.disabled = true;
+            docAnalyserSendBtn.textContent = 'Thinking...';
+
+            try {
+                const formData = new FormData();
+                formData.append('question', question);
+                formData.append('file_type', currentDocData.type);
+                formData.append('conversation_history', JSON.stringify(docConversationHistory));
+                
+                if (currentDocData.type === 'excel') {
+                    formData.append('excel_data', JSON.stringify(currentDocData.data));
+                } else if (currentDocData.type === 'text') {
+                    formData.append('text_content', currentDocData.content);
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline or restarting');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.answer) {
+                    document.getElementById('aiAnalysisSummary').innerHTML = `
+                        <div style="margin-bottom:1rem;padding:0.75rem;background:rgba(16,185,129,0.1);border-left:3px solid #10b981;border-radius:4px;">
+                            <div style="color:#10b981;font-size:11px;font-weight:600;margin-bottom:0.5rem;">YOU</div>
+                            <div style="color:#d4d4d4;font-size:13px;">${question}</div>
+                        </div>
+                        <div style="padding:0.75rem;background:rgba(99,102,241,0.1);border-left:3px solid #6366f1;border-radius:4px;">
+                            <div style="color:#6366f1;font-size:11px;font-weight:600;margin-bottom:0.5rem;">AI</div>
+                            <div style="color:#d4d4d4;font-size:13px;">${data.answer}</div>
+                        </div>
+                    `;
+                    
+                    docConversationHistory.push({ user: question, assistant: data.answer });
+                    docAnalyserQuestion.value = '';
+                } else {
+                    throw new Error(data.error || 'Failed to get answer');
+                }
+            } catch (error) {
+                const errorMessage = formatErrorMessage(error.message);
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
+            } finally {
+                docAnalyserSendBtn.disabled = false;
+                docAnalyserSendBtn.textContent = 'Ask AI ↗';
+            }
+        }
+
+        async function analyzeUrl() {
+            const urlInput = document.getElementById('docUrlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            docUploadZone.classList.add('hidden');
+            docPreviewContent.classList.remove('hidden');
+            
+            document.getElementById('aiAnalysisSummary').innerHTML = '<div style="color:#10b981;"><div style="font-size:2rem;margin-bottom:1rem;">🌐</div><div>Fetching Web Content...</div></div>';
+            docPreviewContent.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:0;background:#fff;"></iframe>`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('url', url);
+                formData.append('file_type', 'url');
+                
+                const response = await fetch(`${API_BASE_URL}/api/analyse-document`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error - Backend may be offline or restarting');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.analysis) {
+                    currentDocData = { type: 'url', url: url, content: data.text_content || '' };
+                    displayAnalysis(data.analysis, data.summary);
+                } else {
+                    throw new Error(data.error || 'Failed to analyze URL');
+                }
+            } catch (error) {
+                let errorMessage = error.message || 'Unknown error occurred';
+                if (errorMessage.includes('403') || errorMessage.includes('blocked')) {
+                    errorMessage = '🔒 Website blocked access';
+                } else if (errorMessage.includes('404')) {
+                    errorMessage = '❌ Page not found';
+                }
+                
+                document.getElementById('aiAnalysisSummary').innerHTML = `<div style="color:#ef4444;font-size:13px;">⚠️ ${errorMessage}</div>`;
+            }
+        }
+
+        function resetDocument() {
+            // Clear file input
+            if (docAnalyserFileInput) docAnalyserFileInput.value = '';
+            
+            // Clear URL input
+            const urlInput = document.getElementById('docUrlInput');
+            if (urlInput) urlInput.value = '';
+            
+            // Show upload zone
+            if (docUploadZone) docUploadZone.classList.remove('hidden');
+            
+            // Hide preview
+            if (docPreviewContent) {
+                docPreviewContent.classList.add('hidden');
+                docPreviewContent.innerHTML = '';
+            }
+            
+            // Reset AI analysis
+            document.getElementById('aiAnalysisSummary').innerHTML = '<span style=\"color:#10b981;\">Upload a document to start AI-powered analysis. I\'ll provide insights, trends, and visualizations automatically.</span>';
+            
+            // Hide insights
+            const insightsSection = document.getElementById('aiInsightsSection');
+            if (insightsSection) insightsSection.classList.add('hidden');
+            
+            const chartsSection = document.getElementById('aiChartsSection');
+            if (chartsSection) {
+                chartsSection.classList.add('hidden');
+                chartsSection.innerHTML = '';
+            }
+            
+            // Reset data
+            currentDocData = null;
+            docConversationHistory = [];
+            
+            // Clear question input
+            if (docAnalyserQuestion) docAnalyserQuestion.value = '';
+            
+            console.log('Document reset - ready for new upload');
+        }
+
+        console.log('✅ Doc Analyser fully loaded with all functions');
+    </script>
+</body>
+</html>
