@@ -51,7 +51,7 @@ CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "DELETE"
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-DEFAULT_CHAT_MODEL = 'models/gemini-2.0-flash-exp'
+DEFAULT_CHAT_MODEL = 'models/gemini-2.5-flash'  # Latest stable - best for chat + document analysis
 CONFIGURED_CHAT_MODEL = os.getenv('GEMINI_CHAT_MODEL', DEFAULT_CHAT_MODEL)
 ENABLE_PLAYWRIGHT_CRAWL = os.getenv('ENABLE_PLAYWRIGHT_CRAWL', 'false').lower() == 'true'
 
