@@ -284,7 +284,14 @@
         async function fetchDocCurrentModel() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/model`);
-                if (!response.ok) throw new Error('Failed to fetch');
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 
                 if (data.current_model) {
@@ -292,10 +299,12 @@
                     document.getElementById('docCurrentModelName').textContent = modelInfo.name || 'Gemini 2.5 Flash';
                 }
             } catch (error) {
-                console.error('Error fetching model:', error);
+                console.error('Error fetching model:', error.message);
                 document.getElementById('docCurrentModelName').textContent = 'Gemini 2.5 Flash';
             }
         }
+        
+        let modelsCache = null; // Cache models to avoid repeated fetches
         
         async function toggleDocModelDropdown() {
             const dropdown = document.getElementById('docModelDropdown');
@@ -303,7 +312,8 @@
             
             if (isHidden) {
                 dropdown.classList.remove('hidden');
-                await loadDocModelList();
+                // Load models without waiting
+                loadDocModelList();
             } else {
                 dropdown.classList.add('hidden');
             }
@@ -312,33 +322,53 @@
         async function loadDocModelList() {
             const container = document.getElementById('docModelList');
             
+            // Use cache if available
+            if (modelsCache) {
+                renderModelList(modelsCache);
+                return;
+            }
+            
             try {
                 const response = await fetch(`${API_BASE_URL}/api/model`);
-                if (!response.ok) throw new Error('Failed to load models');
                 
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                container.innerHTML = '';
                 
-                // Recommended section
-                const recommended = data.available_models.filter(m => m.category === 'recommended');
-                if (recommended.length > 0) {
-                    container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Recommended</div>';
-                    recommended.forEach(model => {
-                        container.appendChild(createDocModelItem(model, data.current_model));
-                    });
-                }
-                
-                // Others section
-                const others = data.available_models.filter(m => m.category !== 'recommended');
-                if (others.length > 0) {
-                    container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-top: 1px solid rgba(16, 185, 129, 0.1); margin-top: 0.5rem;">Other Models</div>';
-                    others.forEach(model => {
-                        container.appendChild(createDocModelItem(model, data.current_model));
-                    });
-                }
+                // Cache the data
+                modelsCache = data;
+                renderModelList(data);
             } catch (error) {
-                console.error('Error loading models:', error);
-                container.innerHTML = '<div style="padding: 1rem; text-align: center; color: #ef4444; font-size: 0.875rem;">Failed to load models</div>';
+                console.error('Error loading models:', error.message);
+                container.innerHTML = `<div style="padding: 1rem; text-align: center; color: #ef4444; font-size: 0.875rem;">⚠️ Cannot connect to backend<br><span style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.5rem; display: block;">Using default model</span></div>`;
+            }
+        }
+        
+        function renderModelList(data) {
+            const container = document.getElementById('docModelList');
+            container.innerHTML = '';
+            
+            // Recommended section
+            const recommended = data.available_models.filter(m => m.category === 'recommended');
+            if (recommended.length > 0) {
+                container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Recommended</div>';
+                recommended.forEach(model => {
+                    container.appendChild(createDocModelItem(model, data.current_model));
+                });
+            }
+            
+            // Others section
+            const others = data.available_models.filter(m => m.category !== 'recommended');
+            if (others.length > 0) {
+                container.innerHTML += '<div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; border-top: 1px solid rgba(16, 185, 129, 0.1); margin-top: 0.5rem;">Other Models</div>';
+                others.forEach(model => {
+                    container.appendChild(createDocModelItem(model, data.current_model));
+                });
             }
         }
         
@@ -366,6 +396,12 @@
         }
         
         async function switchDocModel(modelId) {
+            // Optimistic UI update - update immediately
+            const modelName = modelsCache?.available_models.find(m => m.id === modelId)?.name || 'Gemini';
+            document.getElementById('docCurrentModelName').textContent = modelName;
+            document.getElementById('docModelDropdown').classList.add('hidden');
+            showDocNotification('✅ Switching model...');
+            
             try {
                 const response = await fetch(`${API_BASE_URL}/api/model`, {
                     method: 'POST',
@@ -373,15 +409,27 @@
                     body: JSON.stringify({ model: modelId })
                 });
                 
+                // Check content type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server error');
+                }
+                
                 const data = await response.json();
                 if (data.success) {
-                    await fetchDocCurrentModel();
+                    // Update cache
+                    if (modelsCache) {
+                        modelsCache.current_model = modelId;
+                    }
                     showDocNotification('✅ Model switched successfully!');
-                    document.getElementById('docModelDropdown').classList.add('hidden');
+                } else {
+                    throw new Error('Switch failed');
                 }
             } catch (error) {
-                console.error('Error switching model:', error);
-                showDocNotification('❌ Error switching model');
+                console.error('Error switching model:', error.message);
+                showDocNotification('⚠️ Backend offline - using default');
+                // Revert to default on error
+                document.getElementById('docCurrentModelName').textContent = 'Gemini 2.5 Flash';
             }
         }
         
